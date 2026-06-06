@@ -339,6 +339,18 @@
         margin-right: 1px;
       }
       .personal-pane { padding: 6px; min-height: 130px; }
+
+      /* Tighten master lists toggle on mobile: remove left space/gap between tabs header and list content */
+      #lists-toggle {
+        font-size: 10px !important;
+        padding: 1px 6px !important;
+        margin-left: 0 !important;
+      }
+      .flex.justify-end.mb-1.pr-1 {
+        margin-bottom: 0.125rem !important; /* reduce gap */
+        padding-right: 0.25rem !important;
+        padding-left: 0 !important;
+      }
       
       /* Curator input */
       #curator-input { font-size: 16px !important; }
@@ -436,7 +448,7 @@
         <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
         <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
       </div>
-      <div class="flex justify-end mb-1 px-1">
+      <div class="flex justify-end mb-1 pr-1">
         <button id="lists-toggle" onclick="toggleAllLists()" class="text-[10px] px-2 py-px bg-zinc-800 border border-zinc-700 rounded">▾ Hide all lists</button>
       </div>
       <div id="personal-content" class="mt-2">
@@ -566,7 +578,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-1 flex-wrap mt-1 pt-1 border-t border-zinc-800 text-[9px]">
+        <div class="flex items-center gap-1 flex-wrap mt-1 pt-1 border-t border-zinc-800 text-[9px] -ml-1.5 pl-1.5">
           <!-- Media type toggle -->
           <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-[9px]">
             <button onclick="setDiscoverType('movie')" id="type-movie"
