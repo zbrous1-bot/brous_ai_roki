@@ -1787,7 +1787,7 @@
       items.forEach(m => {
         const title = m.title || m.name || 'Untitled';
         const year = (m.release_date || m.first_air_date || '').slice(0, 4);
-        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : null;
+        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
 
         let html = '';
         if (m.providers) {
@@ -1820,7 +1820,7 @@
         card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster ? `<img src="${poster}" class="w-full sm:w-32 h-48 sm:h-[192px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-52 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
