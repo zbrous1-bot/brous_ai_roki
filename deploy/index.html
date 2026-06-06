@@ -530,43 +530,43 @@
       </div>
     </div>
 
-    <!-- Discover by genre (condensed) -->
+    <!-- Discover by genre (even more condensed) -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2 shadow-sm">
-        <div class="flex items-center justify-between mb-1 px-1">
-          <div class="text-[10px] font-medium text-zinc-400">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-[9px] text-zinc-500 hover:text-zinc-400">Clear</button>
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
+        <div class="flex items-center justify-between mb-0.5 px-0.5">
+          <div class="text-[9px] font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
         
         <!-- Genre chips (tighter) -->
-        <div id="genre-chips" class="flex flex-wrap gap-0.5 mb-1.5"></div>
+        <div id="genre-chips" class="flex flex-wrap gap-0.5 mb-1"></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
           <!-- Rating filter -->
           <div>
-            <div class="text-[9px] text-zinc-500 px-1 mb-0.5">Min rating</div>
+            <div class="text-[8px] text-zinc-500 px-0.5 mb-0.5">Min rating</div>
             <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
 
           <!-- Decade filter -->
           <div>
-            <div class="text-[9px] text-zinc-500 px-1 mb-0.5">Decade</div>
+            <div class="text-[8px] text-zinc-500 px-0.5 mb-0.5">Decade</div>
             <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1 flex-wrap mt-1.5 pt-1.5 border-t border-zinc-800 text-[10px]">
+        <div class="flex items-center gap-1 flex-wrap mt-1 pt-1 border-t border-zinc-800 text-[9px]">
           <!-- Media type toggle -->
-          <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5">
+          <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-[9px]">
             <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-2 py-0.5 rounded-3xl font-medium bg-white text-black text-[10px]">Movies</button>
+                    class="px-1.5 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-2 py-0.5 rounded-3xl font-medium text-zinc-300 text-[10px]">TV</button>
+                    class="px-1.5 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
           </div>
 
           <!-- Sort -->
           <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1.5 py-0.5 text-[10px] text-zinc-200 outline-none">
+                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-0.5 text-[9px] text-zinc-200 outline-none">
             <option value="popularity.desc">Popular</option>
             <option value="vote_average.desc">Rated</option>
             <option value="release_date.desc">New</option>
@@ -574,7 +574,7 @@
           </select>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-3 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[10px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+                  class="ml-auto px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[9px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
             Browse
           </button>
         </div>
@@ -1816,8 +1816,8 @@
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
-                  <div class="font-semibold text-base sm:text-[17px] leading-[1.15] tracking-[-0.2px] pr-1 truncate">${title}</div>
-                  <span class="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium shrink-0 ${mediaColor}">${mediaLabel}</span>
+                  <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] flex-1 min-w-0 line-clamp-2">${title}</div>
+                  <span class="text-[8px] sm:text-[9px] px-1 py-0.5 rounded-full font-medium shrink-0 ${mediaColor} self-start">${mediaLabel}</span>
                 </div>
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                   ${year ? `<span class="text-zinc-400 text-[13px]">${year}</span>` : ''}
@@ -2009,7 +2009,7 @@
           <div class="flex gap-3">
             <img src="${poster}" class="w-16 h-24 rounded-xl object-cover border border-zinc-800" alt="">
             <div class="min-w-0 flex-1">
-              <div class="font-semibold text-base leading-tight truncate">${item.title}</div>
+              <div class="font-semibold text-base leading-tight line-clamp-2">${item.title}</div>
               <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
               <div class="text-[11px] text-emerald-400/80 mt-0.5">taste boosted</div>
             </div>
