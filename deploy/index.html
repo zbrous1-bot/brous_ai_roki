@@ -2907,122 +2907,83 @@
 // Settings (LLM config + backup + import) - simple modal using existing style
     function showSettings() {
       const modal = document.getElementById('detail-modal');
-      if (!modal) { alert('Settings: use localStorage keys horror_roki_* or edit llmConfig in console for now. Full panel coming.'); return; }
-      // Reuse modal for settings (quick)
+      if (!modal) {
+        alert('Settings:\n- LLM Model: ' + (llmConfig.model || 'grok-4.3') + '\n- API Base: ' + (apiBase || '(relative)'));
+        return;
+      }
       modal.classList.remove('hidden');
       const titleEl = document.getElementById('modal-title');
-      const bodyWrap = document.getElementById('modal-overview');
       const meta = document.getElementById('modal-meta');
       const genresEl = document.getElementById('modal-genres');
       const avail = document.getElementById('modal-availability');
       if (titleEl) titleEl.textContent = 'Settings & Backup';
-      if (meta) meta.textContent = 'Backup, import & sync options.';
+      if (meta) meta.textContent = 'LLM, Backup, Import & Sync';
       if (genresEl) genresEl.innerHTML = '';
-      // We repurpose the #modal-availability area for Settings controls.
-      // Blank only the "Where to watch" label so it doesn't appear in Settings.
       const whereWrap = document.querySelector('#detail-modal .mb-2');
-      if (whereWrap) {
-        const label = whereWrap.querySelector('div');
-        if (label) {
-          // Save original text so we can restore it when closing (for normal movie modals)
-          label.dataset.originalText = label.textContent || '';
-          label.textContent = '';
-        }
-        whereWrap.style.display = ''; // ensure container is visible for the settings form
-      }
+      if (whereWrap) whereWrap.style.display = 'none'; // hide where-to-watch area for settings
       if (avail) avail.innerHTML = `
         <div class="text-sm space-y-3">
           <div>
-            <div class="text-xs text-zinc-500 mb-1">LLM Model (via Worker XAI_TOKEN)</div>
+            <div class="text-xs text-zinc-500 mb-1">LLM Model</div>
             <input id="set-model" value="${llmConfig.model || 'grok-4.3'}" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
           </div>
-          <div class="mt-3">
-            <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for Worker)</div>
+          <div>
+            <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for custom Worker)</div>
             <input id="set-api-base" value="${apiBase || ''}" placeholder="Leave empty for normal use" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
-            <button onclick="copyShareableLink()" class="mt-1 text-[10px] px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">Copy shareable link (with endpoint)</button>
+            <button onclick="copyShareableLink()" class="mt-1 text-[10px] px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">Copy shareable link</button>
           </div>
-
-          <div class="mt-4 pt-3 border-t border-zinc-800">
+          <div class="mt-3 pt-2 border-t border-zinc-800">
             <div class="flex gap-2">
               <button id="server-pull" class="flex-1 px-3 py-1.5 rounded-2xl bg-emerald-700 text-white text-sm">Pull from Server</button>
               <button id="server-push" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Push to Server</button>
             </div>
             <div id="server-sync-status" class="text-[10px] text-zinc-500 mt-1"></div>
           </div>
-
-          <div class="flex gap-2 mt-3">
+          <div class="flex gap-2 mt-2">
             <button id="save-llm" class="flex-1 px-3 py-1.5 rounded-2xl bg-indigo-600 text-white text-sm">Save Configs</button>
-            <button id="do-backup" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Download Full Backup JSON</button>
+            <button id="do-backup" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Download Backup</button>
           </div>
-          <div class="mt-3">
-            <div class="text-xs text-zinc-500 mb-1">Import Letterboxd / full backup JSON or CSV</div>
+          <div class="mt-2">
+            <div class="text-xs text-zinc-500 mb-1">Import backup JSON/CSV</div>
             <input type="file" id="import-file" accept=".json,.csv" class="text-xs">
             <button id="do-import" class="ml-2 px-3 py-1 rounded-2xl bg-zinc-700 text-sm">Import</button>
           </div>
         </div>
       `;
-
-      // Simple: just show the modal with settings content. No complex hiding to avoid breaking other sections.
-      modal.classList.add('settings-mode');
-          #detail-modal.settings-mode .flex.gap-2.sm\\:gap-3:has(#modal-add-button),
-          #detail-modal.settings-mode button[onclick*="closeModal"]:not(.text-2xl):not(:has(.text-2xl)) {
-            display: none !important;
-          }
-        `;
-        document.head.appendChild(hideStyle);
-      }
-
-      // Do NOT repurpose #modal-add-button as a Close. The ONLY close affordance is the × in the modal header.
-
-      // wire after
       setTimeout(() => {
         const sm = document.getElementById('save-llm');
         if (sm) sm.onclick = () => {
           const m = document.getElementById('set-model');
-          if (m) { llmConfig.model = m.value.trim() || 'grok-4.3'; }
+          if (m) llmConfig.model = m.value.trim() || 'grok-4.3';
           localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig));
-
           const baseInput = document.getElementById('set-api-base');
           if (baseInput) {
             apiBase = baseInput.value.trim();
             localStorage.setItem('brous_api_base', apiBase);
-            // Update URL so the setting is "baked" into a shareable link (e.g. ?apiBase=...)
             const newUrl = new URL(window.location.href);
-            if (apiBase) {
-              newUrl.searchParams.set('apiBase', apiBase);
-            } else {
-              newUrl.searchParams.delete('apiBase');
-            }
+            if (apiBase) newUrl.searchParams.set('apiBase', apiBase);
+            else newUrl.searchParams.delete('apiBase');
             window.history.replaceState({}, '', newUrl.toString());
           }
-          const baseNote = document.getElementById('current-base-note');
-          if (baseNote) {
-            const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
-            baseNote.textContent = 'Current API base: ' + currentBase;
-          }
-          alert('Configs saved locally. The API Endpoint is now in the URL for easy sharing (copy the page URL). Reload or re-try your action if needed.');
+          alert('Saved. Reload to apply if needed.');
         };
         const db = document.getElementById('do-backup');
         if (db) db.onclick = downloadFullBackup;
-
-        // Wire server sync buttons (new cross-device feature)
         const pullBtn = document.getElementById('server-pull');
         const pushBtn = document.getElementById('server-push');
         const statusEl = document.getElementById('server-sync-status');
-
         if (pullBtn) pullBtn.onclick = async () => {
-          if (statusEl) statusEl.textContent = 'Pulling from server...';
+          if (statusEl) statusEl.textContent = 'Pulling...';
           const data = await syncFromServer();
-          if (statusEl) statusEl.textContent = data ? 'Pulled latest from server KV ✓' : 'No server data or KV not bound yet.';
-          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2200);
+          if (statusEl) statusEl.textContent = data ? 'Pulled ✓' : 'No server data';
+          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
         };
         if (pushBtn) pushBtn.onclick = async () => {
-          if (statusEl) statusEl.textContent = 'Pushing to server...';
+          if (statusEl) statusEl.textContent = 'Pushing...';
           await pushToServer(true);
-          if (statusEl) statusEl.textContent = 'Pushed your current lists to server KV ✓';
-          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2200);
+          if (statusEl) statusEl.textContent = 'Pushed ✓';
+          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
         };
-
         const impBtn = document.getElementById('do-import');
         const f = document.getElementById('import-file');
         if (impBtn && f) impBtn.onclick = () => {
@@ -3030,26 +2991,6 @@
           const reader = new FileReader();
           reader.onload = ev => {
             const txt = ev.target.result || '';
-            if (f.files[0].name.toLowerCase().endsWith('.csv') || txt.trim().startsWith('Title,')) {
-              // Basic Letterboxd-ish CSV support: take Title column or first col, add as watched (no id/genre until recs touch live)
-              const lines = txt.trim().split(/\r?\n/);
-              const headers = lines[0].toLowerCase().split(',');
-              const tIdx = headers.findIndex(h => h.includes('title') || h.includes('name'));
-              let added = 0;
-              for (let i=1; i<lines.length && i<200; i++) {
-                const cols = lines[i].split(',');
-                const title = (tIdx>=0 ? cols[tIdx] : cols[0] || '').replace(/^"|"$/g,'').trim();
-                if (title.length > 1) {
-                  watchedList.unshift({id: 100000 + added + i, title, _mediaType:'movie', release_date:'', vote_average:0, genre_ids:[]});
-                  added++;
-                }
-              }
-              localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
-              updateAllLibraryRenders();
-              alert('CSV imported (basic titles as Watched; re-Refresh Pool or use details to enrich).');
-              closeModal();
-              return;
-            }
             try {
               const data = JSON.parse(txt);
               if (data.watched) { watchedList = data.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
@@ -3059,14 +3000,15 @@
               if (data.llm_config) { llmConfig = data.llm_config; localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
               updateAllLibraryRenders();
               renderCuratorMessages();
-              alert('Import loaded (partial tolerant).');
+              alert('Import loaded.');
               closeModal();
-            } catch(e){ alert('Import failed: ' + e.message); }
+            } catch(e) { alert('Import failed: ' + e.message); }
           };
           reader.readAsText(f.files[0]);
         };
       }, 30);
-    }    function downloadFullBackup() {
+    }
+    function downloadFullBackup() {
       const backup = {
         watched: watchedList,
         to_watch: toWatchList,
