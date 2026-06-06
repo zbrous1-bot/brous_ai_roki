@@ -1565,7 +1565,15 @@
         const st = document.getElementById('settings-modal-hide-style');
         if (st) st.remove();
         const whereWrap = document.querySelector('#detail-modal .mb-2');
-        if (whereWrap) whereWrap.style.display = '';
+        if (whereWrap) {
+          whereWrap.style.display = '';
+          // Restore the "Where to watch" label text for normal movie modals
+          const label = whereWrap.querySelector('div');
+          if (label && label.dataset.originalText !== undefined) {
+            label.textContent = label.dataset.originalText;
+            delete label.dataset.originalText;
+          }
+        }
       }
     }
 
@@ -2258,9 +2266,18 @@
       if (titleEl) titleEl.textContent = 'Settings & Backup';
       if (meta) meta.textContent = 'Backup, import & sync options.';
       if (genresEl) genresEl.innerHTML = '';
-      // Hide the "Where to watch" header (not relevant in Settings)
+      // We repurpose the #modal-availability area for Settings controls.
+      // Blank only the "Where to watch" label so it doesn't appear in Settings.
       const whereWrap = document.querySelector('#detail-modal .mb-2');
-      if (whereWrap) whereWrap.style.display = 'none';
+      if (whereWrap) {
+        const label = whereWrap.querySelector('div');
+        if (label) {
+          // Save original text so we can restore it when closing (for normal movie modals)
+          label.dataset.originalText = label.textContent || '';
+          label.textContent = '';
+        }
+        whereWrap.style.display = ''; // ensure container is visible for the settings form
+      }
       if (avail) avail.innerHTML = `
         <div class="text-sm space-y-3">
           <div>
