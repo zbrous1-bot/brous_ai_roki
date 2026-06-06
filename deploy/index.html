@@ -340,16 +340,49 @@
       }
       .personal-pane { padding: 6px; min-height: 130px; }
 
-      /* Tighten master lists toggle on mobile: remove left space/gap between tabs header and list content */
-      #lists-toggle {
-        font-size: 10px !important;
-        padding: 1px 6px !important;
-        margin-left: 0 !important;
+      /* Aggressively eliminate gap: the toggle is now a tiny ▾ symbol in the bar (no wrapping, no "sits below"), lists content starts immediately under the bar */
+      #personal-tabs-bar {
+        padding: 2px 3px !important;
       }
-      .flex.justify-end.mb-1.pr-1 {
-        margin-bottom: 0.125rem !important; /* reduce gap */
-        padding-right: 0.25rem !important;
-        padding-left: 0 !important;
+      #personal-content {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+      }
+      .personal-pane {
+        padding: 1px 2px !important;
+        min-height: 60px !important;
+      }
+      .personal-pane > div {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+      #to-watch-content, #watched-content, #disliked-content {
+        padding: 1px !important;
+        margin-top: 0 !important;
+        border: none !important;
+      }
+      /* Keep items readable but kill top-of-list deadspace */
+      .library-item {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+      }
+
+      /* Tiny compact toggle (symbol only) */
+      #lists-toggle {
+        font-size: 11px !important;
+        padding: 0 4px !important;
+        margin-left: 0.125rem !important;
+        min-height: 22px !important;
+      }
+
+      /* Hide the sub-label rows ("Upcoming nightmares", "Watched library...", "Disliked...") on mobile.
+         This is the last source of random vertical space above the actual listed movies.
+         The 🎲 Random button (in the To Watch row) will remain as a tiny control right above the list. */
+      .personal-pane > div.text-xs.text-zinc-500:not(.flex) {
+        display: none !important;
+      }
+      .personal-pane > div.flex.justify-between > div:first-child {
+        display: none !important; /* hide the text label, keep the random button */
       }
       
       /* Curator input */
@@ -417,7 +450,7 @@
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
-    <div class="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
+    <div class="mb-0.5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
       <div class="min-w-0">
         <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
         <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
@@ -441,31 +474,31 @@
       </div>
     </div>
 
-    <!-- Top Personal Tabs (To Watch / Watched / Disliked / Curator moved to top as requested) -->
-    <div class="mb-1">
-      <div class="flex overflow-x-auto bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
-        <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
-        <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
-        <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+    <!-- Top Personal Tabs (To Watch / Watched / Disliked) with master toggle inline in the same bar (no extra row or left gap) -->
+    <div class="mb-0">
+      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
+        <div class="flex overflow-x-auto flex-1">
+          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+        </div>
+        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1 py-px bg-zinc-800 border border-zinc-700 rounded flex-shrink-0" title="Hide all lists">▾</button>
       </div>
-      <div class="flex justify-end mb-1 pr-1">
-        <button id="lists-toggle" onclick="toggleAllLists()" class="text-[10px] px-2 py-px bg-zinc-800 border border-zinc-700 rounded">▾ Hide all lists</button>
-      </div>
-      <div id="personal-content" class="mt-2">
+      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden">
         <div id="pane-towatch" class="personal-pane">
           <div class="flex justify-between mb-1 text-xs text-zinc-500">
             <div>Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
+          <div id="to-watch-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
-          <div id="watched-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
+          <div id="watched-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
-          <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
+          <div id="disliked-content" class="space-y-1 text-sm max-h-[280px] overflow-auto"></div>
         </div>
       </div>
     </div>
@@ -498,23 +531,16 @@
       </div>
     </div>
 
-    <!-- Curator Chat - redesigned as a prominent standalone section (more space, better visibility, not buried in tabs) -->
-    <div class="mb-3">
-      <div class="flex items-center justify-between mb-1 px-1">
-        <div class="font-semibold text-sm">👻 The Curator</div>
-        <div class="flex gap-1">
-          <button onclick="clearCuratorPicks()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
-          <button onclick="clearCuratorChat()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
-        </div>
-      </div>
-      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
+    <!-- Curator Chat: identity only via the red ghost inside message bubbles (no mascot or name in the header bar) -->
+    <div class="mb-2">
+      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat">
         <div class="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
           <div class="flex items-center gap-2">
-            <span class="curator-avatar" style="width:22px;height:22px;font-size:13px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #3f3f46;">👻</span> 
-            <div>
-              <div class="font-semibold text-sm tracking-tight">The Curator</div>
-              <div class="text-[9px] text-zinc-500 -mt-0.5">keeper of dark cinema</div>
-            </div>
+            <div class="text-[10px] text-zinc-400 tracking-tight">keeper of dark cinema</div>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="clearCuratorPicks()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
+            <button onclick="clearCuratorChat()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
           </div>
         </div>
 
@@ -1572,11 +1598,17 @@
     function applyListsCollapse() {
       const wrapper = document.getElementById('personal-content');
       const btn = document.getElementById('lists-toggle');
+      const bar = document.getElementById('personal-tabs-bar');
       if (wrapper) {
         wrapper.style.display = listsCollapsed ? 'none' : '';
       }
       if (btn) {
-        btn.textContent = listsCollapsed ? '▸ Show all lists' : '▾ Hide all lists';
+        btn.textContent = listsCollapsed ? '▸' : '▾';
+        btn.title = listsCollapsed ? 'Show all lists' : 'Hide all lists';
+      }
+      if (bar) {
+        if (listsCollapsed) bar.classList.add('rounded-b-2xl');
+        else bar.classList.remove('rounded-b-2xl');
       }
     }
 
@@ -2120,7 +2152,12 @@
       recent.forEach(turn => {
         const div = document.createElement('div');
         div.className = `curator-msg ${turn.role === 'user' ? 'user' : ''}`;
-        div.innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+        if (turn.role === 'user') {
+          div.innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+        } else {
+          // Curator replies always get the red ghost avatar inside the bubble
+          div.innerHTML = `<span class="curator-avatar">👻</span><div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+        }
         box.appendChild(div);
       });
       box.scrollTop = box.scrollHeight;
@@ -2143,13 +2180,13 @@
       input.value = '';
 
       const status = document.getElementById('curator-status');
-      if (status) status.textContent = 'The Curator is consulting the reels...';
+      if (status) status.textContent = 'Consulting the reels...';
 
       // Cool horror-themed typing indicator
       const box = document.getElementById('curator-messages');
       const typingDiv = document.createElement('div');
       typingDiv.className = 'curator-msg curator-typing';
-      typingDiv.innerHTML = `<span class="curator-avatar">👻</span> <span>The Curator is whispering from the shadows...</span>`;
+      typingDiv.innerHTML = `<span class="curator-avatar">👻</span> <span>whispering from the shadows...</span>`;
       if (box) {
         box.appendChild(typingDiv);
         box.scrollTop = box.scrollHeight;
