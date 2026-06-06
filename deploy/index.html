@@ -497,16 +497,16 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Clean tight discover on mobile - readable fonts, balanced columns, centered chips to avoid side gaps */
+      /* Clean tight discover on mobile - readable fonts, spaced chips to fill, reduced header space */
       .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
         padding: 6px !important;
       }
       #genre-chips, #rating-chips, #decade-chips {
-        gap: 2px !important;
+        gap: 3px !important;
       }
       .grid.grid-cols-2.gap-1.mb-1 {
-        gap: 2px !important;
-        margin-bottom: 4px !important;
+        gap: 3px !important;
+        margin-bottom: 3px !important;
       }
       .flex.items-center.pt-1.border-t {
         margin-top: 2px !important;
@@ -523,9 +523,16 @@
       .text-xs {
         font-size: 13px !important;
       }
-      /* Center the genre chips group to reduce right-side gap */
+      /* Center genre, spread rating/decade to fill space */
       #genre-chips {
         justify-content: center !important;
+      }
+      #rating-chips, #decade-chips {
+        justify-content: space-around !important;
+      }
+      /* Reduce space above genre section */
+      .flex.items-center.justify-between.mb-0\\.5 {
+        margin-bottom: 2px !important;
       }
     }
 
@@ -706,7 +713,7 @@
     <!-- Discover (clean dense table) -->
     <div class="mb-1">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1 shadow-sm">
-        <div class="flex items-center justify-between mb-1 px-1">
+        <div class="flex items-center justify-between mb-0.5 px-1">
           <div class="text-xs font-medium text-zinc-400">Discover</div>
           <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
@@ -714,18 +721,18 @@
         <!-- Genre chips - full width, centered to avoid side gaps -->
         <div class="mb-1">
           <div class="text-[8px] text-zinc-500 mb-0.5">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-0.5 w-full justify-center"></div>
+          <div id="genre-chips" class="flex flex-wrap gap-1 w-full justify-center"></div>
         </div>
 
         <!-- Rating + Decade in equal grid columns for balanced layout, no clustering -->
         <div class="grid grid-cols-2 gap-1 mb-1">
           <div>
             <div class="text-[8px] text-zinc-500 mb-0.5">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-0.5 w-full"></div>
+            <div id="rating-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
           </div>
           <div>
             <div class="text-[8px] text-zinc-500 mb-0.5">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-0.5 w-full"></div>
+            <div id="decade-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
           </div>
         </div>
 
