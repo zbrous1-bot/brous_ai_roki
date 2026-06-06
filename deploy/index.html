@@ -497,14 +497,14 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Clean tight discover table on mobile - readable fonts, minimal gaps */
+      /* Clean tight discover on mobile - readable fonts, balanced columns, centered chips to avoid side gaps */
       .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
         padding: 6px !important;
       }
       #genre-chips, #rating-chips, #decade-chips {
         gap: 2px !important;
       }
-      .flex.gap-1.mb-1 {
+      .grid.grid-cols-2.gap-1.mb-1 {
         gap: 2px !important;
         margin-bottom: 4px !important;
       }
@@ -514,14 +514,18 @@
         gap: 2px !important;
       }
       .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
-        font-size: 10px !important;
-        padding: 2px 4px !important;
+        font-size: 12px !important;
+        padding: 3px 5px !important;
       }
       .text-\\[8px\\] {
-        font-size: 11px !important;
+        font-size: 12px !important;
       }
       .text-xs {
-        font-size: 12px !important;
+        font-size: 13px !important;
+      }
+      /* Center the genre chips group to reduce right-side gap */
+      #genre-chips {
+        justify-content: center !important;
       }
     }
 
@@ -707,29 +711,29 @@
           <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
 
-        <!-- Genre chips -->
+        <!-- Genre chips - full width, centered to avoid side gaps -->
         <div class="mb-1">
           <div class="text-[8px] text-zinc-500 mb-0.5">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-0.5"></div>
+          <div id="genre-chips" class="flex flex-wrap gap-0.5 w-full justify-center"></div>
         </div>
 
-        <!-- Rating + Decade side-by-side, tight -->
-        <div class="flex gap-1 mb-1">
-          <div class="flex-1">
+        <!-- Rating + Decade in equal grid columns for balanced layout, no clustering -->
+        <div class="grid grid-cols-2 gap-1 mb-1">
+          <div>
             <div class="text-[8px] text-zinc-500 mb-0.5">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
+            <div id="rating-chips" class="flex flex-wrap gap-0.5 w-full"></div>
           </div>
-          <div class="flex-1">
+          <div>
             <div class="text-[8px] text-zinc-500 mb-0.5">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
+            <div id="decade-chips" class="flex flex-wrap gap-0.5 w-full"></div>
           </div>
         </div>
 
-        <!-- Bottom controls: sort left, centered toggle, browse right -->
-        <div class="flex items-center pt-1 border-t border-zinc-800 text-[8px]">
+        <!-- Bottom controls: sort left, centered toggle, browse right. text-xs for readable dropdown -->
+        <div class="flex items-center pt-1 border-t border-zinc-800 text-xs">
           <div class="flex-1">
             <select id="discover-sort" onchange="performDiscover()"
-                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-0.5 text-[8px] text-zinc-200 outline-none w-full">
+                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-0.5 text-xs text-zinc-200 outline-none w-full">
               <option value="popularity.desc">Popular</option>
               <option value="vote_average.desc">Rated</option>
               <option value="release_date.desc">New</option>
@@ -738,7 +742,7 @@
           </div>
 
           <div class="px-1">
-            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-[8px]">
+            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-xs">
               <button onclick="setDiscoverType('movie')" id="type-movie"
                       class="px-1 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
               <button onclick="setDiscoverType('tv')" id="type-tv"
@@ -748,7 +752,7 @@
 
           <div class="flex-1 flex justify-end">
             <button onclick="performDiscover()"
-                    class="px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[8px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+                    class="px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-xs font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
               Browse
             </button>
           </div>
