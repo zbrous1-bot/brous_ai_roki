@@ -1,0 +1,176 @@
+Horror Roki - Super Simple "Remove Watched from Discover" Guide (Layman's Version)
+
+The problem:
+When you mark a movie as "watched" (add it to Your Library), it can still show up in "Recommended for you" or search results. This creates duplicates.
+
+Goal:
+As soon as you mark something watched, it should disappear from the current recommendations on the page.
+
+You said you have already pushed some changes. Now you need to make sure the "removal logic" is actually wired into the place where you mark movies as watched, and into the Recompute logic.
+
+This guide is written in plain English. Copy the code snippets exactly (change variable names only if your code uses different ones).
+
+--------------------------------------------------
+STEP 1: Make a fast "have I watched this?" list (watchedIds)
+--------------------------------------------------
+
+Find where you load your watched library (probably near the top of your JavaScript, something like loading from localStorage).
+
+Right after that, add these two things:
+
+let watchedIds = new Set();
+
+function rebuildWatchedIds() {
+  watchedIds.clear();
+  // Change "yourLibrary" to whatever variable holds your watched movies
+  yourLibrary.forEach(function(item) {
+    const key = item.id + ':' + (item.mediaType || 'movie');
+    watchedIds.add(key);
+  });
+}
+
+// Run this once when the page loads
+rebuildWatchedIds();
+
+(If you add or remove from the library later, call rebuildWatchedIds() again right after.)
+
+--------------------------------------------------
+STEP 2: Add the removal function
+--------------------------------------------------
+
+Paste this function anywhere in your JavaScript (near other helper functions is fine):
+
+function removeFromCurrentDiscover(id, mediaType) {
+  mediaType = mediaType || 'movie';
+  const key = id + ':' + mediaType;
+
+  // Clean the raw "pool" if you have one (used by Recompute / Refresh Pool)
+  if (window.currentPool && Array.isArray(window.currentPool)) {
+    window.currentPool = window.currentPool.filter(function(item) {
+      const itemKey = item.id + ':' + (item.mediaType || 'movie');
+      return itemKey !== key;
+    });
+  }
+
+  // Clean whatever list is currently being shown as recommendations
+  if (window.currentRecommendations && Array.isArray(window.currentRecommendations)) {
+    window.currentRecommendations = window.currentRecommendations.filter(function(item) {
+      const itemKey = item.id + ':' + (item.mediaType || 'movie');
+      return itemKey !== key;
+    });
+  }
+
+  // Re-draw the recommendation cards on the page
+  // Change the function name below to whatever you actually use to draw "Recommended for you"
+  if (typeof window.renderRecommended === 'function') {
+    if (window.currentRecommendations) {
+      window.renderRecommended(window.currentRecommendations);
+    } else if (window.currentPool) {
+      window.renderRecommended(window.currentPool);
+    }
+  } else if (typeof window.recomputeRecommendations === 'function') {
+    // Fallback: force a full Recompute (it will use the cleaned pool)
+    window.recomputeRecommendations();
+  }
+}
+
+--------------------------------------------------
+STEP 3: Call the removal function when the user marks something watched
+--------------------------------------------------
+
+Find the function that runs when the user adds a movie to "Your Library" or marks it as watched.
+
+It probably looks something like this:
+
+function markAsWatched(item) {
+  // ... your existing code that adds to the library ...
+  yourLibrary.push(item);
+  saveLibraryToLocalStorage();
+
+  // update the on-screen "Watched" count, etc.
+
+  // ADD THIS ONE LINE RIGHT AFTER YOU SAVE THE LIBRARY:
+  removeFromCurrentDiscover(item.id, item.mediaType || 'movie');
+}
+
+That single line is what makes the movie disappear from the current recommendations immediately.
+
+--------------------------------------------------
+STEP 4: Also clean the pool when you Recompute / Refresh
+--------------------------------------------------
+
+Find the function that runs when the user clicks "Recompute" or "Refresh Pool".
+
+Right after you get the list of movies from the Worker/TMDB, add this filter:
+
+// Right after you have the raw pool
+let pool = ...;   // the array you just got back
+
+// NEW: throw out anything the user has already watched
+pool = pool.filter(function(item) {
+  const key = item.id + ':' + (item.mediaType || 'movie');
+  return !watchedIds.has(key);
+});
+
+// Then continue with your normal subgenre filtering, scoring, etc.
+
+--------------------------------------------------
+STEP 5: Keep watchedIds up to date
+--------------------------------------------------
+
+Every time you add or remove something from the watched library, call:
+
+rebuildWatchedIds();
+
+This keeps the fast lookup correct.
+
+--------------------------------------------------
+STEP 6: Deploy
+--------------------------------------------------
+
+Save your file(s).
+Run your normal push/deploy steps (the ones you already used before).
+
+After deploy, hard refresh the page (Ctrl + Shift + R or Cmd + Shift + R on the browser).
+
+Test:
+- Go to Recommended for you.
+- Mark one as watched.
+- It should immediately disappear from the list.
+- Click Recompute — it should not come back.
+
+--------------------------------------------------
+If it's still showing duplicates after this
+--------------------------------------------------
+
+- Make sure you called rebuildWatchedIds() after every library change.
+- Make sure removeFromCurrentDiscover is being called in the exact function that adds to the library.
+- Check the browser console (F12 → Console tab) for red error messages.
+- Double-check that the variable names match what your Horror Roki code actually uses (e.g. maybe it's called "library" instead of "yourLibrary").
+
+--------------------------------------------------
+Extra tip for search results
+--------------------------------------------------
+
+If you also want search results to hide watched movies, do the same filter in the search results rendering function:
+
+results = results.filter(function(item) {
+  const key = item.id + ':' + (item.mediaType || 'movie');
+  return !watchedIds.has(key);
+});
+
+Then render the filtered list.
+
+--------------------------------------------------
+You already did the push?
+--------------------------------------------------
+
+If you already pushed some changes, you still need to make sure the removal call (removeFromCurrentDiscover) is actually inside the "mark as watched" function in your code.
+
+Pushing the workspace Brous code won't automatically change your Horror Roki site unless your Horror Roki site is built from the same source.
+
+If your Horror Roki is a separate/custom file, you need to edit that file with the snippets above.
+
+If you want, paste the part of your Horror Roki code where you add something to the library / mark as watched, and I'll give you the exact edited version.
+
+This should get the watched movies to disappear from the current discover view as soon as you select them.

@@ -1,0 +1,17 @@
+{
+  "name": "Horror Roki",
+  "short_name": "Horror Roki",
+  "description": "Personal horror recommendations. Find your next nightmare.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2318181b'/%3E%3Ctext x='50' y='65' font-size='48' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='600'%3EB%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

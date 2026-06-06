@@ -1,0 +1,121 @@
+HORROR ROKI - EVEN SIMPLER GUIDE (for when you are lost)
+
+You have already pushed some changes via git.
+
+The removal of watched movies from the current "Recommended for you" list is not magic - you have to add two small pieces of code to your Horror Roki JavaScript.
+
+This guide is as simple as I can make it.
+
+--------------------------------------------------
+WHAT THE REMOVAL DOES (in normal words)
+--------------------------------------------------
+
+When you click to add a movie to "Your Library" (mark it watched), right after that, we want the code to look at the list of movies currently shown in "Recommended for you" and remove the one you just watched.
+
+We also want the "Recompute" to ignore watched movies when it builds the list.
+
+--------------------------------------------------
+THE TWO THINGS YOU MUST ADD
+--------------------------------------------------
+
+THING 1: A fast list of watched IDs (so the computer can check quickly "have I watched this?")
+
+Add this near the top of your JavaScript, after you load your watched library:
+
+let watchedIds = new Set();
+
+function rebuildWatchedIds() {
+  watchedIds.clear();
+  yourLibrary.forEach(function(item) {   // change "yourLibrary" to the real name you use
+    const key = item.id + ':' + (item.mediaType || 'movie');
+    watchedIds.add(key);
+  });
+}
+
+Call rebuildWatchedIds(); once when the page loads.
+
+Also call it every time you add or remove from the library.
+
+THING 2: The removal function itself
+
+Paste this function anywhere in your JavaScript:
+
+function removeFromCurrentDiscover(id, mediaType) {
+  mediaType = mediaType || 'movie';
+  const key = id + ':' + mediaType;
+
+  if (window.currentPool && Array.isArray(window.currentPool)) {
+    window.currentPool = window.currentPool.filter(function(item) {
+      const k = item.id + ':' + (item.mediaType || 'movie');
+      return k !== key;
+    });
+  }
+
+  if (window.currentRecommendations && Array.isArray(window.currentRecommendations)) {
+    window.currentRecommendations = window.currentRecommendations.filter(function(item) {
+      const k = item.id + ':' + (item.mediaType || 'movie');
+      return k !== key;
+    });
+  }
+
+  if (typeof window.renderRecommended === 'function') {
+    if (window.currentRecommendations) {
+      window.renderRecommended(window.currentRecommendations);
+    } else if (window.currentPool) {
+      window.renderRecommended(window.currentPool);
+    }
+  } else if (typeof window.recomputeRecommendations === 'function') {
+    window.recomputeRecommendations();
+  }
+}
+
+--------------------------------------------------
+WHERE TO CALL IT
+--------------------------------------------------
+
+Find the function that runs when the user adds a movie to the library / marks it watched.
+
+Inside that function, right after you save the library, add this line:
+
+removeFromCurrentDiscover(item.id, item.mediaType || 'movie');
+
+Example:
+
+function markAsWatched(item) {
+  yourLibrary.push(item);
+  saveLibrary();
+
+  removeFromCurrentDiscover(item.id, item.mediaType || 'movie');   // <--- add this
+
+  // update count etc.
+}
+
+--------------------------------------------------
+ALSO DO THIS IN THE RECOMPUTE
+--------------------------------------------------
+
+In the function that runs on "Recompute", right after you get the list of candidates, add:
+
+pool = pool.filter(function(item) {
+  const key = item.id + ':' + (item.mediaType || 'movie');
+  return !watchedIds.has(key);
+});
+
+--------------------------------------------------
+DEPLOY
+--------------------------------------------------
+
+Save the file.
+Run your normal push commands (the same ones you used before that worked).
+
+After it deploys, hard refresh the browser (Ctrl + Shift + R).
+
+Test by marking a recommended movie as watched - it should disappear from the list.
+
+--------------------------------------------------
+If you get lost
+--------------------------------------------------
+
+Tell me exactly what part of the code you are looking at (for example "the function that adds to library" or "the Recompute function"), and paste a few lines around it. I will tell you the exact lines to change.
+
+You do not need to understand everything at once. Just add the two pieces above in the right places.

@@ -1,0 +1,43 @@
+HORROR ROKI - WHAT TO DO NEXT (super simple version for when you are lost)
+
+You have already done the push (git push). Good.
+
+The removal of watched movies from the current "Recommended for you" is not automatic just from the push. You have to add the removal logic to the part of the code that runs when you mark a movie as watched, and also in the Recompute.
+
+The workspace has ready-made helpers and instructions.
+
+What you need to do:
+
+1. Look at the files I created for you in the deploy folder:
+   - HORROR_ROKI_WATCHED_REMOVAL_INSTRUCTIONS.md (detailed)
+   - SIMPLE_REMOVAL_STEPS_FOR_HORROR_ROKI.txt (simpler)
+   - horror-roki-watched-removal.js (the actual code snippet you can copy)
+
+2. Open your Horror Roki source code (the JavaScript that runs the recommendations and the "add to library" / "mark as watched" button).
+
+3. Follow the steps in one of the .txt files above. Basically:
+   - Add a fast "watchedIds" Set.
+   - Add the removeFromCurrentDiscover function.
+   - Call removeFromCurrentDiscover right after you add something to the watched library.
+   - Also filter the pool at the start of your Recompute function.
+
+4. Save the file.
+
+5. Run these terminal commands (the "prompts") to upload:
+
+cd ~/projects/roki/deploy
+git add .
+git commit -m "Add watched removal from discover for Horror Roki"
+git push
+
+6. After the push, wait for Cloudflare to redeploy (check your Pages dashboard or wait 1-2 minutes).
+
+7. Hard refresh the browser (Ctrl + Shift + R or Cmd + Shift + R) on https://horror-roki.pages.dev/
+
+8. Test: mark a recommended movie as watched. It should disappear from the list.
+
+If you are still lost after reading the guide files, paste the part of your Horror Roki code where you add to the library (the function that runs when you mark as watched), and I will give you the exact lines to change.
+
+You do not need to understand the whole app. Just add the removal call in the "mark as watched" place, and the filter in the Recompute place.
+
+The files I created are there to copy from. Open them with any text editor.

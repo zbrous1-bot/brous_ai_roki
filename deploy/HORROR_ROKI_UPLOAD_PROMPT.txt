@@ -1,0 +1,33 @@
+HORROR ROKI - EXACT PROMPTS (TERMINAL COMMANDS) TO UPLOAD THE REMOVAL CHANGES
+
+You said you already did the push part. Good.
+
+If the watched removal is not working yet on the live site, it means the removal logic is not yet in the code that is deployed for Horror Roki.
+
+The workspace (this folder) has the Brous version with the logic added (filter in renderResults + removeFromCurrentResults function).
+
+For Horror Roki, you need to add similar logic to your Horror Roki source code.
+
+Since you push from this deploy folder, here are the exact commands to run to upload the latest workspace changes (which include the removal helper and instructions).
+
+Run these one by one in your terminal, in the deploy folder:
+
+cd ~/projects/roki/deploy
+
+git status
+
+(This will show what changed. You should see new files like horror-roki-watched-removal.js and the guide files.)
+
+git add .
+
+git commit -m "Add Horror Roki watched removal helper and simple steps guide"
+
+git push
+
+After the push, wait for Cloudflare Pages to redeploy (check your dashboard or wait 1 minute).
+
+Then hard refresh the browser on https://horror-roki.pages.dev/ (Ctrl + Shift + R or Cmd + Shift + R).
+
+The new files will be in your GitHub repo, and you can use the .txt guides to copy the exact code snippets into your Horror Roki JavaScript (the part that marks as watched and the Recompute part).
+
+If you need the exact code for your Horror Roki, paste the relevant functions from your Horror Roki code here (the mark as watched function and the Recompute function), and I will give you the edited version with the removal wired in.
