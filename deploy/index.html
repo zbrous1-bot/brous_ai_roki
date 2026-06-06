@@ -362,8 +362,9 @@
       
       /* Results cards (search/discover) - expanded for easier viewing */
       .movie-card { padding: 16px !important; }
-      .movie-card .flex.gap-5 { gap: 16px; }
-      .movie-card img { width: 80px !important; height: 120px !important; }
+      .movie-card .flex.gap-4, .movie-card .flex.gap-5 { gap: 16px; }
+      /* Allow responsive poster sizes from template for expanded cards on mobile */
+      /* .movie-card img { width: 80px !important; height: 120px !important; } */
       
       /* Action buttons row - expanded */
       .mt-2.flex.gap-2 > button,
@@ -375,7 +376,8 @@
       
       /* Recs grid cards (top Recommended) - bigger for readability */
       #recs-grid .movie-card { padding: 16px !important; }
-      #recs-grid .movie-card img { width: 72px !important; height: 108px !important; }
+      /* Allow template responsive sizes for expanded recs on mobile */
+      /* #recs-grid .movie-card img { width: 72px !important; height: 108px !important; } */
       #recs-grid .mt-2.flex.gap-1 > button { font-size: 11px !important; padding: 5px 8px !important; }
       
       /* Personal lists - bigger for scrolling readability */
@@ -1798,12 +1800,12 @@
               const name = getProviderName(p);
               const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
               const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-              allProvidersHtml += `<span class="inline-flex items-center px-2 py-0.5 rounded-2xl text-[10px] font-medium leading-none ${colorClass} border border-white/10" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
+              allProvidersHtml += `<span class="inline-flex items-center px-2.5 py-1 rounded-2xl text-xs font-medium leading-none ${colorClass} border border-white/10" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
             });
           });
           if (allProvidersHtml) {
             // Horizontal row, expanded for larger cards - contained to avoid spill into other cards
-            html = `<div class="mt-2 px-1"><div class="text-[10px] text-zinc-500 mb-1">Where to watch</div><div class="flex gap-1.5 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
+            html = `<div class="mt-2 px-1"><div class="text-xs text-zinc-500 mb-1">Where to watch</div><div class="flex gap-2 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
           } else {
             html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
           }
@@ -1817,8 +1819,8 @@
         const card = document.createElement('div');
         card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
-          <div class="flex gap-5">
-            ${poster ? `<img src="${poster}" class="w-32 h-[192px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+          <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
+            ${poster ? `<img src="${poster}" class="w-full sm:w-32 h-48 sm:h-[192px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
@@ -2012,8 +2014,8 @@
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         card.innerHTML = `
-          <div class="flex gap-3">
-            <img src="${poster}" class="w-20 h-28 rounded-xl object-cover border border-zinc-800" alt="">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <img src="${poster}" class="w-full sm:w-20 h-40 sm:h-28 rounded-xl object-cover border border-zinc-800" alt="">
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
               <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
