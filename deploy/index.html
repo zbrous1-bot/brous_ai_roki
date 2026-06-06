@@ -497,32 +497,36 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Completely redone discover - force maximum density on mobile */
-      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
-        padding: 4px !important;
+      /* Ultra shrink discover table + center toggle on mobile */
+      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-0\\.5 {
+        padding: 2px !important;
       }
       #genre-chips, #rating-chips, #decade-chips {
-        gap: 1px !important;
+        gap: 0 !important;
         margin-bottom: 0 !important;
       }
-      .text-\\[7px\\].text-zinc-500 {
-        font-size: 6px !important;
-        margin-bottom: 0 !important;
+      .text-\\[6px\\], .text-\\[7px\\] {
+        font-size: 5px !important;
         line-height: 1 !important;
       }
-      .flex.gap-1.mb-1 {
-        gap: 2px !important;
-        margin-bottom: 2px !important;
+      .text-\\[6px\\].text-zinc-500, .text-\\[7px\\].text-zinc-500 {
+        margin-bottom: 0 !important;
       }
-      .flex.items-center.gap-0\\.5.pt-1.border-t {
-        margin-top: 1px !important;
-        padding-top: 1px !important;
-        gap: 1px !important;
+      .flex.gap-px.mb-px, .flex.gap-1.mb-1 {
+        gap: 0 !important;
+        margin-bottom: 0 !important;
+      }
+      .flex.items-center.pt-px.border-t {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
       }
       .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
-        font-size: 6px !important;
-        padding-top: 1px !important;
-        padding-bottom: 1px !important;
+        font-size: 5px !important;
+        padding: 0 1px !important;
+      }
+      .flex.items-center.pt-px.border-t > div.px-1 {
+        padding-left: 1px !important;
+        padding-right: 1px !important;
       }
     }
 
@@ -702,53 +706,57 @@
 
     <!-- Discover (completely redone for density) -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1 shadow-sm">
-        <div class="flex items-center justify-between mb-0.5 px-1">
-          <div class="text-[8px] font-medium text-zinc-400">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-[7px] text-zinc-500 hover:text-zinc-400">Clear</button>
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-0.5 shadow-sm">
+        <div class="flex items-center justify-between mb-px px-0.5">
+          <div class="text-[7px] font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[6px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
 
         <!-- Genre chips -->
-        <div class="mb-1">
-          <div class="text-[7px] text-zinc-500 mb-px">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-0.5"></div>
+        <div class="mb-px">
+          <div class="text-[6px] text-zinc-500 mb-px">Genres</div>
+          <div id="genre-chips" class="flex flex-wrap gap-px"></div>
         </div>
 
         <!-- Rating + Decade side by side, ultra tight -->
-        <div class="flex gap-1 mb-1">
+        <div class="flex gap-px mb-px">
           <div class="flex-1">
-            <div class="text-[7px] text-zinc-500 mb-px">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
+            <div class="text-[6px] text-zinc-500 mb-px">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-px"></div>
           </div>
           <div class="flex-1">
-            <div class="text-[7px] text-zinc-500 mb-px">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
+            <div class="text-[6px] text-zinc-500 mb-px">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-px"></div>
           </div>
         </div>
 
-        <!-- Bottom controls - compact single row -->
-        <div class="flex items-center gap-0.5 pt-1 border-t border-zinc-800 text-[7px]">
-          <!-- Media type -->
-          <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-px text-[7px]">
-            <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-1 py-px rounded-3xl font-medium bg-white text-black">Movies</button>
-            <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-1 py-px rounded-3xl font-medium text-zinc-300">TV</button>
+        <!-- Bottom controls - compact single row with centered toggle -->
+        <div class="flex items-center pt-px border-t border-zinc-800 text-[6px]">
+          <div class="flex-1">
+            <select id="discover-sort" onchange="performDiscover()"
+                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-0.5 py-px text-[6px] text-zinc-200 outline-none w-full">
+              <option value="popularity.desc">Popular</option>
+              <option value="vote_average.desc">Rated</option>
+              <option value="release_date.desc">New</option>
+              <option value="release_date.asc">Old</option>
+            </select>
           </div>
 
-          <!-- Sort -->
-          <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-px text-[7px] text-zinc-200 outline-none">
-            <option value="popularity.desc">Popular</option>
-            <option value="vote_average.desc">Rated</option>
-            <option value="release_date.desc">New</option>
-            <option value="release_date.asc">Old</option>
-          </select>
+          <div class="px-1">
+            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-px text-[6px]">
+              <button onclick="setDiscoverType('movie')" id="type-movie"
+                      class="px-0.5 py-px rounded-3xl font-medium bg-white text-black">Movies</button>
+              <button onclick="setDiscoverType('tv')" id="type-tv"
+                      class="px-0.5 py-px rounded-3xl font-medium text-zinc-300">TV</button>
+            </div>
+          </div>
 
-          <button onclick="performDiscover()"
-                  class="ml-auto px-1.5 py-px bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[7px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
-            Browse
-          </button>
+          <div class="flex-1 flex justify-end">
+            <button onclick="performDiscover()"
+                    class="px-1 py-px bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[6px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+              Browse
+            </button>
+          </div>
         </div>
       </div>
     </div>
