@@ -853,6 +853,16 @@
   <div id="toast-container"></div>
 
   <script>
+    // Global error catcher to show problems visibly (since nothing is "responding")
+    window.addEventListener('error', function(e) {
+      console.error('Global JS error:', e);
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:10px 15px;z-index:999999;font-size:13px;font-family:monospace;';
+      banner.innerHTML = 'JS ERROR: ' + (e.message || e) + ' (see browser Console F12 for details). App may not have initialized.';
+      if (document.body) document.body.insertBefore(banner, document.body.firstChild);
+      else document.addEventListener('DOMContentLoaded', function() { document.body.insertBefore(banner, document.body.firstChild); });
+    });
+
     // Discover data
     const GENRES = [
       {id: 28, name: 'Action'}, {id: 12, name: 'Adventure'}, {id: 16, name: 'Animation'},
@@ -891,14 +901,20 @@
 
     // === Horror Roki full personal state (from Streamlit current setup) ===
     // Stored only in browser (localStorage). Matches backup/restore contract (lists + chat_history + llm_config no secrets).
-    let toWatchList = JSON.parse(localStorage.getItem('horror_roki_towatch') || '[]');
-    let watchedList = JSON.parse(localStorage.getItem('horror_roki_watched') || '[]');
-    let dislikedList = JSON.parse(localStorage.getItem('horror_roki_disliked') || '[]');
-    let chatHistory = JSON.parse(localStorage.getItem('horror_roki_chat') || '[]');
-    let llmConfig = JSON.parse(localStorage.getItem('horror_roki_llm') || JSON.stringify({
-      provider: 'xAI', base_url: 'https://api.x.ai/v1', model: 'grok-4.3',
-      max_history_turns: 12, max_response_tokens: 900
-    }));
+    let toWatchList = [];
+    let watchedList = [];
+    let dislikedList = [];
+    let chatHistory = [];
+    let llmConfig = { provider: 'xAI', base_url: 'https://api.x.ai/v1', model: 'grok-4.3', max_history_turns: 12, max_response_tokens: 900 };
+    try {
+      toWatchList = JSON.parse(localStorage.getItem('horror_roki_towatch') || '[]');
+      watchedList = JSON.parse(localStorage.getItem('horror_roki_watched') || '[]');
+      dislikedList = JSON.parse(localStorage.getItem('horror_roki_disliked') || '[]');
+      chatHistory = JSON.parse(localStorage.getItem('horror_roki_chat') || '[]');
+      llmConfig = JSON.parse(localStorage.getItem('horror_roki_llm') || JSON.stringify(llmConfig));
+    } catch(e) {
+      console.warn('localStorage parse failed (data may be corrupted or cleared):', e);
+    }
     let currentRecPool = [];
     let currentMood = 'All';
     let curatorPicks = []; // parsed SUGGESTED for cards + optional BATCH_RATE items
@@ -3028,101 +3044,110 @@
 
     // Boot (extended for new library + recs + curator)
     function boot() {
-      // Wire quick-reply chips for the Curator (cool, fast UX)
-      const quickReplies = document.getElementById('curator-quick-replies');
-      if (quickReplies) {
-        quickReplies.addEventListener('click', (e) => {
-          const btn = e.target.closest('button[data-q]');
-          if (!btn) return;
-          const q = btn.dataset.q;
-          const inp = document.getElementById('curator-input');
-          if (inp) {
-            inp.value = q;
-            sendToCurator();
-          }
-        });
-      }
-
-      // Click outside the modal content (on the dark backdrop) closes it
-      const modalEl = document.getElementById('detail-modal');
-      if (modalEl) {
-        modalEl.addEventListener('click', (e) => {
-          if (e.target === modalEl) {
-            closeModal();
-          }
-        });
-      }
-
-      // Pressing Escape also closes the modal (nice companion to outside click)
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          const m = document.getElementById('detail-modal');
-          if (m && !m.classList.contains('hidden')) {
-            closeModal();
-          }
+      try {
+        // Wire quick-reply chips for the Curator (cool, fast UX)
+        const quickReplies = document.getElementById('curator-quick-replies');
+        if (quickReplies) {
+          quickReplies.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-q]');
+            if (!btn) return;
+            const q = btn.dataset.q;
+            const inp = document.getElementById('curator-input');
+            if (inp) {
+              inp.value = q;
+              sendToCurator();
+            }
+          });
         }
-      });
 
-      // Initialize Discover UI
-      renderGenreChips();
-      renderRatingChips();
-      renderDecadeChips();
-      setDiscoverType('movie'); // default to Movies
+        // Click outside the modal content (on the dark backdrop) closes it
+        const modalEl = document.getElementById('detail-modal');
+        if (modalEl) {
+          modalEl.addEventListener('click', (e) => {
+            if (e.target === modalEl) {
+              closeModal();
+            }
+          });
+        }
 
-      // Initialize Search type
-      setSearchType('movie');
+        // Pressing Escape also closes the modal (nice companion to outside click)
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            const m = document.getElementById('detail-modal');
+            if (m && !m.classList.contains('hidden')) {
+              closeModal();
+            }
+          }
+        });
 
-      // Watchlist (legacy)
-      renderWatchlist();
+        // Initialize Discover UI
+        if (typeof renderGenreChips === 'function') renderGenreChips();
+        if (typeof renderRatingChips === 'function') renderRatingChips();
+        if (typeof renderDecadeChips === 'function') renderDecadeChips();
+        if (typeof setDiscoverType === 'function') setDiscoverType('movie'); // default to Movies
 
-      // No legacy accordion listeners needed anymore (personal content is now in top tabs)
+        // Initialize Search type
+        if (typeof setSearchType === 'function') setSearchType('movie');
 
-      // New Horror Roki inits
-      // One-time seed: if new lists empty but legacy watchlist has data, treat legacy as To Watch
-      if ((!toWatchList || toWatchList.length === 0) && watchlist && watchlist.length > 0) {
-        toWatchList = watchlist.map(x => ({...x}));
-        localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
-      }
-      // Re-sync legacy exclusion set from all lists (watched disappear fix)
-      watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
-      updateAllLibraryRenders();
-      renderCuratorMessages();
-      refreshCuratorQuickReplies();
-      setCuratorMood();
-      setupPullToRefresh();
-      renderPersonalStats();
+        // Watchlist (legacy)
+        if (typeof renderWatchlist === 'function') renderWatchlist();
 
-      // init top personal tabs (default to To Watch)
-      switchPersonalTab('towatch');
-      applyListsCollapse();
+        // New Horror Roki inits
+        // One-time seed: if new lists empty but legacy watchlist has data, treat legacy as To Watch
+        if ((!toWatchList || toWatchList.length === 0) && watchlist && watchlist.length > 0) {
+          toWatchList = watchlist.map(x => ({...x}));
+          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+        }
+        // Re-sync legacy exclusion set from all lists (watched disappear fix)
+        watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
+        if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
+        if (typeof renderCuratorMessages === 'function') renderCuratorMessages();
+        if (typeof refreshCuratorQuickReplies === 'function') refreshCuratorQuickReplies();
+        if (typeof setCuratorMood === 'function') setCuratorMood();
+        if (typeof setupPullToRefresh === 'function') setupPullToRefresh();
+        if (typeof renderPersonalStats === 'function') renderPersonalStats();
 
-      // Pull latest from server KV (if configured). This is what makes phone + desktop share the same watched/disliked lists.
-      // Non-blocking. Falls back silently to whatever is in localStorage on this device.
-      setTimeout(() => {
-        syncFromServer().catch(() => {});
-      }, 650);
+        // init top personal tabs (default to To Watch)
+        if (typeof switchPersonalTab === 'function') switchPersonalTab('towatch');
+        if (typeof applyListsCollapse === 'function') applyListsCollapse();
 
-      // Hide the beginner help note once password is set
-      const helpNote = document.getElementById('first-time-help');
-      if (helpNote && localStorage.getItem('brous_password')) {
-        helpNote.style.display = 'none';
-      }
+        // Pull latest from server KV (if configured). This is what makes phone + desktop share the same watched/disliked lists.
+        // Non-blocking. Falls back silently to whatever is in localStorage on this device.
+        setTimeout(() => {
+          if (typeof syncFromServer === 'function') syncFromServer().catch(() => {});
+        }, 650);
 
-      // Show current apiBase in the help note for debugging
-      const baseNote = document.getElementById('current-base-note');
-      if (baseNote) {
-        const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
-        baseNote.textContent = 'Current API base: ' + currentBase + '  |  After fixing secrets in Cloudflare, you MUST redeploy the Worker code (Save and Deploy) for the secret to become visible to the running code.';
-      }
-      // Optional: auto-seed a small rec pool for "Recommended for you" on first boot (user can Refresh)
-      if (!currentRecPool.length && watchedList.length > 0) {
-        // fire and forget; non blocking
-        setTimeout(() => { refreshRecPool().catch(()=>{}); }, 1200);
-      }
+        // Hide the beginner help note once password is set
+        const helpNote = document.getElementById('first-time-help');
+        if (helpNote && localStorage.getItem('brous_password')) {
+          helpNote.style.display = 'none';
+        }
 
-      // Helpful console note for first-time setup (password is required for the Worker)
-      if (!localStorage.getItem('brous_password')) {
-        console.log('%c[Horror Roki] No API password set yet. Click the 🔐 Pass button or ⚙︎ Settings. (On live site with routes, leave API Endpoint Base empty.)', 'color:#f59e0b');
+        // Show current apiBase in the help note for debugging
+        const baseNote = document.getElementById('current-base-note');
+        if (baseNote) {
+          const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
+          baseNote.textContent = 'Current API base: ' + currentBase + '  |  After fixing secrets in Cloudflare, you MUST redeploy the Worker code (Save and Deploy) for the secret to become visible to the running code.';
+        }
+        // Optional: auto-seed a small rec pool for "Recommended for you" on first boot (user can Refresh)
+        if (!currentRecPool.length && watchedList.length > 0) {
+          // fire and forget; non blocking
+          setTimeout(() => { if (typeof refreshRecPool === 'function') refreshRecPool().catch(()=>{}); }, 1200);
+        }
+
+        // Helpful console note for first-time setup (password is required for the Worker)
+        if (!localStorage.getItem('brous_password')) {
+          console.log('%c[Horror Roki] No API password set yet. Click the 🔐 Pass button or ⚙︎ Settings. (On live site with routes, leave API Endpoint Base empty.)', 'color:#f59e0b');
+        }
+
+        // Visible confirmation that JS booted successfully
+        console.log('%c[Brous Movie Engine] Boot completed successfully. UI should be interactive.', 'color:#4ade80');
+      } catch(e) {
+        console.error('Error in boot():', e);
+        var banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:12px;z-index:999999;font-size:13px;';
+        banner.innerHTML = 'Error during app initialization: ' + e.message + '<br>Check Console (F12) for full stack. Try hard refresh (Ctrl/Cmd+Shift+R) or clear site data.';
+        if (document.body) document.body.insertBefore(banner, document.body.firstChild);
       }
     }
 
