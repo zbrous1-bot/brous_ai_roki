@@ -1800,12 +1800,12 @@
               const name = getProviderName(p);
               const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
               const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-              allProvidersHtml += `<span class="inline-flex items-center px-2.5 py-1 rounded-2xl text-xs font-medium leading-none ${colorClass} border border-white/10" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
+              allProvidersHtml += `<span class="inline-flex items-center px-2.5 py-1 rounded-2xl text-xs font-medium leading-none ${colorClass} border border-white/10 flex-shrink-0" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
             });
           });
           if (allProvidersHtml) {
             // Horizontal row, expanded for larger cards - contained to avoid spill into other cards
-            html = `<div class="mt-2 px-1"><div class="text-xs text-zinc-500 mb-1">Where to watch</div><div class="flex gap-2 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
+            html = `<div class="mt-2 px-1"><div class="text-xs text-zinc-500 mb-1">Where to watch</div><div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
           } else {
             html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
           }
@@ -1852,13 +1852,13 @@
 
         // Rich list actions (To Watch primary + Watched/Dislike)
         const addBtnContainer = document.createElement('div');
-        addBtnContainer.className = 'mt-3 flex gap-2';
+        addBtnContainer.className = 'mt-3 flex gap-2 overflow-x-auto flex-nowrap pb-1 snap-x';
         const b1 = document.createElement('button');
-        b1.className = 'flex-1 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
+        b1.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
         b1.textContent = '+ Watch';
         b1.onclick = (e) => { e.stopImmediatePropagation(); addToToWatch(m); b1.textContent = '✓'; setTimeout(()=>b1.textContent='+ Watch',900); };
         const b2 = document.createElement('button');
-        b2.className = 'flex-1 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
+        b2.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
         b2.textContent = 'Watched';
         b2.onclick = (e) => { 
           e.stopImmediatePropagation(); 
@@ -1869,14 +1869,14 @@
           for(let r=1; r<=5; r++) {
             const bb = document.createElement('button');
             bb.textContent = r+'★';
-            bb.className = 'px-2.5 py-1 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
+            bb.className = 'px-2.5 py-1 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium flex-shrink-0';
             bb.onclick = () => { addToWatched(m, r); b2.textContent='✓'; rateDiv.remove(); };
             rateDiv.appendChild(bb);
           }
           addBtnContainer.appendChild(rateDiv);
         };
         const b3 = document.createElement('button');
-        b3.className = 'text-sm sm:text-base px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
+        b3.className = 'flex-shrink-0 text-sm sm:text-base px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
         b3.textContent = '👎';
         b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); b3.textContent='✓'; };
         addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3);
@@ -2022,10 +2022,10 @@
               <div class="text-[11px] text-emerald-400/80 mt-0.5">taste boosted</div>
             </div>
           </div>
-          <div class="mt-2 flex gap-1">
-            <button class="flex-1 text-xs py-1 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white" data-act="towatch">+ Watch</button>
-            <button class="flex-1 text-xs py-1 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700" data-act="watched">Watched</button>
-            <button class="text-xs px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
+          <div class="mt-2 flex gap-1 overflow-x-auto flex-nowrap pb-1 snap-x">
+            <button class="flex-shrink-0 text-xs py-1 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white" data-act="towatch">+ Watch</button>
+            <button class="flex-shrink-0 text-xs py-1 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700" data-act="watched">Watched</button>
+            <button class="flex-shrink-0 text-xs px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
           </div>
         `;
         // wire actions
@@ -2035,11 +2035,11 @@
           const actions = card.querySelector('.mt-2') || card.querySelector('[data-act="watched"]').parentElement;
           if (actions) actions.innerHTML = '';
           const rateDiv = document.createElement('div');
-          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
+          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1 flex-nowrap overflow-x-auto snap-x';
           for(let r=1; r<=5; r++) {
             const b = document.createElement('button');
             b.textContent = r + '★';
-            b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
+            b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium flex-shrink-0';
             b.onclick = () => {
               addToWatched(item, r);
               card.remove();
