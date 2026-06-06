@@ -30,14 +30,18 @@
 
     .movie-card { 
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
       border: 1px solid #3f3f46;
       overflow: hidden;
+      background: linear-gradient(145deg, #18181b, #111113);
     }
     .movie-card:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-      border-color: #52525b;
+      transform: translateY(-3px); 
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 10px 10px -5px rgb(0 0 0 / 0.1);
+      border-color: #b91c1c;
+    }
+    .rec-card {
+      border-color: #7f1d1d;
     }
 
     .section-header {
@@ -214,23 +218,35 @@
     .curator-msg {
       background: #18181b;
       border: 1px solid #3f3f46;
-      padding: 8px 11px;
-      border-radius: 14px;
-      margin-bottom: 4px;
+      padding: 9px 12px;
+      border-radius: 16px;
+      margin-bottom: 5px;
       max-width: 82%;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       opacity: 0;
-      transform: translateY(8px);
-      animation: curator-msg-in 0.25s ease forwards;
+      transform: translateY(6px);
+      animation: curator-msg-in 0.2s ease forwards;
+      position: relative;
     }
     .curator-msg.user {
       background: #27272a;
       margin-left: auto;
       border-color: #52525b;
-      max-width: 75%;
+      max-width: 72%;
     }
     .curator-msg .curator-avatar {
       vertical-align: middle;
+      margin-right: 4px;
+    }
+    .curator-msg:not(.user)::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 10px;
+      width: 3px;
+      height: 18px;
+      background: linear-gradient(#b91c1c, #7f1d1d);
+      border-radius: 2px;
     }
     @keyframes curator-msg-in {
       to { opacity: 1; transform: translateY(0); }
@@ -2385,15 +2401,15 @@
     }
 
     function boostScore(item, prefs) {
-      let base = item.vote_average || 6.5;
+      let base = (item.vote_average || 6.5) * 0.7; // base on rating but not dominant
       const gids = item.genre_ids || [];
       const top = Object.keys(prefs);
-      // crude: if overlaps known top genres ids (map name->id rough)
       const topIds = GENRES.filter(g => top.includes(g.name)).map(g=>g.id);
-      if (gids.some(id => topIds.includes(id))) base += 1.8;
-      // mood tweak (very light)
-      if (currentMood !== 'All') base += (Math.random()*0.6 - 0.1);
-      return base;
+      const matchCount = gids.filter(id => topIds.includes(id)).length;
+      base += matchCount * 1.2; // stronger boost for multiple genre matches
+      // slight recency/quality bias
+      if (item.popularity && item.popularity > 50) base += 0.4;
+      return Math.max(1, base);
     }
 
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
@@ -2459,8 +2475,11 @@
       if (empty) empty.classList.add('hidden');
 
       const prefs = getUserGenrePrefs();
+      const excluded = getExcludedKeys();
       // score + sort
       let scored = currentRecPool.map(it => ({...it, _score: boostScore(it, prefs)}));
+      // Strict filter against all personal lists (watched, to-watch, disliked) - fixes suggesting already seen titles
+      scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
       // light mood filter demo (for real would use more metadata or keywords)
       if (currentMood !== 'All') {
         // keep all but sort "moodier" first by slight random + vote for demo
@@ -2472,7 +2491,7 @@
       grid.innerHTML = '';
       scored.slice(0, 15).forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
+        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         card.innerHTML = `
@@ -2481,7 +2500,7 @@
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
               <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
-              <div class="text-[11px] text-emerald-400/80 mt-0.5">taste boosted • matches your recent watches</div>
+              <div class="text-[10px] text-emerald-400/80 mt-1">✨ Smart match • based on your taste profile</div>
             </div>
           </div>
           <div class="mt-2 flex gap-1 overflow-x-auto flex-nowrap pb-1 snap-x">
@@ -2602,7 +2621,7 @@
       lastGrounding = grounding;
 
       // messages for LLM (SYSTEM + context + user)
-      const sys = `You are The Curator, eternal keeper of dark cinema — horror, thrillers, sci-fi, and suspense. Dry dark wit. Strict: never spoil, respect watched/disliked lists (never suggest them as unseen), ground facts only in provided metadata. For recs, suggest 3-5 fitting unseen titles from horror, thriller, sci-fi or suspense. End exactly with: SUGGESTED: ["Exact Title One", "Exact Title Two", ...] (up to 5). For batch: BATCH_RATE: [{"title":"..","suggested_rating":4,"reason":".."}]. Keep short.`;
+      const sys = `You are The Curator, eternal keeper of dark cinema — horror, thrillers, sci-fi, and suspense. Dry dark wit. Strict: NEVER suggest any title the user has watched, has in To Watch, or has disliked. The provided USER CONTEXT lists exact titles they have seen or queued — do not recommend any of those. Ground ONLY in the provided metadata. Suggest 3-5 fitting UNSEEN titles. End exactly with: SUGGESTED: ["Exact Title One", "Exact Title Two", ...] (up to 5). For batch: BATCH_RATE: [{"title":"..","suggested_rating":4,"reason":".."}]. Keep short and in character.`;
       const fullUser = `USER CONTEXT:\n${userCtx}\n\nGROUNDING METADATA:\n${JSON.stringify(grounding)}\n\nUSER: ${text}`;
 
       const payload = {
@@ -2695,7 +2714,12 @@
       if (sugMatch) {
         try {
           const titlesStr = sugMatch[1];
-          const titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
+          let titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
+          // Strict filter: never suggest titles already in any list
+          const excluded = getExcludedKeys();
+          const watchedTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => (x.title || '').toLowerCase()));
+          titles = titles.filter(t => t && !watchedTitles.has(t.toLowerCase()));
+          if (!titles.length) return;
           // Enrich with posters for visual appeal (local first, then live TMDB search)
           const enrichedSuggested = await Promise.all(titles.map(async (t) => {
             if (!t || t.length < 2) return null;
@@ -2723,7 +2747,13 @@
             }
             return {title: t, type: 'suggested', poster_path, id };
           }));
-          enrichedSuggested.filter(Boolean).forEach(item => curatorPicks.push(item));
+          const excluded = getExcludedKeys();
+          enrichedSuggested.filter(Boolean).forEach(item => {
+            const key = `${item.id}:movie`; // default movie for suggested
+            if (!excluded.has(key) && !curatorPicks.some(p => p.title.toLowerCase() === item.title.toLowerCase())) {
+              curatorPicks.push(item);
+            }
+          });
         } catch(e){}
       }
       // BATCH_RATE: [ {title, suggested_rating, reason} ... ]
@@ -2742,8 +2772,8 @@
       if (!curatorPicks.length) return;
 
       const wrap = document.createElement('div');
-      wrap.className = 'suggested-card mt-2 space-y-2';
-      wrap.innerHTML = `<div class="text-[10px] uppercase tracking-widest text-zinc-500 px-1">Curator picks — act on them</div>`;
+      wrap.className = 'suggested-card mt-2 space-y-2 border border-red-900/30 bg-zinc-950/50 rounded-2xl p-1';
+      wrap.innerHTML = `<div class="text-[9px] uppercase tracking-[1px] text-red-400/80 px-1.5 py-0.5">Curator picks — act on them</div>`;
 
       curatorPicks.forEach((p, i) => {
         const row = document.createElement('div');
