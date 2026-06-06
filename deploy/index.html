@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#18181b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Horror Roki">
+  <meta name="apple-mobile-web-app-title" content="Brous Movie Engine">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Horror Roki • Find your next nightmare</title>
+  <title>Brous Movie Engine • Find your next nightmare</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%2318181b'/%3E%3Ctext x='90' y='115' font-size='80' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -407,7 +407,7 @@
     <!-- Header -->
     <div class="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
       <div class="min-w-0">
-        <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Horror Roki</h1>
+        <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
         <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
         <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5">Personal recs for horror, thrillers, sci-fi &amp; suspense. No server required.</p>
       </div>
@@ -436,30 +436,23 @@
         <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
         <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
       </div>
+      <div class="flex justify-end mb-1 px-1">
+        <button id="lists-toggle" onclick="toggleAllLists()" class="text-[10px] px-2 py-px bg-zinc-800 border border-zinc-700 rounded">▾ Hide all lists</button>
+      </div>
       <div class="mt-2">
         <div id="pane-towatch" class="personal-pane">
           <div class="flex justify-between mb-1 text-xs text-zinc-500">
-            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('towatch', this)">
-              <span class="collapse-icon">▾</span> Upcoming nightmares
-            </div>
+            <div>Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
           </div>
           <div id="to-watch-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
-          <div class="flex justify-between text-xs text-zinc-500 mb-1">
-            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('watched', this)">
-              <span class="collapse-icon">▾</span> Watched library (drives recs)
-            </div>
-          </div>
+          <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
           <div id="watched-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
-          <div class="flex justify-between text-xs text-zinc-500 mb-1">
-            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('disliked', this)">
-              <span class="collapse-icon">▾</span> Disliked (excluded from recs)
-            </div>
-          </div>
+          <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
           <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
         </div>
       </div>
@@ -1551,44 +1544,31 @@
       renderWatched();
       renderDisliked();
       try { renderWatchlist(); } catch(e){}
-      applyPaneCollapseStates();
+      applyListsCollapse();
     }
 
-    // Collapse state for personal list panes (persisted in localStorage)
-    let paneCollapsed = JSON.parse(localStorage.getItem('horror_roki_pane_collapsed') || '{}');
+    // Master collapse for all three personal list panes (To Watch / Watched / Disliked).
+    // Persisted so it remembers across reloads. Single toggle for all at once.
+    let listsCollapsed = localStorage.getItem('horror_roki_lists_collapsed') === 'true';
 
-    function togglePaneCollapse(tab, headerEl) {
-      const contentId = tab === 'towatch' ? 'to-watch-content' : (tab + '-content');
-      const content = document.getElementById(contentId);
-      if (!content) return;
-      const isCollapsed = content.style.display === 'none';
-      if (isCollapsed) {
-        content.style.display = '';
-        paneCollapsed[tab] = false;
-        if (headerEl) headerEl.querySelector('.collapse-icon').textContent = '▾';
-      } else {
-        content.style.display = 'none';
-        paneCollapsed[tab] = true;
-        if (headerEl) headerEl.querySelector('.collapse-icon').textContent = '▸';
-      }
-      localStorage.setItem('horror_roki_pane_collapsed', JSON.stringify(paneCollapsed));
+    function toggleAllLists() {
+      listsCollapsed = !listsCollapsed;
+      localStorage.setItem('horror_roki_lists_collapsed', listsCollapsed);
+      applyListsCollapse();
     }
 
-    function applyPaneCollapseStates() {
-      ['towatch', 'watched', 'disliked'].forEach(tab => {
-        const contentId = tab === 'towatch' ? 'to-watch-content' : (tab + '-content');
-        const content = document.getElementById(contentId);
-        if (!content) return;
-        const header = content.previousElementSibling;
-        const icon = header ? header.querySelector('.collapse-icon') : null;
-        if (paneCollapsed[tab]) {
-          content.style.display = 'none';
-          if (icon) icon.textContent = '▸';
-        } else {
-          content.style.display = '';
-          if (icon) icon.textContent = '▾';
+    function applyListsCollapse() {
+      const contentIds = ['to-watch-content', 'watched-content', 'disliked-content'];
+      const btn = document.getElementById('lists-toggle');
+      contentIds.forEach(id => {
+        const content = document.getElementById(id);
+        if (content) {
+          content.style.display = listsCollapsed ? 'none' : '';
         }
       });
+      if (btn) {
+        btn.textContent = listsCollapsed ? '▸ Show all lists' : '▾ Hide all lists';
+      }
     }
 
     // Simple tabs for top personal (To Watch etc moved to top)
@@ -2727,7 +2707,7 @@
 
       // init top personal tabs (default to To Watch)
       switchPersonalTab('towatch');
-      applyPaneCollapseStates();
+      applyListsCollapse();
 
       // Pull latest from server KV (if configured). This is what makes phone + desktop share the same watched/disliked lists.
       // Non-blocking. Falls back silently to whatever is in localStorage on this device.
