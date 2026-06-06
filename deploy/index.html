@@ -1357,6 +1357,19 @@
         </div>`;
       });
       c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const toWatchRows = c.querySelectorAll('.library-item');
+      toWatchList.forEach((item, i) => {
+        if (i >= toWatchRows.length) return;
+        const row = toWatchRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
     }
 
     function markWatchedFromToWatch(idx) {
@@ -1409,6 +1422,19 @@
       });
       if (watchedList.length > 12) html += `<div class="text-[10px] text-zinc-500 px-1">+${watchedList.length-12} more</div>`;
       c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const watchedRows = c.querySelectorAll('.library-item');
+      watchedList.slice(0,12).forEach((item, i) => {
+        if (i >= watchedRows.length) return;
+        const row = watchedRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
     }
 
     function renderDisliked() {
@@ -1425,6 +1451,19 @@
         </div>`;
       });
       c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const dislikedRows = c.querySelectorAll('.library-item');
+      dislikedList.slice(0,8).forEach((item, i) => {
+        if (i >= dislikedRows.length) return;
+        const row = dislikedRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
     }
 
     function pickRandomToWatch() {
@@ -1957,6 +1996,11 @@
           card.appendChild(rateDiv);
         };
         card.querySelector('[data-act="dislike"]').onclick = () => { addToDisliked(item); card.remove(); };
+
+        // Make the whole rec card (including thumbnail) clickable for the rich detail bio modal,
+        // just like search/discover results. Buttons are protected by the guard inside enhanceCard.
+        enhanceCard(card, item);
+
         grid.appendChild(card);
       });
     }
@@ -2232,6 +2276,23 @@
               addToWatched(found, p.rating || 4);
               row.style.opacity = '0.3';
             };
+          }
+
+          // Make the thumbnail (poster) + title area clickable for quick bio/detail modal (consistent with recs and search)
+          if (p.type !== 'batch') {
+            const posterEl = row.querySelector('img') || row.querySelector('div.w-10');
+            const titleArea = row.querySelector('.flex.items-center.gap-2.flex-1') || row.querySelector('span.truncate');
+            [posterEl, titleArea].forEach(el => {
+              if (el) {
+                el.style.cursor = 'pointer';
+                el.title = 'View details';
+                el.onclick = (ev) => {
+                  ev.stopPropagation();
+                  const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+                  openModal(found).catch(()=>{});
+                };
+              }
+            });
           }
         }, 10);
       });
