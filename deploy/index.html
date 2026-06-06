@@ -513,42 +513,46 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Clean tight discover on mobile - readable fonts, spaced chips to fill, reduced header space */
+      /* Discover table: keep readable, reduce gaps, fill buttons, center where possible */
       .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
-        padding: 6px !important;
+        padding: 8px !important;
       }
       #genre-chips, #rating-chips, #decade-chips {
-        gap: 3px !important;
+        gap: 4px !important;
       }
-      .grid.grid-cols-2.gap-1.mb-1 {
-        gap: 3px !important;
-        margin-bottom: 3px !important;
+      .grid.grid-cols-2.gap-1.mb-0\\.5 {
+        gap: 4px !important;
+        margin-bottom: 4px !important;
       }
       .flex.items-center.pt-1.border-t {
         margin-top: 2px !important;
         padding-top: 2px !important;
-        gap: 2px !important;
       }
       .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
-        font-size: 12px !important;
-        padding: 3px 5px !important;
+        font-size: 13px !important;
+        padding: 4px 6px !important;
       }
       .text-\\[8px\\] {
-        font-size: 12px !important;
-      }
-      .text-xs {
         font-size: 13px !important;
       }
-      /* Center genre, spread rating/decade to fill space */
+      .text-xs {
+        font-size: 14px !important;
+      }
       #genre-chips {
         justify-content: center !important;
       }
       #rating-chips, #decade-chips {
         justify-content: space-around !important;
       }
-      /* Reduce space above genre section */
-      .flex.items-center.justify-between.mb-0\\.5 {
-        margin-bottom: 2px !important;
+      .flex.items-center.justify-between.mb-px {
+        margin-bottom: 1px !important;
+      }
+      /* Make the chip buttons fill more space */
+      #genre-chips button, #rating-chips button, #decade-chips button {
+        min-width: 60px !important;
+        text-align: center !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
       }
     }
 
@@ -726,37 +730,37 @@
       </div>
     </div>
 
-    <!-- Discover (clean dense table) -->
-    <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1 shadow-sm">
-        <div class="flex items-center justify-between mb-0.5 px-1">
-          <div class="text-xs font-medium text-zinc-400">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
+    <!-- Discover (clean, tight, readable table) -->
+    <div class="mb-0.5">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
+        <div class="flex items-center justify-between mb-1 px-1">
+          <div class="text-sm font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-xs text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
 
-        <!-- Genre chips - full width, centered to avoid side gaps -->
+        <!-- Genre chips - full width, centered, good gap -->
         <div class="mb-1">
-          <div class="text-[8px] text-zinc-500 mb-0.5">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-1 w-full justify-center"></div>
+          <div class="text-xs text-zinc-500 mb-0.5">Genres</div>
+          <div id="genre-chips" class="flex flex-wrap gap-1.5 w-full justify-center"></div>
         </div>
 
-        <!-- Rating + Decade in equal grid columns for balanced layout, no clustering -->
-        <div class="grid grid-cols-2 gap-1 mb-1">
-          <div>
-            <div class="text-[8px] text-zinc-500 mb-0.5">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
-          </div>
-          <div>
-            <div class="text-[8px] text-zinc-500 mb-0.5">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
-          </div>
+        <!-- Rating - full width, buttons spaced to fill -->
+        <div class="mb-1">
+          <div class="text-xs text-zinc-500 mb-0.5">Rating</div>
+          <div id="rating-chips" class="flex flex-wrap gap-1.5 w-full justify-around"></div>
         </div>
 
-        <!-- Bottom controls: sort left, centered toggle, browse right. text-xs for readable dropdown -->
-        <div class="flex items-center pt-1 border-t border-zinc-800 text-xs">
+        <!-- Decade - full width, buttons spaced to fill -->
+        <div class="mb-1">
+          <div class="text-xs text-zinc-500 mb-0.5">Decade</div>
+          <div id="decade-chips" class="flex flex-wrap gap-1.5 w-full justify-around"></div>
+        </div>
+
+        <!-- Bottom controls - compact, toggle good size, readable -->
+        <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800 text-sm">
           <div class="flex-1">
             <select id="discover-sort" onchange="performDiscover()"
-                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-0.5 text-xs text-zinc-200 outline-none w-full">
+                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-2 py-1 text-sm text-zinc-200 outline-none w-full">
               <option value="popularity.desc">Popular</option>
               <option value="vote_average.desc">Rated</option>
               <option value="release_date.desc">New</option>
@@ -765,17 +769,17 @@
           </div>
 
           <div class="px-1">
-            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-xs">
+            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-1 text-sm">
               <button onclick="setDiscoverType('movie')" id="type-movie"
-                      class="px-1 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
+                      class="px-2 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
               <button onclick="setDiscoverType('tv')" id="type-tv"
-                      class="px-1 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
+                      class="px-2 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
             </div>
           </div>
 
           <div class="flex-1 flex justify-end">
             <button onclick="performDiscover()"
-                    class="px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-xs font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+                    class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-sm font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
               Browse
             </button>
           </div>
@@ -2958,41 +2962,8 @@
         </div>
       `;
 
-      // Mark modal so we can scope hides; header × must remain visible
+      // Simple: just show the modal with settings content. No complex hiding to avoid breaking other sections.
       modal.classList.add('settings-mode');
-
-      // Robust hide of ONLY the bottom action row (the green Add button + black "Close").
-      // We target via #modal-add-button because the Settings form injects other .flex.gap-2 rows.
-      const addBtn = document.getElementById('modal-add-button');
-      if (addBtn) {
-        addBtn.style.display = 'none';
-        const actionRow = addBtn.parentElement;
-        if (actionRow && /flex/.test(actionRow.className || '')) {
-          actionRow.style.display = 'none';
-        }
-      }
-      // Belt-and-suspenders: hide any "Close" text button that is not the header ×
-      document.querySelectorAll('#detail-modal button').forEach(b => {
-        const txt = (b.textContent || '').trim().toLowerCase();
-        if (txt === 'close') {
-          b.style.display = 'none';
-        }
-      });
-      // Explicitly ensure header × stays (the small one with text-2xl or "×")
-      document.querySelectorAll('#detail-modal button[onclick*="closeModal"]').forEach(b => {
-        if ((b.textContent || '').trim() === '×' || b.classList.contains('text-2xl')) {
-          b.style.display = '';
-        }
-      });
-
-      // Inject a temporary style block with !important rules scoped to .settings-mode (safe for normal modals)
-      let hideStyle = document.getElementById('settings-modal-hide-style');
-      if (!hideStyle) {
-        hideStyle = document.createElement('style');
-        hideStyle.id = 'settings-modal-hide-style';
-        hideStyle.textContent = `
-          #detail-modal.settings-mode #modal-add-button,
-          #detail-modal.settings-mode .flex.gap-2:has(#modal-add-button),
           #detail-modal.settings-mode .flex.gap-2.sm\\:gap-3:has(#modal-add-button),
           #detail-modal.settings-mode button[onclick*="closeModal"]:not(.text-2xl):not(:has(.text-2xl)) {
             display: none !important;
