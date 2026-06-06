@@ -439,17 +439,27 @@
       <div class="mt-2">
         <div id="pane-towatch" class="personal-pane">
           <div class="flex justify-between mb-1 text-xs text-zinc-500">
-            <div>Upcoming nightmares</div>
+            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('towatch', this)">
+              <span class="collapse-icon">▾</span> Upcoming nightmares
+            </div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
           </div>
           <div id="to-watch-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
-          <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
+          <div class="flex justify-between text-xs text-zinc-500 mb-1">
+            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('watched', this)">
+              <span class="collapse-icon">▾</span> Watched library (drives recs)
+            </div>
+          </div>
           <div id="watched-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
-          <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
+          <div class="flex justify-between text-xs text-zinc-500 mb-1">
+            <div class="flex items-center gap-1 cursor-pointer" onclick="togglePaneCollapse('disliked', this)">
+              <span class="collapse-icon">▾</span> Disliked (excluded from recs)
+            </div>
+          </div>
           <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
         </div>
       </div>
@@ -722,6 +732,15 @@
     // Example: 'https://your-worker.your-account.workers.dev'
     // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
     let apiBase = localStorage.getItem('brous_api_base') || '';
+    // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
+    // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlApiBase = urlParams.get('apiBase');
+    if (urlApiBase) {
+      apiBase = urlApiBase;
+      localStorage.setItem('brous_api_base', apiBase); // persist for this visitor too
+      console.log('[Horror Roki] apiBase overridden from URL param:', apiBase);
+    }
     console.log('[Horror Roki] Current apiBase at load:', apiBase || '(relative)');
 
     function getAuthHeaders() {
@@ -1532,6 +1551,44 @@
       renderWatched();
       renderDisliked();
       try { renderWatchlist(); } catch(e){}
+      applyPaneCollapseStates();
+    }
+
+    // Collapse state for personal list panes (persisted in localStorage)
+    let paneCollapsed = JSON.parse(localStorage.getItem('horror_roki_pane_collapsed') || '{}');
+
+    function togglePaneCollapse(tab, headerEl) {
+      const contentId = tab === 'towatch' ? 'to-watch-content' : (tab + '-content');
+      const content = document.getElementById(contentId);
+      if (!content) return;
+      const isCollapsed = content.style.display === 'none';
+      if (isCollapsed) {
+        content.style.display = '';
+        paneCollapsed[tab] = false;
+        if (headerEl) headerEl.querySelector('.collapse-icon').textContent = '▾';
+      } else {
+        content.style.display = 'none';
+        paneCollapsed[tab] = true;
+        if (headerEl) headerEl.querySelector('.collapse-icon').textContent = '▸';
+      }
+      localStorage.setItem('horror_roki_pane_collapsed', JSON.stringify(paneCollapsed));
+    }
+
+    function applyPaneCollapseStates() {
+      ['towatch', 'watched', 'disliked'].forEach(tab => {
+        const contentId = tab === 'towatch' ? 'to-watch-content' : (tab + '-content');
+        const content = document.getElementById(contentId);
+        if (!content) return;
+        const header = content.previousElementSibling;
+        const icon = header ? header.querySelector('.collapse-icon') : null;
+        if (paneCollapsed[tab]) {
+          content.style.display = 'none';
+          if (icon) icon.textContent = '▸';
+        } else {
+          content.style.display = '';
+          if (icon) icon.textContent = '▾';
+        }
+      });
     }
 
     // Simple tabs for top personal (To Watch etc moved to top)
@@ -2379,6 +2436,19 @@
       document.querySelectorAll('.suggested-card').forEach(el => el.remove());
     }
 
+    function copyShareableLink() {
+      const url = new URL(window.location.href);
+      if (apiBase) {
+        url.searchParams.set('apiBase', apiBase);
+      }
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        alert('Shareable link copied! It includes the current API Endpoint Base so the recipient gets it automatically.');
+      }).catch(() => {
+        // fallback
+        prompt('Copy this link (includes API endpoint):', url.toString());
+      });
+    }
+
 // Settings (LLM config + backup + import) - simple modal using existing style
     function showSettings() {
       const modal = document.getElementById('detail-modal');
@@ -2414,6 +2484,7 @@
           <div class="mt-3">
             <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for Worker)</div>
             <input id="set-api-base" value="${apiBase || ''}" placeholder="Leave empty for normal use" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
+            <button onclick="copyShareableLink()" class="mt-1 text-[10px] px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">Copy shareable link (with endpoint)</button>
           </div>
 
           <div class="mt-4 pt-3 border-t border-zinc-800">
@@ -2493,13 +2564,21 @@
           if (baseInput) {
             apiBase = baseInput.value.trim();
             localStorage.setItem('brous_api_base', apiBase);
+            // Update URL so the setting is "baked" into a shareable link (e.g. ?apiBase=...)
+            const newUrl = new URL(window.location.href);
+            if (apiBase) {
+              newUrl.searchParams.set('apiBase', apiBase);
+            } else {
+              newUrl.searchParams.delete('apiBase');
+            }
+            window.history.replaceState({}, '', newUrl.toString());
           }
           const baseNote = document.getElementById('current-base-note');
           if (baseNote) {
             const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
             baseNote.textContent = 'Current API base: ' + currentBase;
           }
-          alert('Configs saved locally. Reload or re-try your action if needed.');
+          alert('Configs saved locally. The API Endpoint is now in the URL for easy sharing (copy the page URL). Reload or re-try your action if needed.');
         };
         const db = document.getElementById('do-backup');
         if (db) db.onclick = downloadFullBackup;
@@ -2648,6 +2727,7 @@
 
       // init top personal tabs (default to To Watch)
       switchPersonalTab('towatch');
+      applyPaneCollapseStates();
 
       // Pull latest from server KV (if configured). This is what makes phone + desktop share the same watched/disliked lists.
       // Non-blocking. Falls back silently to whatever is in localStorage on this device.
