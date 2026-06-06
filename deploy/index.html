@@ -220,11 +220,22 @@
       margin-bottom: 6px;
       max-width: 85%;
       box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: curator-msg-in 0.25s ease forwards;
     }
     .curator-msg.user {
       background: #27272a;
       margin-left: auto;
       border-color: #52525b;
+    }
+    @keyframes curator-msg-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .curator-typing {
+      font-style: italic;
+      opacity: 0.7;
+      padding: 6px 12px;
     }
     .curator-avatar {
       width: 22px; height: 22px;
@@ -491,6 +502,15 @@
             <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-4 py-2 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
             <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
           </div>
+
+          <!-- Quick-reply chips for a more fun, interactive Curator experience -->
+          <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies">
+            <button data-q="Something slow burn and psychological" class="text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800">Slow burn</button>
+            <button data-q="Recommend something really gory" class="text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800">Gory</button>
+            <button data-q="What should I watch next" class="text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800">What next?</button>
+            <button data-q="Folk horror or supernatural" class="text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800">Folk / Supernatural</button>
+          </div>
+
           <div id="curator-status" class="text-[10px] text-zinc-500 mt-1.5 px-1">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
@@ -1397,25 +1417,32 @@
         addToWatched(item, 4);
         return;
       }
-      // Redesigned rating prompt: remove buttons, append compact stars with ml-auto to stay inside the library-item box.
-      // Stars are readable but compact to prevent overflow on mobile.
+      // Completely redesigned rating prompt to guarantee it stays inside the box:
+      // - Remove action buttons
+      // - Force the row to wrap
+      // - Put a full-width contained rating bar below the main content
+      // - Use compact but tappable stars
       row.querySelectorAll('button').forEach(b => b.remove());
       row.style.flexWrap = 'wrap';
       row.style.alignItems = 'flex-start';
-      const rateDiv = document.createElement('div');
-      rateDiv.className = 'flex gap-0.5 text-sm ml-auto items-center';
+
+      // Super contained rating redesign:
+      // We create a full-width sub-bar that is always inside the .library-item
+      // Stars are readable (text-sm on desktop, decent on mobile) but use tight padding + background so the whole thing fits without ever going outside the bordered box.
+      const rateBar = document.createElement('div');
+      rateBar.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
       for(let r=1; r<=5; r++) {
         const b = document.createElement('button');
         b.textContent = r + '★';
-        b.className = 'px-1.5 py-0.5 rounded bg-zinc-700 hover:bg-emerald-600 text-xs font-medium';
+        b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
         b.onclick = () => {
           addToWatched(item, r);
           row.style.opacity = '0.4';
-          rateDiv.remove();
+          rateBar.remove();
         };
-        rateDiv.appendChild(b);
+        rateBar.appendChild(b);
       }
-      row.appendChild(rateDiv);
+      row.appendChild(rateBar);
     }
     function dislikeFromToWatch(idx) {
       const item = toWatchList[idx];
@@ -1830,11 +1857,11 @@
           // Inline rating instead of prompt
           b1.style.display='none'; b2.style.display='none'; b3.style.display='none';
           const rateDiv = document.createElement('div');
-          rateDiv.className = 'flex gap-1 text-sm';
+          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
           for(let r=1; r<=5; r++) {
             const bb = document.createElement('button');
             bb.textContent = r+'★';
-            bb.className = 'px-2 py-1 rounded bg-zinc-700 hover:bg-emerald-600 text-sm font-medium';
+            bb.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
             bb.onclick = () => { addToWatched(m, r); b2.textContent='✓'; rateDiv.remove(); };
             rateDiv.appendChild(bb);
           }
@@ -2000,11 +2027,11 @@
           const actions = card.querySelector('.mt-2') || card.querySelector('[data-act="watched"]').parentElement;
           if (actions) actions.innerHTML = '';
           const rateDiv = document.createElement('div');
-          rateDiv.className = 'flex gap-1 text-sm mt-1';
+          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
           for(let r=1; r<=5; r++) {
             const b = document.createElement('button');
             b.textContent = r + '★';
-            b.className = 'px-2 py-1 rounded bg-zinc-700 hover:bg-emerald-600 text-sm font-medium';
+            b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
             b.onclick = () => {
               addToWatched(item, r);
               card.remove();
@@ -2064,6 +2091,16 @@
       const status = document.getElementById('curator-status');
       if (status) status.textContent = 'The Curator is consulting the reels...';
 
+      // Cool horror-themed typing indicator
+      const box = document.getElementById('curator-messages');
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'curator-msg curator-typing';
+      typingDiv.innerHTML = `<span class="curator-avatar">👻</span> <span>The Curator is whispering from the shadows...</span>`;
+      if (box) {
+        box.appendChild(typingDiv);
+        box.scrollTop = box.scrollHeight;
+      }
+
       // Build context + grounding (simplified port of build_user_context + extract + live)
       const prefs = getUserGenrePrefs();
       const twTitles = toWatchList.slice(0,12).map(x=>x.title);
@@ -2114,6 +2151,9 @@
         const reader = res.body.getReader();
         const dec = new TextDecoder();
         let full = '';
+        // Remove typing indicator
+        if (typingDiv && typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
+
         const assistantDiv = document.createElement('div');
         assistantDiv.className = 'curator-msg';
         assistantDiv.innerHTML = `<span class="curator-avatar">👻</span> <span class="curator-text"></span>`;
@@ -2262,11 +2302,11 @@
             // Inline rating chooser – no jarring browser prompt dialog that jumps front-and-center
             row.querySelectorAll('button').forEach(b => b.style.display = 'none');
             const rateDiv = document.createElement('div');
-            rateDiv.className = 'flex gap-1 text-sm ml-1';
+            rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
             for(let r=1; r<=5; r++) {
               const b = document.createElement('button');
               b.textContent = r + '★';
-              b.className = 'px-2 py-1 rounded bg-zinc-700 hover:bg-emerald-600 text-sm font-medium';
+              b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
               b.onclick = (ev) => {
                 ev.stopImmediatePropagation();
                 addToWatched(found, r);
@@ -2537,6 +2577,21 @@
 
     // Boot (extended for new library + recs + curator)
     function boot() {
+      // Wire quick-reply chips for the Curator (cool, fast UX)
+      const quickReplies = document.getElementById('curator-quick-replies');
+      if (quickReplies) {
+        quickReplies.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-q]');
+          if (!btn) return;
+          const q = btn.dataset.q;
+          const inp = document.getElementById('curator-input');
+          if (inp) {
+            inp.value = q;
+            sendToCurator();
+          }
+        });
+      }
+
       // Click outside the modal content (on the dark backdrop) closes it
       const modalEl = document.getElementById('detail-modal');
       if (modalEl) {
