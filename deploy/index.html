@@ -3191,6 +3191,12 @@
       passBtn.title = 'Password saved for this browser. Click to change or clear.';
     }
 
+    // Defensive wiring for header buttons in case inline onclick has issues
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.onclick = showSettings;
+
+    if (passBtn) passBtn.onclick = managePassword;
+
     window.onload = boot;
   </script>
 
