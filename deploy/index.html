@@ -2736,7 +2736,6 @@
           const titlesStr = sugMatch[1];
           let titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
           // Strict filter: never suggest titles already in any list
-          const excluded = getExcludedKeys();
           const watchedTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => (x.title || '').toLowerCase()));
           titles = titles.filter(t => t && !watchedTitles.has(t.toLowerCase()));
           if (!titles.length) return;
