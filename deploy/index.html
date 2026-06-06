@@ -497,23 +497,28 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Tighten discover overall on mobile */
+      /* Ultra-aggressive zero gap for discover (genre/rating/decade) on mobile */
+      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-0\\.5 {
+        padding: 2px !important;
+      }
       #genre-chips {
-        margin-bottom: 1px !important;
-        gap: 1px !important;
+        margin-bottom: 0 !important;
+        gap: 0 !important;
       }
       #rating-chips, #decade-chips {
-        gap: 1px !important;
+        gap: 0 !important;
       }
-      #discover-sort ~ div .grid > div {
+      .text-\\[7px\\].text-zinc-500 {
+        font-size: 6px !important;
         margin-bottom: 0 !important;
+        padding: 0 !important;
       }
-      .text-\\[8px\\].text-zinc-500 {
-        font-size: 7px !important;
-        margin-bottom: 0 !important;
+      .grid.grid-cols-1.sm\\:grid-cols-2 {
+        gap: 0 !important;
       }
-      #discover-sort ~ div .grid .flex.flex-wrap.gap-0\\.5 {
-        gap: 1px !important;
+      .flex.items-center.gap-1.flex-wrap.mt-px.pt-px {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
       }
     }
 
@@ -647,12 +652,12 @@
     <!-- Curator Chat: identity only via the red ghost inside message bubbles (no mascot or name in the header bar) -->
     <div class="mb-2">
       <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat">
-        <div class="flex items-center justify-between px-2.5 py-1.5 bg-zinc-900 border-b border-zinc-800">
+        <div class="flex items-center justify-between px-2 py-1 bg-zinc-800 border-b-2 border-red-900/60">
           <div class="flex items-center gap-1.5">
-            <span class="curator-avatar" style="width:18px;height:18px;font-size:10px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #3f3f46;">👻</span> 
+            <span class="curator-avatar" style="width:20px;height:20px;font-size:11px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c;">👻</span> 
             <div class="leading-none">
-              <div class="text-[10px] text-zinc-300 tracking-tight">keeper of dark cinema</div>
-              <div id="curator-mood" class="text-[8px] text-red-400/70 tracking-wider mt-px">THE REELS ARE RESTLESS</div>
+              <div class="text-[10px] text-zinc-200 tracking-tight font-medium">keeper of dark cinema</div>
+              <div id="curator-mood" class="text-[8px] text-red-400/80 tracking-wider mt-px">THE REELS ARE RESTLESS</div>
             </div>
           </div>
           <div class="flex gap-0.5">
@@ -661,18 +666,18 @@
           </div>
         </div>
 
-        <div id="curator-messages" class="px-2.5 py-1.5 max-h-[280px] overflow-auto text-sm space-y-1.5 bg-[#0f0f11]"></div>
+        <div id="curator-messages" class="px-2 py-1 max-h-[260px] overflow-auto text-sm space-y-1 bg-[#0f0f11]"></div>
 
-        <div class="p-1.5 border-t border-zinc-800 bg-zinc-900">
-          <div class="flex gap-1.5">
-            <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-3 py-1.5 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
-            <button onclick="sendToCurator()" class="px-3 py-1.5 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
+        <div class="p-1 border-t border-zinc-800 bg-zinc-900">
+          <div class="flex gap-1">
+            <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-2.5 py-1 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
+            <button onclick="sendToCurator()" class="px-2.5 py-1 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
           </div>
 
           <!-- Quick-reply chips for a more fun, interactive Curator experience (populated dynamically) -->
-          <div class="flex flex-wrap gap-0.5 mt-1.5 text-[9px]" id="curator-quick-replies"></div>
+          <div class="flex flex-wrap gap-0.5 mt-1 text-[8px]" id="curator-quick-replies"></div>
 
-          <div id="curator-status" class="text-[9px] text-zinc-500 mt-1 px-0.5">Grounded in your watched library • history kept until cleared</div>
+          <div id="curator-status" class="text-[8px] text-zinc-500 mt-0.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
     </div>
@@ -691,32 +696,32 @@
       </div>
     </div>
 
-    <!-- Discover by genre (even more condensed) -->
+    <!-- Discover by genre (ultra condensed) -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1 shadow-sm">
-        <div class="flex items-center justify-between mb-0.5 px-0.5">
-          <div class="text-[9px] font-medium text-zinc-400">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-0.5 shadow-sm">
+        <div class="flex items-center justify-between mb-px px-0.5">
+          <div class="text-[8px] font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[7px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
         
-        <!-- Genre chips (tighter) -->
-        <div id="genre-chips" class="flex flex-wrap gap-0.5 mb-0.5"></div>
+        <!-- Genre chips (ultra tight) -->
+        <div id="genre-chips" class="flex flex-wrap gap-px mb-px"></div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-0">
           <!-- Rating filter -->
           <div>
-            <div class="text-[8px] text-zinc-500 px-0.5 mb-0">Min rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
+            <div class="text-[7px] text-zinc-500 px-0.5 mb-0">Min rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-px"></div>
           </div>
 
           <!-- Decade filter -->
           <div>
-            <div class="text-[8px] text-zinc-500 px-0.5 mb-0">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
+            <div class="text-[7px] text-zinc-500 px-0.5 mb-0">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-px"></div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1 flex-wrap mt-0.5 pt-0.5 border-t border-zinc-800 text-[9px] -ml-1.5 pl-1.5">
+        <div class="flex items-center gap-1 flex-wrap mt-px pt-px border-t border-zinc-800 text-[8px] -ml-1 pl-1">
           <!-- Media type toggle -->
           <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-[9px]">
             <button onclick="setDiscoverType('movie')" id="type-movie"
