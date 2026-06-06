@@ -518,7 +518,7 @@
         padding: 8px !important;
       }
       #genre-chips, #rating-chips, #decade-chips {
-        gap: 4px !important;
+        gap: 2px !important;
       }
       .grid.grid-cols-2.gap-1.mb-0\\.5 {
         gap: 4px !important;
@@ -544,15 +544,20 @@
       #rating-chips, #decade-chips {
         justify-content: space-around !important;
       }
+      .flex.items-center.justify-between.mb-0\\.5,
       .flex.items-center.justify-between.mb-px {
         margin-bottom: 1px !important;
       }
-      /* Make the chip buttons fill more space */
+      /* Ensure rating/decade flex fills full width to avoid right gap */
+      .flex.gap-1.mb-0\\.5.w-full {
+        width: 100% !important;
+      }
+      /* Chip buttons packed to fill width with small even gaps (not overly spread) */
       #genre-chips button, #rating-chips button, #decade-chips button {
-        min-width: 60px !important;
+        min-width: 50px !important;
         text-align: center !important;
-        padding-left: 8px !important;
-        padding-right: 8px !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
       }
     }
 
@@ -733,27 +738,27 @@
     <!-- Discover (clean, tight, readable table) -->
     <div class="mb-0.5">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
-        <div class="flex items-center justify-between mb-1 px-1">
-          <div class="text-sm font-medium text-zinc-400">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-xs text-zinc-500 hover:text-zinc-400">Clear</button>
+        <div class="flex items-center justify-between mb-0.5 px-1">
+          <div class="text-xs font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
 
-        <!-- Genre chips - full width, centered, good gap -->
-        <div class="mb-1">
-          <div class="text-xs text-zinc-500 mb-0.5">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-1.5 w-full justify-center"></div>
+        <!-- Genre chips - full width, centered, tighter gap -->
+        <div class="mb-0.5">
+          <div class="text-[8px] text-zinc-500 mb-px">Genres</div>
+          <div id="genre-chips" class="flex flex-wrap gap-1 w-full justify-center"></div>
         </div>
 
-        <!-- Rating - full width, buttons spaced to fill -->
-        <div class="mb-1">
-          <div class="text-xs text-zinc-500 mb-0.5">Rating</div>
-          <div id="rating-chips" class="flex flex-wrap gap-1.5 w-full justify-around"></div>
-        </div>
-
-        <!-- Decade - full width, buttons spaced to fill -->
-        <div class="mb-1">
-          <div class="text-xs text-zinc-500 mb-0.5">Decade</div>
-          <div id="decade-chips" class="flex flex-wrap gap-1.5 w-full justify-around"></div>
+        <!-- Rating + Decade side-by-side, buttons spaced to fill but with tighter gap -->
+        <div class="flex gap-1 mb-0.5 w-full">
+          <div class="flex-1">
+            <div class="text-[8px] text-zinc-500 mb-px">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+          </div>
+          <div class="flex-1">
+            <div class="text-[8px] text-zinc-500 mb-px">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+          </div>
         </div>
 
         <!-- Bottom controls - compact, toggle good size, readable -->
