@@ -409,7 +409,7 @@
       <div class="min-w-0">
         <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
         <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
-        <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5">Personal recs for horror, thrillers, sci-fi &amp; suspense. No server required.</p>
+        <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5">Personal recs for horror, thrillers, sci-fi &amp; suspense.</p>
       </div>
       <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <button onclick="installPWA()" id="install-btn"
@@ -439,7 +439,7 @@
       <div class="flex justify-end mb-1 px-1">
         <button id="lists-toggle" onclick="toggleAllLists()" class="text-[10px] px-2 py-px bg-zinc-800 border border-zinc-700 rounded">▾ Hide all lists</button>
       </div>
-      <div class="mt-2">
+      <div id="personal-content" class="mt-2">
         <div id="pane-towatch" class="personal-pane">
           <div class="flex justify-between mb-1 text-xs text-zinc-500">
             <div>Upcoming nightmares</div>
@@ -1558,14 +1558,11 @@
     }
 
     function applyListsCollapse() {
-      const contentIds = ['to-watch-content', 'watched-content', 'disliked-content'];
+      const wrapper = document.getElementById('personal-content');
       const btn = document.getElementById('lists-toggle');
-      contentIds.forEach(id => {
-        const content = document.getElementById(id);
-        if (content) {
-          content.style.display = listsCollapsed ? 'none' : '';
-        }
-      });
+      if (wrapper) {
+        wrapper.style.display = listsCollapsed ? 'none' : '';
+      }
       if (btn) {
         btn.textContent = listsCollapsed ? '▸ Show all lists' : '▾ Hide all lists';
       }
