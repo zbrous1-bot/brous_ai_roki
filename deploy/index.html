@@ -497,28 +497,32 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Ultra-aggressive zero gap for discover (genre/rating/decade) on mobile */
-      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-0\\.5 {
-        padding: 2px !important;
+      /* Completely redone discover - force maximum density on mobile */
+      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
+        padding: 4px !important;
       }
-      #genre-chips {
+      #genre-chips, #rating-chips, #decade-chips {
+        gap: 1px !important;
         margin-bottom: 0 !important;
-        gap: 0 !important;
-      }
-      #rating-chips, #decade-chips {
-        gap: 0 !important;
       }
       .text-\\[7px\\].text-zinc-500 {
         font-size: 6px !important;
         margin-bottom: 0 !important;
-        padding: 0 !important;
+        line-height: 1 !important;
       }
-      .grid.grid-cols-1.sm\\:grid-cols-2 {
-        gap: 0 !important;
+      .flex.gap-1.mb-1 {
+        gap: 2px !important;
+        margin-bottom: 2px !important;
       }
-      .flex.items-center.gap-1.flex-wrap.mt-px.pt-px {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
+      .flex.items-center.gap-0\\.5.pt-1.border-t {
+        margin-top: 1px !important;
+        padding-top: 1px !important;
+        gap: 1px !important;
+      }
+      .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
+        font-size: 6px !important;
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
       }
     }
 
@@ -696,43 +700,45 @@
       </div>
     </div>
 
-    <!-- Discover by genre (ultra condensed) -->
+    <!-- Discover (completely redone for density) -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-0.5 shadow-sm">
-        <div class="flex items-center justify-between mb-px px-0.5">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1 shadow-sm">
+        <div class="flex items-center justify-between mb-0.5 px-1">
           <div class="text-[8px] font-medium text-zinc-400">Discover</div>
           <button onclick="clearSelectedGenres()" class="text-[7px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
-        
-        <!-- Genre chips (ultra tight) -->
-        <div id="genre-chips" class="flex flex-wrap gap-px mb-px"></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-0">
-          <!-- Rating filter -->
-          <div>
-            <div class="text-[7px] text-zinc-500 px-0.5 mb-0">Min rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-px"></div>
+        <!-- Genre chips -->
+        <div class="mb-1">
+          <div class="text-[7px] text-zinc-500 mb-px">Genres</div>
+          <div id="genre-chips" class="flex flex-wrap gap-0.5"></div>
+        </div>
+
+        <!-- Rating + Decade side by side, ultra tight -->
+        <div class="flex gap-1 mb-1">
+          <div class="flex-1">
+            <div class="text-[7px] text-zinc-500 mb-px">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
-
-          <!-- Decade filter -->
-          <div>
-            <div class="text-[7px] text-zinc-500 px-0.5 mb-0">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-px"></div>
+          <div class="flex-1">
+            <div class="text-[7px] text-zinc-500 mb-px">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1 flex-wrap mt-px pt-px border-t border-zinc-800 text-[8px] -ml-1 pl-1">
-          <!-- Media type toggle -->
-          <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5 text-[9px]">
+        <!-- Bottom controls - compact single row -->
+        <div class="flex items-center gap-0.5 pt-1 border-t border-zinc-800 text-[7px]">
+          <!-- Media type -->
+          <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-px text-[7px]">
             <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-1.5 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
+                    class="px-1 py-px rounded-3xl font-medium bg-white text-black">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-1.5 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
+                    class="px-1 py-px rounded-3xl font-medium text-zinc-300">TV</button>
           </div>
 
           <!-- Sort -->
           <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-0.5 text-[9px] text-zinc-200 outline-none">
+                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1 py-px text-[7px] text-zinc-200 outline-none">
             <option value="popularity.desc">Popular</option>
             <option value="vote_average.desc">Rated</option>
             <option value="release_date.desc">New</option>
@@ -740,7 +746,7 @@
           </select>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[9px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+                  class="ml-auto px-1.5 py-px bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[7px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
             Browse
           </button>
         </div>
