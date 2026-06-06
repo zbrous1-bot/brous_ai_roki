@@ -181,8 +181,8 @@
     .btn-nightmare:active { background-color: #7f1d1d; }
 
     .mood-chip {
-      font-size: 13px;
-      padding: 5px 12px;
+      font-size: 14px;
+      padding: 6px 14px;
       border-radius: 9999px;
       border: 1px solid #3f3f46;
       background: #18181b;
@@ -205,8 +205,8 @@
     .library-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
+      gap: 12px;
+      padding: 10px 12px;
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
@@ -274,108 +274,108 @@
       margin-top: -1px; /* seamless with tab bar */
     }
 
-    /* Larger fonts for readability on live site */
+    /* Larger fonts for readability on live site - easier on the eyes */
     body {
-      font-size: 16px;
-      line-height: 1.4;
+      font-size: 17px;
+      line-height: 1.45;
     }
     .library-item,
     .curator-msg,
     #curator-input,
     .suggested-card {
-      font-size: 15px;
+      font-size: 16px;
     }
     .text-xs {
-      font-size: 13px !important;
-    }
-    .text-sm {
       font-size: 14px !important;
     }
-    .text-[10px], .text-[11px], .text-[9px] {
-      font-size: 12px !important;
-    }
-    .text-[13px] {
+    .text-sm {
       font-size: 15px !important;
     }
+    .text-[10px], .text-[11px], .text-[9px] {
+      font-size: 13px !important;
+    }
+    .text-[13px] {
+      font-size: 16px !important;
+    }
     input, button, .movie-card {
-      font-size: 15px;
+      font-size: 16px;
     }
     /* Top section larger fonts */
     .top-header h1 {
-      font-size: 3.5rem;
+      font-size: 3.75rem;
     }
     .top-header p {
-      font-size: 15px;
+      font-size: 16px;
     }
 
-    /* Mobile friendliness: tighten for phones (iPhone SE, Android small screens) */
+    /* Mobile friendliness: tighten for phones (iPhone SE, Android small screens) - but keep fonts larger for eyes */
     @media (max-width: 640px) {
-      .max-w-7xl { max-width: 100%; }
+      .max-w-screen-2xl { max-width: 100%; }
       
       /* Header */
-      .top-header h1 { font-size: 2.25rem !important; letter-spacing: -1.5px; }
-      .top-header p { font-size: 12px !important; }
+      .top-header h1 { font-size: 2.5rem !important; letter-spacing: -1.5px; }
+      .top-header p { font-size: 14px !important; }
       
       /* Tabs - more compact scrollable */
       .personal-tab {
         padding: 5px 9px !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         margin-right: 1px;
       }
-      .personal-pane { padding: 6px; min-height: 110px; }
+      .personal-pane { padding: 6px; min-height: 130px; }
       
-      /* Curator input - no longer giant */
-      #curator-input { font-size: 15px !important; }
-      .curator-msg { padding: 6px 10px; font-size: 13px; max-width: 88%; }
+      /* Curator input */
+      #curator-input { font-size: 16px !important; }
+      .curator-msg { padding: 7px 11px; font-size: 14px; max-width: 88%; }
       
-      /* Recommended header buttons - tighter */
-      .mb-3 > .flex.items-center.justify-between button {
-        font-size: 10px !important;
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
+      /* Recommended header buttons */
+      .mb-2 > .flex.items-center.justify-between button {
+        font-size: 11px !important;
+        padding-left: 9px !important;
+        padding-right: 9px !important;
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
       }
       
-      /* Mood chips smaller */
-      .mood-chip { font-size: 11px !important; padding: 3px 8px !important; }
+      /* Mood chips */
+      .mood-chip { font-size: 12px !important; padding: 4px 9px !important; }
       
       /* Search / Discover */
-      .search-input { font-size: 15px; }
-      #discover-sort, .inline-flex button { font-size: 11px !important; }
+      .search-input { font-size: 16px; }
+      #discover-sort, .inline-flex button { font-size: 12px !important; }
       
-      /* Results cards (search/discover) - 2-col narrow cards */
-      .movie-card { padding: 10px !important; }
-      .movie-card .flex.gap-4 { gap: 10px; }
-      .movie-card img { width: 48px !important; height: 72px !important; }
+      /* Results cards (search/discover) */
+      .movie-card { padding: 12px !important; }
+      .movie-card .flex.gap-4 { gap: 12px; }
+      .movie-card img { width: 56px !important; height: 84px !important; }
       
-      /* Action buttons row - prevent overflow, smaller */
+      /* Action buttons row */
       .mt-2.flex.gap-2 > button,
       .mt-3.flex.gap-2 > button {
-        font-size: 10px !important;
-        padding-left: 6px !important;
-        padding-right: 6px !important;
-        padding-top: 4px !important;
-        padding-bottom: 4px !important;
+        font-size: 11px !important;
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
       }
       
       /* Recs grid cards (top Recommended) */
-      #recs-grid .movie-card { padding: 8px !important; }
-      #recs-grid .movie-card img { width: 44px !important; height: 66px !important; }
-      #recs-grid .mt-3.flex.gap-2 > button { font-size: 9px !important; padding: 3px 6px !important; }
+      #recs-grid .movie-card { padding: 10px !important; }
+      #recs-grid .movie-card img { width: 52px !important; height: 78px !important; }
+      #recs-grid .mt-2.flex.gap-1 > button { font-size: 10px !important; padding: 4px 7px !important; }
       
-      /* Personal lists (To Watch etc rows) - buttons must fit */
-      .library-item { padding: 5px 6px !important; gap: 6px; font-size: 12px !important; }
-      .library-item button { font-size: 10px !important; padding: 1px 5px !important; }
-      #to-watch-content, #watched-content, #disliked-content { max-height: 180px !important; }
+      /* Personal lists */
+      .library-item { padding: 6px 8px !important; gap: 8px; font-size: 14px !important; }
+      .library-item button { font-size: 11px !important; padding: 2px 6px !important; }
+      #to-watch-content, #watched-content, #disliked-content { max-height: 220px !important; }
       
-      /* Modal tighter */
-      #detail-modal .p-4 { padding: 12px; }
-      #detail-modal .text-xl { font-size: 1.1rem; }
+      /* Modal */
+      #detail-modal .p-4 { padding: 14px; }
+      #detail-modal .text-xl { font-size: 1.2rem; }
       
       /* General */
-      .text-lg { font-size: 15px !important; }
-      button, input { min-height: 36px; } /* better touch */
+      .text-lg { font-size: 16px !important; }
+      button, input { min-height: 38px; font-size: 15px; }
     }
   </style>
 </head>
@@ -1345,11 +1345,11 @@
       let html = '';
       toWatchList.forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-8 h-11 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-8 h-11 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 min-w-0">
-            <div class="font-medium truncate">${item.title} <span class="text-[10px] text-zinc-500">${year}</span></div>
+            <div class="font-medium truncate">${item.title} <span class="text-xs text-zinc-500">${year}</span></div>
           </div>
           <button onclick="markWatchedFromToWatch(${idx})" class="text-[10px] px-1.5 py-px rounded-xl bg-emerald-800 text-emerald-100">⭐ Rate</button>
           <button onclick="dislikeFromToWatch(${idx})" class="text-[10px] px-1 py-px rounded-xl border border-zinc-700 text-zinc-400">👎</button>
@@ -1363,7 +1363,7 @@
       toWatchList.forEach((item, i) => {
         if (i >= toWatchRows.length) return;
         const row = toWatchRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
         if (poster && item) {
           poster.style.cursor = 'pointer';
           poster.title = 'View details';
@@ -1413,10 +1413,10 @@
       watchedList.slice(0,12).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
         const r = item.rating ? ` · ${item.rating}★` : '';
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-8 h-11 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-8 h-11 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
-          <div class="flex-1 truncate">${item.title} <span class="text-[10px] text-zinc-500">${year}${r}</span></div>
+          <div class="flex-1 truncate">${item.title} <span class="text-xs text-zinc-500">${year}${r}</span></div>
           <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1">×</button>
         </div>`;
       });
@@ -1428,7 +1428,7 @@
       watchedList.slice(0,12).forEach((item, i) => {
         if (i >= watchedRows.length) return;
         const row = watchedRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
         if (poster && item) {
           poster.style.cursor = 'pointer';
           poster.title = 'View details';
@@ -1443,7 +1443,7 @@
       if (!dislikedList.length) { c.innerHTML = `<div class="text-xs text-zinc-500 px-1">Nothing disliked.<br><span class="text-[10px] opacity-70">Data lives only on this device/browser. Use ⚙︎ Settings → Backup/Import to transfer.</span></div>`; return; }
       let html = '';
       dislikedList.slice(0,8).forEach(item => {
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-8 h-11 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-8 h-11 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 truncate">${item.title}</div>
@@ -1457,7 +1457,7 @@
       dislikedList.slice(0,8).forEach((item, i) => {
         if (i >= dislikedRows.length) return;
         const row = dislikedRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div.w-8');
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
         if (poster && item) {
           poster.style.cursor = 'pointer';
           poster.title = 'View details';
@@ -1747,12 +1747,12 @@
               ? 'provider-table streaming' 
               : 'provider-table';
             // Compact bubbles: tiny labels + tight horizontal pills row (keeps breakdown but uses far less vertical space)
-            html += `<div class="mt-1.5 first:mt-0"><div class="text-[9px] font-medium mb-0.5 px-0.5 ${labelColor}">${label}</div><div class="flex flex-wrap gap-1 bg-zinc-950 rounded-xl px-1.5 py-1 ${tableClasses}">`;
+            html += `<div class="mt-1.5 first:mt-0"><div class="text-[10px] font-medium mb-0.5 px-0.5 ${labelColor}">${label}</div><div class="flex flex-wrap gap-1 bg-zinc-950 rounded-xl px-1.5 py-1 ${tableClasses}">`;
             items.forEach(p => {
               const name = getProviderName(p);
               const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
               const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-              html += `<span class="inline-flex items-center px-1.5 py-px rounded-2xl text-[9px] font-medium leading-none ${colorClass}">${name}${isMine ? '<span class="ml-0.5 text-[8px] opacity-70">✓</span>' : ''}</span>`;
+              html += `<span class="inline-flex items-center px-1.5 py-px rounded-2xl text-[10px] font-medium leading-none ${colorClass}">${name}${isMine ? '<span class="ml-0.5 text-[9px] opacity-70">✓</span>' : ''}</span>`;
             });
             html += `</div></div>`;
           });
@@ -1767,7 +1767,7 @@
         card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 sm:p-5';
         card.innerHTML = `
           <div class="flex gap-4">
-            ${poster ? `<img src="${poster}" class="w-16 h-[96px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            ${poster ? `<img src="${poster}" class="w-20 h-[120px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
@@ -1957,22 +1957,22 @@
       grid.innerHTML = '';
       scored.slice(0, 15).forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-3.5 flex flex-col';
+        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         card.innerHTML = `
           <div class="flex gap-3">
-            <img src="${poster}" class="w-[58px] h-[87px] rounded-xl object-cover border border-zinc-800" alt="">
+            <img src="${poster}" class="w-16 h-24 rounded-xl object-cover border border-zinc-800" alt="">
             <div class="min-w-0 flex-1">
-              <div class="font-semibold text-sm leading-tight truncate">${item.title}</div>
-              <div class="text-[11px] text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
-              <div class="text-[10px] text-emerald-400/80 mt-0.5">taste boosted</div>
+              <div class="font-semibold text-base leading-tight truncate">${item.title}</div>
+              <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
+              <div class="text-[11px] text-emerald-400/80 mt-0.5">taste boosted</div>
             </div>
           </div>
           <div class="mt-2 flex gap-1">
-            <button class="flex-1 text-[10px] py-1 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white" data-act="towatch">+ Watch</button>
-            <button class="flex-1 text-[10px] py-1 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700" data-act="watched">Watched</button>
-            <button class="text-[10px] px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
+            <button class="flex-1 text-xs py-1 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white" data-act="towatch">+ Watch</button>
+            <button class="flex-1 text-xs py-1 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700" data-act="watched">Watched</button>
+            <button class="text-xs px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
           </div>
         `;
         // wire actions
@@ -2216,8 +2216,8 @@
           `;
         } else {
           const posterHtml = p.poster_path 
-            ? `<img src="https://image.tmdb.org/t/p/w92${p.poster_path}" class="w-10 h-14 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">`
-            : `<div class="w-10 h-14 bg-zinc-800 rounded flex-shrink-0 flex items-center justify-center text-[10px] text-zinc-500">📽️</div>`;
+            ? `<img src="https://image.tmdb.org/t/p/w92${p.poster_path}" class="w-12 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">`
+            : `<div class="w-12 h-16 bg-zinc-800 rounded flex-shrink-0 flex items-center justify-center text-[10px] text-zinc-500">📽️</div>`;
           row.innerHTML = `
             <div class="flex items-center gap-2 flex-1 min-w-0">
               ${posterHtml}
