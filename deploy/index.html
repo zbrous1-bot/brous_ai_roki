@@ -32,6 +32,7 @@
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
       border: 1px solid #3f3f46;
+      overflow: hidden;
     }
     .movie-card:hover { 
       transform: translateY(-2px); 
@@ -135,6 +136,7 @@
                   box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       animation: card-enter 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
       padding: 1.25rem; /* slightly more breathing room */
+      overflow: hidden;
     }
     .movie-card:hover {
       transform: translateY(-3px);
@@ -210,6 +212,7 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
+      overflow: hidden;
     }
 
     .curator-msg {
@@ -1799,8 +1802,8 @@
             });
           });
           if (allProvidersHtml) {
-            // Horizontal row, expanded for larger cards
-            html = `<div class="mt-2"><div class="text-[10px] text-zinc-500 mb-1">Where to watch</div><div class="flex gap-1.5 overflow-x-auto pb-1 -mx-0.5 snap-x">${allProvidersHtml}</div></div>`;
+            // Horizontal row, expanded for larger cards - contained to avoid spill into other cards
+            html = `<div class="mt-2 px-1"><div class="text-[10px] text-zinc-500 mb-1">Where to watch</div><div class="flex gap-1.5 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
           } else {
             html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
           }
