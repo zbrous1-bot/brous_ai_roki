@@ -3197,7 +3197,17 @@
 
     if (passBtn) passBtn.onclick = managePassword;
 
-    window.onload = boot;
+    window.onload = function() {
+      try {
+        boot();
+      } catch(e) {
+        console.error('Boot error:', e);
+        const err = document.createElement('div');
+        err.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:white;padding:10px;z-index:99999;font-size:12px;';
+        err.innerHTML = 'JS Error during boot: ' + e.message + '<br>Buttons may not work. Check browser console (long press page > Inspect). Data may need re-import via Settings once working. Try hard refresh or re-add PWA icon.';
+        document.body.appendChild(err);
+      }
+    };
   </script>
 
   <div class="max-w-7xl mx-auto px-5 pb-8 text-center text-[11px] text-zinc-500">
