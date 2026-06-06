@@ -416,7 +416,6 @@
         <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
         <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
         <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
-        <button onclick="switchPersonalTab('curator')" id="tab-curator" class="personal-tab">👻 Curator</button>
       </div>
       <div class="mt-2">
         <div id="pane-towatch" class="personal-pane">
@@ -433,34 +432,6 @@
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
           <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
-        </div>
-        <div id="pane-curator" class="personal-pane hidden">
-          <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
-            <!-- Curator header with more personality -->
-            <div class="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
-              <div class="flex items-center gap-2">
-                <span class="curator-avatar" style="width:22px;height:22px;font-size:13px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #3f3f46;">👻</span> 
-                <div>
-                  <div class="font-semibold text-sm tracking-tight">The Curator</div>
-                  <div class="text-[9px] text-zinc-500 -mt-0.5">keeper of dark cinema</div>
-                </div>
-              </div>
-              <div class="flex gap-1">
-                <button onclick="clearCuratorPicks()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
-                <button onclick="clearCuratorChat()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
-              </div>
-            </div>
-
-            <div id="curator-messages" class="px-3 py-2 max-h-[300px] overflow-auto text-sm space-y-2 bg-[#0f0f11]"></div>
-
-            <div class="p-2 border-t border-zinc-800 bg-zinc-900">
-              <div class="flex gap-2">
-                <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-4 py-2 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
-                <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
-              </div>
-              <div id="curator-status" class="text-[10px] text-zinc-500 mt-1.5 px-1">Grounded in your watched library • history kept until cleared</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -490,6 +461,38 @@
       </div>
       <div id="recs-empty" class="hidden text-center py-4 text-zinc-500 text-sm">
         Add movies to Watched for personalized recs.
+      </div>
+    </div>
+
+    <!-- Curator Chat - redesigned as a prominent standalone section (more space, better visibility, not buried in tabs) -->
+    <div class="mb-3">
+      <div class="flex items-center justify-between mb-1 px-1">
+        <div class="font-semibold text-sm">👻 The Curator</div>
+        <div class="flex gap-1">
+          <button onclick="clearCuratorPicks()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
+          <button onclick="clearCuratorChat()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
+        </div>
+      </div>
+      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
+        <div class="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
+          <div class="flex items-center gap-2">
+            <span class="curator-avatar" style="width:22px;height:22px;font-size:13px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #3f3f46;">👻</span> 
+            <div>
+              <div class="font-semibold text-sm tracking-tight">The Curator</div>
+              <div class="text-[9px] text-zinc-500 -mt-0.5">keeper of dark cinema</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="curator-messages" class="px-3 py-2 max-h-[300px] overflow-auto text-sm space-y-2 bg-[#0f0f11]"></div>
+
+        <div class="p-2 border-t border-zinc-800 bg-zinc-900">
+          <div class="flex gap-2">
+            <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-4 py-2 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
+            <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
+          </div>
+          <div id="curator-status" class="text-[10px] text-zinc-500 mt-1.5 px-1">Grounded in your watched library • history kept until cleared</div>
+        </div>
       </div>
     </div>
 
@@ -1394,17 +1397,17 @@
         addToWatched(item, 4);
         return;
       }
-      // Hide action buttons and show inline rating chooser (no jarring front-and-center prompt dialog)
-      // Use wrap + full-width rating bar so stars stay inside the list item on narrow screens
-      row.querySelectorAll('button').forEach(b => b.style.display = 'none');
+      // Redesigned rating prompt: remove buttons, append compact stars with ml-auto to stay inside the library-item box.
+      // Stars are readable but compact to prevent overflow on mobile.
+      row.querySelectorAll('button').forEach(b => b.remove());
       row.style.flexWrap = 'wrap';
       row.style.alignItems = 'flex-start';
       const rateDiv = document.createElement('div');
-      rateDiv.className = 'flex gap-1 text-sm w-full justify-center mt-1 basis-full';
+      rateDiv.className = 'flex gap-0.5 text-sm ml-auto items-center';
       for(let r=1; r<=5; r++) {
         const b = document.createElement('button');
         b.textContent = r + '★';
-        b.className = 'px-2 py-1 rounded bg-zinc-700 hover:bg-emerald-600 text-sm font-medium';
+        b.className = 'px-1.5 py-0.5 rounded bg-zinc-700 hover:bg-emerald-600 text-xs font-medium';
         b.onclick = () => {
           addToWatched(item, r);
           row.style.opacity = '0.4';
