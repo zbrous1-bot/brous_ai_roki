@@ -360,7 +360,7 @@
       /* Results cards (search/discover) */
       .movie-card { padding: 12px !important; }
       .movie-card .flex.gap-4 { gap: 12px; }
-      .movie-card img { width: 56px !important; height: 84px !important; }
+      .movie-card img { width: 64px !important; height: 96px !important; }
       
       /* Action buttons row */
       .mt-2.flex.gap-2 > button,
@@ -374,7 +374,7 @@
       
       /* Recs grid cards (top Recommended) - bigger for readability */
       #recs-grid .movie-card { padding: 12px !important; }
-      #recs-grid .movie-card img { width: 56px !important; height: 84px !important; }
+      #recs-grid .movie-card img { width: 64px !important; height: 96px !important; }
       #recs-grid .mt-2.flex.gap-1 > button { font-size: 11px !important; padding: 5px 8px !important; }
       
       /* Personal lists - bigger for scrolling readability */
@@ -1582,23 +1582,24 @@
         overviewEl.textContent = 'Could not load additional details (check password with 🔐 Pass button).';
       }
 
-      // Availability (compact bubbles so actions stay close)
+      // Availability - now horizontal compact row (scaled down, no vertical stacking)
       if (item.providers) {
-        let availHtml = '';
         const groups = { stream: item.providers.flatrate || [], rent: item.providers.rent || [], buy: item.providers.buy || [] };
+        let allHtml = '';
         Object.entries(groups).forEach(([type, items]) => {
           if (!items.length) return;
-          const label = type === 'stream' ? 'Streaming' : type.charAt(0).toUpperCase() + type.slice(1);
-          const labelColor = type === 'stream' ? 'text-emerald-400' : type === 'rent' ? 'text-amber-400' : 'text-sky-400';
-          availHtml += `<div class="mb-1"><div class="text-[9px] font-medium mb-0.5 ${labelColor}">${label}</div>`;
+          const short = type === 'stream' ? 'S' : type.charAt(0).toUpperCase();
           items.forEach(p => {
             const name = getProviderName(p);
             const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-            availHtml += `<span class="inline-block mr-1 mb-0.5 text-[9px] px-1.5 py-px rounded-2xl ${colorClass}">${name}</span>`;
+            allHtml += `<span class="inline-flex items-center px-1.5 py-px text-[9px] rounded-2xl ${colorClass} border border-white/10 mr-1 mb-0.5" title="${type}">${short}: ${name}</span>`;
           });
-          availHtml += `</div>`;
         });
-        availEl.innerHTML = availHtml || 'No availability data';
+        if (allHtml) {
+          availEl.innerHTML = `<div class="flex flex-wrap gap-1">${allHtml}</div>`;
+        } else {
+          availEl.innerHTML = 'No availability data';
+        }
       } else {
         availEl.innerHTML = 'No availability data';
       }
@@ -1783,26 +1784,25 @@
         let html = '';
         if (m.providers) {
           const groups = { stream: m.providers.flatrate || [], rent: m.providers.rent || [], buy: m.providers.buy || [] };
+          let allProvidersHtml = '';
           Object.entries(groups).forEach(([type, items]) => {
             if (!items.length) return;
-            const label = type === 'stream' ? 'Streaming' : type.charAt(0).toUpperCase() + type.slice(1);
-            const labelColor = type === 'stream' ? 'text-emerald-400' : type === 'rent' ? 'text-amber-400' : 'text-sky-400';
-            const isStreaming = type === 'stream';
-            const tableClasses = isStreaming 
-              ? 'provider-table streaming' 
-              : 'provider-table';
-            // Compact bubbles: tiny labels + tight horizontal pills row (keeps breakdown but uses far less vertical space)
-            html += `<div class="mt-1.5 first:mt-0"><div class="text-[10px] font-medium mb-0.5 px-0.5 ${labelColor}">${label}</div><div class="flex flex-wrap gap-1 bg-zinc-950 rounded-xl px-1.5 py-1 ${tableClasses}">`;
+            const label = type === 'stream' ? 'S' : type.charAt(0).toUpperCase(); // S/R/B for compact
             items.forEach(p => {
               const name = getProviderName(p);
               const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
               const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-              html += `<span class="inline-flex items-center px-1.5 py-px rounded-2xl text-[10px] font-medium leading-none ${colorClass}">${name}${isMine ? '<span class="ml-0.5 text-[9px] opacity-70">✓</span>' : ''}</span>`;
+              allProvidersHtml += `<span class="inline-flex items-center px-1.5 py-px rounded-2xl text-[9px] font-medium leading-none ${colorClass} border border-white/10" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
             });
-            html += `</div></div>`;
           });
+          if (allProvidersHtml) {
+            // Single horizontal compact row (scrolls if many) to avoid vertical lists
+            html = `<div class="mt-1"><div class="text-[8px] text-zinc-500 mb-0.5">Where to watch</div><div class="flex gap-1 overflow-x-auto pb-0.5 -mx-0.5 snap-x">${allProvidersHtml}</div></div>`;
+          } else {
+            html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
+          }
         } else {
-          html = `<div class="text-[10px] text-zinc-500 py-1 px-1">No availability data</div>`;
+          html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
         }
 
         const mediaLabel = (m._mediaType || 'movie') === 'tv' ? 'TV' : 'Movie';
@@ -1812,7 +1812,7 @@
         card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 sm:p-5';
         card.innerHTML = `
           <div class="flex gap-4">
-            ${poster ? `<img src="${poster}" class="w-20 h-[120px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            ${poster ? `<img src="${poster}" class="w-24 h-[144px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
