@@ -380,10 +380,10 @@
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 no-pull-refresh">
-  <div class="max-w-7xl mx-auto px-4 sm:px-5 pt-4 sm:pt-5 pb-8 sm:pb-10">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
-    <div class="mb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
+    <div class="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
       <div class="min-w-0">
         <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Horror Roki</h1>
         <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
@@ -421,15 +421,15 @@
             <div>Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[240px] overflow-auto"></div>
+          <div id="to-watch-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
-          <div id="watched-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[240px] overflow-auto"></div>
+          <div id="watched-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[320px] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
-          <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[240px] overflow-auto"></div>
+          <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
         </div>
         <div id="pane-curator" class="personal-pane hidden">
           <div class="border border-zinc-800 rounded overflow-hidden">
@@ -440,7 +440,7 @@
                 <button onclick="clearCuratorChat()" class="text-[9px] px-1 py-px border border-zinc-700 rounded">🪦</button>
               </div>
             </div>
-            <div id="curator-messages" class="px-2 py-1 max-h-[220px] overflow-auto text-xs space-y-1 bg-[#111113]"></div>
+            <div id="curator-messages" class="px-2 py-1 max-h-[280px] overflow-auto text-xs space-y-1 bg-[#111113]"></div>
             <div class="p-1 border-t border-zinc-800 bg-zinc-950">
               <div class="flex gap-1">
                 <input id="curator-input" type="text" placeholder="Ask Curator..." class="flex-1 bg-zinc-900 border border-zinc-700 text-base sm:text-lg rounded px-3 py-1.5 outline-none" onkeypress="if (event.key === 'Enter') sendToCurator()">
@@ -454,8 +454,8 @@
     </div>
 
     <!-- Recommended for you (top area, with Refresh Pool + Recompute buttons) -->
-    <div class="mb-3">
-      <div class="flex items-center justify-between mb-2 px-1">
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-1.5 px-1">
         <div>
           <div class="font-semibold text-sm">Recommended for you</div>
           <div class="text-xs text-zinc-500">Based on what you’ve watched • client-side taste boost</div>
@@ -469,11 +469,11 @@
       </div>
 
       <!-- Mood / subgenre chips (dark genres, affect client boost + filter) -->
-      <div class="flex flex-wrap gap-1.5 mb-3 px-1" id="mood-chips">
+      <div class="flex flex-wrap gap-1.5 mb-2 px-1" id="mood-chips">
         <!-- Populated by JS: All + Slow burn, Psychological, Supernatural, Folk, Gory -->
       </div>
 
-      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
       <div id="recs-empty" class="hidden text-center py-4 text-zinc-500 text-sm">
@@ -483,7 +483,7 @@
 
     <!-- Search -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-3 shadow-sm">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm">
         <div class="flex gap-2 items-center">
           <div class="relative flex-1">
             <i class="fa-solid fa-search absolute left-3 top-2.5 text-zinc-500"></i>
@@ -550,7 +550,7 @@
     <div id="active-filters" class="hidden mb-3 flex flex-wrap gap-2 px-1"></div>
 
     <!-- Results -->
-    <div id="results" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2"></div>
+    <div id="results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2"></div>
 
     <!-- Load more for Discover -->
     <div id="load-more-container" class="hidden text-center mt-4">
@@ -1955,14 +1955,14 @@
       }
 
       grid.innerHTML = '';
-      scored.slice(0, 9).forEach(item => {
+      scored.slice(0, 15).forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-3 flex flex-col';
+        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-3.5 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         card.innerHTML = `
           <div class="flex gap-3">
-            <img src="${poster}" class="w-[52px] h-[78px] rounded-xl object-cover border border-zinc-800" alt="">
+            <img src="${poster}" class="w-[58px] h-[87px] rounded-xl object-cover border border-zinc-800" alt="">
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-sm leading-tight truncate">${item.title}</div>
               <div class="text-[11px] text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
