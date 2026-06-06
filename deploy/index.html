@@ -215,10 +215,11 @@
     .curator-msg {
       background: #18181b;
       border: 1px solid #3f3f46;
-      padding: 10px 14px;
+      padding: 10px 13px;
       border-radius: 14px;
-      margin-bottom: 8px;
-      max-width: 82%;
+      margin-bottom: 6px;
+      max-width: 85%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .curator-msg.user {
       background: #27272a;
@@ -237,11 +238,12 @@
     }
 
     .suggested-card {
-      background: #0f0f11;
+      background: #111113;
       border: 1px solid #3f3f46;
-      border-radius: 12px;
-      padding: 8px;
-      margin-top: 6px;
+      border-radius: 14px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
 
     .personal-tab {
@@ -367,7 +369,7 @@
       /* Personal lists - bigger for scrolling readability */
       .library-item { padding: 8px 10px !important; gap: 10px; font-size: 15px !important; }
       .library-item button { font-size: 12px !important; padding: 3px 8px !important; }
-      .library-item img, .library-item div[class*="w-"] { width: 48px !important; height: 72px !important; }
+      .library-item img, .library-item div[class*="w-"] { width: 52px !important; height: 78px !important; }
       #to-watch-content, #watched-content, #disliked-content { max-height: 260px !important; }
       
       /* Modal */
@@ -433,21 +435,30 @@
           <div id="disliked-content" class="space-y-1 text-sm border border-zinc-800 rounded p-1 max-h-[280px] overflow-auto"></div>
         </div>
         <div id="pane-curator" class="personal-pane hidden">
-          <div class="border border-zinc-800 rounded overflow-hidden">
-            <div class="flex items-center justify-between px-2 py-1 bg-zinc-900 text-xs">
-              <div class="flex items-center gap-1"><span class="curator-avatar" style="width:16px;height:16px;font-size:9px">👻</span> <span class="font-medium">The Curator</span></div>
+          <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
+            <!-- Curator header with more personality -->
+            <div class="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
+              <div class="flex items-center gap-2">
+                <span class="curator-avatar" style="width:22px;height:22px;font-size:13px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #3f3f46;">👻</span> 
+                <div>
+                  <div class="font-semibold text-sm tracking-tight">The Curator</div>
+                  <div class="text-[9px] text-zinc-500 -mt-0.5">keeper of dark cinema</div>
+                </div>
+              </div>
               <div class="flex gap-1">
-                <button onclick="clearCuratorPicks()" class="text-[9px] px-1 py-px border border-zinc-700 rounded">🧹</button>
-                <button onclick="clearCuratorChat()" class="text-[9px] px-1 py-px border border-zinc-700 rounded">🪦</button>
+                <button onclick="clearCuratorPicks()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
+                <button onclick="clearCuratorChat()" class="text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded-lg hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
               </div>
             </div>
-            <div id="curator-messages" class="px-2 py-1 max-h-[280px] overflow-auto text-xs space-y-1 bg-[#111113]"></div>
-            <div class="p-1 border-t border-zinc-800 bg-zinc-950">
-              <div class="flex gap-1">
-                <input id="curator-input" type="text" placeholder="Ask Curator..." class="flex-1 bg-zinc-900 border border-zinc-700 text-base sm:text-lg rounded px-3 py-1.5 outline-none" onkeypress="if (event.key === 'Enter') sendToCurator()">
-                <button onclick="sendToCurator()" class="px-3 py-1 bg-red-900 text-white text-sm rounded">Send</button>
+
+            <div id="curator-messages" class="px-3 py-2 max-h-[300px] overflow-auto text-sm space-y-2 bg-[#0f0f11]"></div>
+
+            <div class="p-2 border-t border-zinc-800 bg-zinc-900">
+              <div class="flex gap-2">
+                <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-4 py-2 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
+                <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
               </div>
-              <div id="curator-status" class="text-[9px] text-zinc-500 mt-0.5">Grounded • persistent until clear</div>
+              <div id="curator-status" class="text-[10px] text-zinc-500 mt-1.5 px-1">Grounded in your watched library • history kept until cleared</div>
             </div>
           </div>
         </div>
@@ -498,41 +509,41 @@
 
     <!-- Discover by genre (condensed) -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-3 shadow-sm">
-        <div class="flex items-center justify-between mb-2 px-1">
-          <div class="text-xs font-medium text-zinc-400">Discover — genre / rating / decade</div>
-          <button onclick="clearSelectedGenres()" class="text-[10px] text-zinc-500 hover:text-zinc-400">Clear</button>
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2 shadow-sm">
+        <div class="flex items-center justify-between mb-1 px-1">
+          <div class="text-[10px] font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[9px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
         
         <!-- Genre chips (tighter) -->
-        <div id="genre-chips" class="flex flex-wrap gap-1 mb-2"></div>
+        <div id="genre-chips" class="flex flex-wrap gap-0.5 mb-1.5"></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           <!-- Rating filter -->
           <div>
-            <div class="text-[10px] text-zinc-500 px-1 mb-0.5">Min rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-1"></div>
+            <div class="text-[9px] text-zinc-500 px-1 mb-0.5">Min rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
 
           <!-- Decade filter -->
           <div>
-            <div class="text-[10px] text-zinc-500 px-1 mb-0.5">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-1"></div>
+            <div class="text-[9px] text-zinc-500 px-1 mb-0.5">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
         </div>
 
-        <div class="flex items-center gap-1 flex-wrap mt-2 pt-2 border-t border-zinc-800 text-xs">
+        <div class="flex items-center gap-1 flex-wrap mt-1.5 pt-1.5 border-t border-zinc-800 text-[10px]">
           <!-- Media type toggle -->
           <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-0.5">
             <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-3 py-0.5 rounded-3xl font-medium bg-white text-black text-xs">Movies</button>
+                    class="px-2 py-0.5 rounded-3xl font-medium bg-white text-black text-[10px]">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-3 py-0.5 rounded-3xl font-medium text-zinc-300 text-xs">TV</button>
+                    class="px-2 py-0.5 rounded-3xl font-medium text-zinc-300 text-[10px]">TV</button>
           </div>
 
           <!-- Sort -->
           <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-2 py-0.5 text-xs text-zinc-200 outline-none">
+                  class="bg-zinc-950 border border-zinc-700 rounded-3xl px-1.5 py-0.5 text-[10px] text-zinc-200 outline-none">
             <option value="popularity.desc">Popular</option>
             <option value="vote_average.desc">Rated</option>
             <option value="release_date.desc">New</option>
@@ -540,7 +551,7 @@
           </select>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-4 py-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-xs font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+                  class="ml-auto px-3 py-0.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-[10px] font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
             Browse
           </button>
         </div>
@@ -1346,7 +1357,7 @@
       let html = '';
       toWatchList.forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-12 h-[72px] rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-12 h-[72px] bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 min-w-0">
@@ -1384,9 +1395,12 @@
         return;
       }
       // Hide action buttons and show inline rating chooser (no jarring front-and-center prompt dialog)
+      // Use wrap + full-width rating bar so stars stay inside the list item on narrow screens
       row.querySelectorAll('button').forEach(b => b.style.display = 'none');
+      row.style.flexWrap = 'wrap';
+      row.style.alignItems = 'flex-start';
       const rateDiv = document.createElement('div');
-      rateDiv.className = 'flex gap-1 text-sm ml-2';
+      rateDiv.className = 'flex gap-1 text-sm w-full justify-center mt-1 basis-full';
       for(let r=1; r<=5; r++) {
         const b = document.createElement('button');
         b.textContent = r + '★';
@@ -1414,7 +1428,7 @@
       watchedList.slice(0,12).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
         const r = item.rating ? ` · ${item.rating}★` : '';
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-12 h-[72px] rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-12 h-[72px] bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 truncate">${item.title} <span class="text-xs text-zinc-500">${year}${r}</span></div>
@@ -1444,7 +1458,7 @@
       if (!dislikedList.length) { c.innerHTML = `<div class="text-xs text-zinc-500 px-1">Nothing disliked.<br><span class="text-[10px] opacity-70">Data lives only on this device/browser. Use ⚙︎ Settings → Backup/Import to transfer.</span></div>`; return; }
       let html = '';
       dislikedList.slice(0,8).forEach(item => {
-        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-11 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-11 h-16 bg-zinc-800 rounded flex-shrink-0"></div>`;
+        const poster = item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-12 h-[72px] rounded object-cover flex-shrink-0 border border-zinc-700" alt="">` : `<div class="w-12 h-[72px] bg-zinc-800 rounded flex-shrink-0"></div>`;
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 truncate">${item.title}</div>
