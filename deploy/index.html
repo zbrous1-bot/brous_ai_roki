@@ -182,27 +182,7 @@
     .btn-nightmare:hover { background-color: #b91c1c; }
     .btn-nightmare:active { background-color: #7f1d1d; }
 
-    .mood-chip {
-      font-size: 14px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      border: 1px solid #3f3f46;
-      background: #18181b;
-      color: #d1d5db;
-      transition: all .1s ease;
-      font-weight: 500;
-    }
-    .mood-chip:hover {
-      border-color: #52525b;
-      background: #27272a;
-    }
-    .mood-chip.active, .mood-chip:active {
-      background: #7f1d1d;
-      border-color: #b91c1c;
-      color: white;
-      transform: scale(1.02);
-      font-weight: 600;
-    }
+    /* .mood-chip styles removed (mood filter buttons removed from recommendations) */
 
     .library-item {
       display: flex;
@@ -436,8 +416,7 @@
         padding-bottom: 3px !important;
       }
       
-      /* Mood chips */
-      .mood-chip { font-size: 12px !important; padding: 4px 9px !important; }
+      /* Mood chips removed */
       
       /* Search / Discover */
       .search-input { font-size: 16px; }
@@ -601,11 +580,6 @@
         </div>
       </div>
 
-      <!-- Mood / subgenre chips (dark genres, affect client boost + filter) -->
-      <div class="flex flex-wrap gap-1.5 mb-2 px-1" id="mood-chips">
-        <!-- Populated by JS: All + Slow burn, Psychological, Supernatural, Folk, Gory -->
-      </div>
-
       <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
@@ -670,16 +644,16 @@
         <!-- Genre chips (tighter) -->
         <div id="genre-chips" class="flex flex-wrap gap-0.5 mb-1"></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-0.5">
           <!-- Rating filter -->
           <div>
-            <div class="text-[8px] text-zinc-500 px-0.5 mb-0.5">Min rating</div>
+            <div class="text-[8px] text-zinc-500 px-0.5 mb-px">Min rating</div>
             <div id="rating-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
 
           <!-- Decade filter -->
           <div>
-            <div class="text-[8px] text-zinc-500 px-0.5 mb-0.5">Decade</div>
+            <div class="text-[8px] text-zinc-500 px-0.5 mb-px">Decade</div>
             <div id="decade-chips" class="flex flex-wrap gap-0.5"></div>
           </div>
         </div>
@@ -2339,23 +2313,7 @@
       return base;
     }
 
-    function renderMoodChips() {
-      const c = document.getElementById('mood-chips');
-      if (!c) return;
-      const moods = ['All', 'Slow burn', 'Psychological', 'Supernatural', 'Folk', 'Gory'];
-      c.innerHTML = '';
-      moods.forEach(m => {
-        const b = document.createElement('button');
-        b.textContent = m;
-        b.className = `mood-chip ${m === currentMood ? 'active' : ''}`;
-        b.onclick = () => {
-          currentMood = m;
-          renderMoodChips();
-          recomputeRecommendations();
-        };
-        c.appendChild(b);
-      });
-    }
+    // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
 
     async function refreshRecPool() {
       const grid = document.getElementById('recs-grid');
@@ -3102,7 +3060,6 @@
       // Re-sync legacy exclusion set from all lists (watched disappear fix)
       watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
       updateAllLibraryRenders();
-      renderMoodChips();
       renderCuratorMessages();
       refreshCuratorQuickReplies();
       setCuratorMood();
