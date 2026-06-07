@@ -980,6 +980,95 @@
     #curator-messages {
       background: linear-gradient(180deg, #0a0a0c 0%, #0f0e0f 100%) !important;
     }
+
+    /* ═══════════════════════════════════
+       MAIN PAGE TAB SYSTEM
+    ═══════════════════════════════════ */
+
+    /* Main page tabs */
+    .main-tab-bar {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: #111113;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .main-tab-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #71717a;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .main-tab-btn:hover {
+      color: #d4d4d8;
+      background: #18181b;
+    }
+    .main-tab-btn.active {
+      background: linear-gradient(135deg, #1c0a0a, #1a0d1a);
+      color: #fca5a5;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.35), 0 2px 8px rgba(185,28,28,0.15);
+    }
+    .main-tab-btn.active .tab-icon { color: #f87171; }
+
+    /* Main page panels */
+    .main-panel {
+      display: none;
+      animation: pane-fade-in 0.2s ease both;
+    }
+    .main-panel.active { display: block; }
+
+    /* Expanded Curator on its own page */
+    #curator-chat-full #curator-messages {
+      max-height: calc(100vh - 340px) !important;
+      min-height: 300px;
+    }
+
+    /* Watched page — bigger cards, full height list */
+    #watched-page-content {
+      max-height: none !important;
+    }
+    .watched-page-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, #111113, #0f0e0f);
+      border: 1px solid #27272a;
+      border-radius: 14px;
+      transition: all 0.15s ease;
+    }
+    .watched-page-item:hover {
+      border-color: #3f3f46;
+      background: #18181b;
+    }
+    .watched-page-poster {
+      width: 48px;
+      height: 72px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #27272a;
+    }
+
+    /* Nav active state */
+    #sticky-nav .nav-link.page-active {
+      color: #fca5a5;
+      border-color: rgba(185,28,28,0.4);
+      background: rgba(185,28,28,0.1);
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 no-pull-refresh" style="background-color:#0f0e0f;">
@@ -988,14 +1077,14 @@
   <nav id="sticky-nav">
     <div class="nav-brand">BROUS <span>●</span> MOVIE ENGINE</div>
     <div class="nav-links">
-      <a class="nav-link" onclick="document.getElementById('section-recs').scrollIntoView({behavior:'smooth'})">For You</a>
-      <a class="nav-link" onclick="document.getElementById('section-library').scrollIntoView({behavior:'smooth'})">Library</a>
-      <a class="nav-link" onclick="document.getElementById('curator-chat').scrollIntoView({behavior:'smooth'})">Curator</a>
-      <a class="nav-link" onclick="document.getElementById('section-search').scrollIntoView({behavior:'smooth'})">Search</a>
-      <a class="nav-link" onclick="document.getElementById('section-discover').scrollIntoView({behavior:'smooth'})">Discover</a>
+      <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
+      <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
+      <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
     </div>
   </nav>
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
+
+<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
     <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60 hero-glow">
@@ -1022,7 +1111,24 @@
       </div>
     </div>
 
-    <!-- Recommended for you (primary content first) -->
+    <!-- ═══ MAIN PAGE TAB BAR ═══ -->
+    <div class="main-tab-bar">
+      <button class="main-tab-btn active" onclick="switchMainTab('foryou')" id="mtab-foryou">
+        <span class="tab-icon">🎬</span> For You
+      </button>
+      <button class="main-tab-btn" onclick="switchMainTab('curator')" id="mtab-curator">
+        <span class="tab-icon">👻</span> Curator
+      </button>
+      <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched">
+        <span class="tab-icon">👁</span> My Library
+      </button>
+    </div>
+
+    <!-- ═══ TAB: FOR YOU ═══ -->
+    <div id="panel-foryou" class="main-panel active">
+
+      <!-- Recommended for you -->
+<!-- Recommended for you (primary content first) -->
     <div id="section-recs"></div>
     <div class="mb-4">
       <div class="flex items-center justify-between mb-2 px-1">
@@ -1048,72 +1154,8 @@
       </div>
     </div>
 
-    <!-- Personal Library Tabs -->
-    <div id="section-library"></div>
-    <div class="mb-3">
-      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
-        <div class="flex overflow-x-auto flex-1">
-          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
-        </div>
-        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg flex-shrink-0 hover:bg-zinc-700 transition-colors" title="Hide all lists">▾</button>
-      </div>
-      <!-- Stats row with personality -->
-      <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-1.5 flex gap-4 flex-wrap border-x border-zinc-700 bg-zinc-900/60 items-center min-h-[28px]"></div>
-      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden">
-        <div id="pane-towatch" class="personal-pane">
-          <div class="flex justify-between mb-1.5 text-xs">
-            <div class="font-medium text-zinc-400">Upcoming nightmares</div>
-            <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
-          </div>
-          <div id="to-watch-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
-        </div>
-        <div id="pane-watched" class="personal-pane hidden">
-          <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
-          <div id="watched-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
-        </div>
-        <div id="pane-disliked" class="personal-pane hidden">
-          <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
-          <div id="disliked-content" class="space-y-1 text-sm max-h-[280px] overflow-auto"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Curator Chat: identity only via the red ghost inside message bubbles (no mascot or name in the header bar) -->
-    <div class="mb-2">
-      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat">
-        <div class="flex items-center justify-between px-3 py-2 border-b border-red-900/40" style="background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);">
-          <div class="flex items-center gap-2">
-            <span class="curator-avatar" style="width:28px;height:28px;font-size:15px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 10px rgba(185,28,28,0.25);">👻</span>
-            <div class="leading-none">
-              <div class="text-[13px] text-zinc-100 tracking-tight font-semibold">The Curator</div>
-              <div id="curator-mood" class="text-[11px] text-red-400/75 tracking-widest mt-0.5 uppercase">THE REELS ARE RESTLESS</div>
-            </div>
-          </div>
-          <div class="flex gap-1.5">
-            <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 active:bg-zinc-900 transition-colors" title="Clear picks">🧹 Picks</button>
-            <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 active:bg-zinc-900 transition-colors" title="Clear chat">🪦 Chat</button>
-          </div>
-        </div>
-
-        <div id="curator-messages" class="px-2 py-1 max-h-[260px] overflow-auto text-sm space-y-1 bg-[#0f0f11]"></div>
-
-        <div class="p-1 border-t border-zinc-800 bg-zinc-900">
-          <div class="flex gap-1">
-            <input id="curator-input" type="text" placeholder="Ask The Curator..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-2xl px-2.5 py-1 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
-            <button onclick="sendToCurator()" class="px-2.5 py-1 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-medium rounded-2xl transition-colors">Send</button>
-          </div>
-
-          <!-- Quick-reply chips for a more fun, interactive Curator experience (populated dynamically) -->
-          <div class="flex flex-wrap gap-0.5 mt-1 text-[8px]" id="curator-quick-replies"></div>
-
-          <div id="curator-status" class="text-[11px] text-zinc-500 mt-1 px-0.5">Grounded in your watched library • history kept until cleared</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Search -->
+      <!-- Search -->
+<!-- Search -->
     <div id="section-search"></div>
     <div class="mb-1">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm">
@@ -1233,15 +1275,122 @@
       </div>
     </div>
 
-    <!-- Initial state / welcome message -->
+      <!-- Results / Initial state -->
+<!-- Initial state / welcome message -->
     <div id="initial-state" class="empty-state" style="margin-top:1rem;">
       <span class="empty-state-icon">🔍</span>
       <p class="text-base text-zinc-300 font-semibold">Search or Discover your next nightmare</p>
       <p class="text-sm mt-1 text-zinc-500">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
     </div>
 
+    </div><!-- /panel-foryou -->
+
+    <!-- ═══ TAB: CURATOR ═══ -->
+    <div id="panel-curator" class="main-panel">
+      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat-full">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-red-900/40" style="background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);">
+          <div class="flex items-center gap-2">
+            <span class="curator-avatar" style="width:28px;height:28px;font-size:15px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 10px rgba(185,28,28,0.25);">👻</span>
+            <div class="leading-none">
+              <div class="text-[14px] text-zinc-100 tracking-tight font-semibold">The Curator</div>
+              <div id="curator-mood" class="text-[11px] text-red-400/75 tracking-widest mt-0.5 uppercase">THE REELS ARE RESTLESS</div>
+            </div>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear picks">🧹 Picks</button>
+            <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear chat">🪦 Chat</button>
+          </div>
+        </div>
+
+        <div id="curator-messages" class="px-3 py-2 overflow-auto text-sm space-y-2" style="min-height:300px;max-height:calc(100vh - 320px);background:linear-gradient(180deg,#0a0a0c 0%,#0f0e0f 100%);"></div>
+
+        <div class="p-2 border-t border-zinc-800 bg-zinc-900/80">
+          <div class="flex gap-2">
+            <input id="curator-input" type="text" placeholder="Ask The Curator anything about horror, thrillers, sci-fi..."
+                   class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-800/60 text-base rounded-2xl px-3 py-2 outline-none placeholder:text-zinc-600"
+                   onkeypress="if (event.key === 'Enter') sendToCurator()">
+            <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-semibold rounded-2xl transition-colors flex-shrink-0">Send</button>
+          </div>
+          <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies"></div>
+          <div id="curator-status" class="text-[11px] text-zinc-600 mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
+        </div>
+      </div>
+    </div><!-- /panel-curator -->
+
+    <!-- ═══ TAB: MY LIBRARY ═══ -->
+    <div id="panel-watched" class="main-panel">
+
+      <!-- Stats bar -->
+      <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-2 flex gap-4 flex-wrap items-center mb-3 bg-zinc-900/60 border border-zinc-700/50 rounded-2xl"></div>
+
+      <!-- Sub-tabs: To Watch / Watched / Disliked -->
+      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling:touch;">
+        <div class="flex overflow-x-auto flex-1">
+          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+        </div>
+        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg flex-shrink-0 hover:bg-zinc-700 transition-colors" title="Hide all lists">▾</button>
+      </div>
+      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden mb-4">
+        <div id="pane-towatch" class="personal-pane">
+          <div class="flex justify-between mb-1.5 text-xs">
+            <div class="font-medium text-zinc-400">Upcoming nightmares</div>
+            <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
+          </div>
+          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+        </div>
+        <div id="pane-watched" class="personal-pane hidden">
+          <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
+          <div id="watched-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+        </div>
+        <div id="pane-disliked" class="personal-pane hidden">
+          <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
+          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-watched -->
+
+    <!-- Detail Modal -->
+<!-- Detail Modal -->
+    <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+        <div class="p-4 sm:p-6">
+          <div class="flex justify-between items-start mb-3 sm:mb-4">
+            <div class="min-w-0 pr-2">
+              <div id="modal-title" class="text-xl sm:text-2xl font-semibold leading-tight"></div>
+              <div id="modal-meta" class="text-zinc-400 mt-1 text-sm"></div>
+            </div>
+            <button onclick="closeModal()" class="text-2xl text-zinc-400 hover:text-white flex-shrink-0">×</button>
+          </div>
+
+          <div id="modal-overview" class="text-zinc-300 leading-relaxed mb-3 text-sm sm:text-base"></div>
+
+          <div id="modal-genres" class="flex flex-wrap gap-1 sm:gap-2 mb-3"></div>
+
+          <div class="mb-2">
+            <div class="text-[10px] font-medium text-zinc-400 mb-1">Where to watch</div>
+            <div id="modal-availability"></div>
+          </div>
+
+          <div class="flex gap-2 sm:gap-3">
+            <button id="modal-add-button"
+                    class="flex-1 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 text-white text-sm font-semibold rounded-3xl">
+              Add to My List
+            </button>
+            <button onclick="closeModal()"
+                    class="px-4 sm:px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-3xl">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
+  </div>
   <!-- Toast container for feedback -->
   <div id="toast-container"></div>
 
@@ -2497,6 +2646,34 @@
       }, 50);
     }
 
+
+    // ===================== MAIN PAGE TABS =====================
+    function switchMainTab(tab) {
+      // Update panels
+      ['foryou','curator','watched'].forEach(t => {
+        const panel = document.getElementById('panel-' + t);
+        const btn = document.getElementById('mtab-' + t);
+        const navLink = document.getElementById('nav-' + t);
+        if (panel) panel.classList.toggle('active', t === tab);
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (navLink) navLink.classList.toggle('page-active', t === tab);
+      });
+      // Scroll to top of content
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // When switching to Library, refresh lists
+      if (tab === 'watched') {
+        renderToWatch(); renderWatched(); renderDisliked();
+        renderPersonalStats();
+      }
+      // When switching to Curator, focus input
+      if (tab === 'curator') {
+        setTimeout(() => {
+          const inp = document.getElementById('curator-input');
+          if (inp) inp.focus();
+        }, 200);
+      }
+    }
+
     // ===================== MODAL =====================
 
     let currentModalItem = null;
@@ -2873,48 +3050,59 @@
     async function refreshRecPool() {
       const grid = document.getElementById('recs-grid');
       const empty = document.getElementById('recs-empty');
-      if (grid) grid.innerHTML = `<div class="text-center py-6 text-zinc-400 text-sm col-span-full">Loading fresh pool (horror / thrillers / sci-fi / suspense)...</div>`;
+      if (grid) {
+        grid.innerHTML = '';
+        showSkeletons('recs-grid', 8);
+      }
       if (empty) empty.classList.add('hidden');
 
       try {
-        // Broader pool: horror (27) + thriller (53) + sci-fi (878) + mystery (9648 for suspense)
-        // Fetch per genre then union + dedupe (TMDB with_genres is AND; we want coverage across)
         const excluded = getExcludedKeys();
-        const genreIds = [27, 53, 878, 9648];
+        // Fetch movies AND TV across horror/thriller/sci-fi/mystery — multiple pages for a deep pool
+        const genreIds = [27, 53, 878, 9648, 80]; // horror, thriller, sci-fi, mystery, crime
+        const pages = [1, 2, 3]; // 3 pages per genre = much deeper pool
+        const sorts = ['popularity.desc', 'vote_average.desc'];
         let raw = [];
-        await Promise.all(genreIds.map(async (g) => {
-          const url = `/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.desc&include_adult=false&watch_region=US&with_genres=${g}&page=1&vote_count.gte=40`;
-          try {
-            const data = await apiFetch(url);
-            raw = raw.concat((data.results || []).slice(0, 9));
-          } catch (_) {}
-        }));
-        // dedupe by id, prefer higher popularity
+
+        const fetchJobs = [];
+        for (const g of genreIds) {
+          for (const page of pages) {
+            fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.desc&include_adult=false&with_genres=${g}&page=${page}&vote_count.gte=30`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+          }
+        }
+        // Also pull trending this week for freshness
+        fetchJobs.push(apiFetch(`/api/tmdb/3/trending/movie/week`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&vote_count.gte=200&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+
+        await Promise.all(fetchJobs);
+
+        // Dedupe + filter
         const seen = new Set();
         let results = [];
         const sorted = [...raw].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
         for (const r of sorted) {
           if (!seen.has(r.id)) { seen.add(r.id); results.push(r); }
         }
-        results = results.filter(r => !excluded.has(`${r.id}:movie`)).slice(0, 20);
+        // Filter out already seen/queued, and low quality
+        results = results.filter(r => {
+          const key = `${r.id}:movie`;
+          return !excluded.has(key) && (r.vote_average || 0) >= 5.5 && r.poster_path;
+        });
 
-        // store minimal + genre_ids
-        currentRecPool = results.map(r => ({
+        currentRecPool = results.slice(0, 60).map(r => ({
           id: r.id, title: r.title, _mediaType: 'movie',
           poster_path: r.poster_path, release_date: r.release_date,
           vote_average: r.vote_average, genre_ids: r.genre_ids || [],
-          overview: r.overview || ''
+          overview: r.overview || '', popularity: r.popularity || 0
         }));
 
+        console.log('[Recs] Pool size:', currentRecPool.length);
         recomputeRecommendations();
       } catch (e) {
-        console.error('[Horror Roki] Refresh pool failed:', e, 'base was:', apiBase);
+        console.error('[Recs] Refresh pool failed:', e);
         let poolMsg = 'Failed to load pool. Check 🔐 password / connection.';
-        if (e.details && e.details.error) {
-          poolMsg = e.details.error;
-          if (e.details.availableSecrets) poolMsg += ' | Secrets: ' + JSON.stringify(e.details.availableSecrets);
-        } else if (e.message && e.message.length < 100) poolMsg = e.message;
-        if (grid) grid.innerHTML = `<div class="text-center py-6 text-red-400 text-sm col-span-full">${poolMsg} (base: ${apiBase || 'relative'}) See browser Console (F12) for details.</div>`;
+        if (e.message && e.message.length < 120) poolMsg = e.message;
+        if (grid) grid.innerHTML = `<div class="text-center py-6 text-red-400 text-sm col-span-full">${poolMsg}</div>`;
       }
     }
 
@@ -2925,7 +3113,14 @@
 
       if (!currentRecPool.length) {
         grid.innerHTML = '';
-        if (empty) empty.classList.remove('hidden');
+        if (empty) {
+          empty.classList.remove('hidden');
+          // If user has watched titles but pool is empty, auto-trigger refresh
+          if (watchedList.length > 0) {
+            empty.innerHTML = `<span class="empty-state-icon">🎬</span><div class="text-zinc-300 font-medium">Loading your recommendations...</div><div class="text-zinc-500 text-xs mt-1">Fetching a fresh pool based on your taste.</div>`;
+            refreshRecPool();
+          }
+        }
         return;
       }
       if (empty) empty.classList.add('hidden');
@@ -2945,7 +3140,7 @@
       }
 
       grid.innerHTML = '';
-      scored.slice(0, 15).forEach(item => {
+      scored.slice(0, 20).forEach(item => {
         const card = document.createElement('div');
         card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
