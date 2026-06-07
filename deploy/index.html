@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#18181b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Brous Movie Engine">
+  <meta name="apple-mobile-web-app-title" content="Horror Roki">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Brous Movie Engine • Find your next nightmare</title>
+  <title>Horror Roki • Find your next nightmare</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%2318181b'/%3E%3Ctext x='90' y='115' font-size='80' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -609,11 +609,11 @@
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
-    <div class="mb-0.5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60">
       <div class="min-w-0">
-        <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
-        <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
-        <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5">Personal recs for horror, thrillers, sci-fi &amp; suspense.</p>
+        <h1 class="text-4xl sm:text-5xl font-bold tracking-[-2px] sm:tracking-[-2.5px] text-white">Horror Roki</h1>
+        <p class="text-zinc-300 text-[14px] sm:text-[15px] mt-1 tracking-tight">Find your next <span class="text-red-400">nightmare.</span></p>
+        <p class="text-[12px] sm:text-[13px] text-zinc-500 mt-0.5">Personal recs — horror, thrillers, sci-fi &amp; suspense.</p>
       </div>
       <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <button onclick="installPWA()" id="install-btn"
@@ -633,75 +633,76 @@
       </div>
     </div>
 
-    <!-- Top Personal Tabs (To Watch / Watched / Disliked) with master toggle inline in the same bar (no extra row or left gap) -->
-    <div class="mb-0">
-      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
-        <div class="flex overflow-x-auto flex-1">
-          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
-        </div>
-        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1 py-px bg-zinc-800 border border-zinc-700 rounded flex-shrink-0" title="Hide all lists">▾</button>
-      </div>
-      <!-- Mini stats row for density and personality -->
-      <div id="personal-stats" class="text-[10px] text-zinc-500 px-2 py-0.5 flex gap-3 flex-wrap border-x border-zinc-700 bg-zinc-900/40"></div>
-      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden">
-        <div id="pane-towatch" class="personal-pane">
-          <div class="flex justify-between mb-1 text-xs text-zinc-500">
-            <div>Upcoming nightmares</div>
-            <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
-          </div>
-          <div id="to-watch-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
-        </div>
-        <div id="pane-watched" class="personal-pane hidden">
-          <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
-          <div id="watched-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
-        </div>
-        <div id="pane-disliked" class="personal-pane hidden">
-          <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
-          <div id="disliked-content" class="space-y-1 text-sm max-h-[280px] overflow-auto"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recommended for you (top area, with Refresh Pool + Recompute buttons) -->
-    <div class="mb-2">
-      <div class="flex items-center justify-between mb-1.5 px-1">
+    <!-- Recommended for you (primary content first) -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between mb-2 px-1">
         <div>
-          <div class="font-semibold text-sm">Recommended for you</div>
-          <div class="text-xs text-zinc-500">Based on what you’ve watched • client-side taste boost</div>
+          <div class="font-semibold text-[15px] text-zinc-100 tracking-tight">Recommended for you</div>
+          <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="refreshRecPool()" 
-                  class="text-[11px] px-3 py-1 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600">Refresh Pool</button>
-          <button onclick="recomputeRecommendations()" 
-                  class="text-[11px] px-3 py-1 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600">Recompute</button>
+          <button onclick="refreshRecPool()"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors">Refresh Pool</button>
+          <button onclick="recomputeRecommendations()"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors">Recompute</button>
         </div>
       </div>
 
       <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
-      <div id="recs-empty" class="hidden text-center py-6 text-zinc-500 text-sm">
-        <div>Add a few titles to your Watched list.</div>
-        <div class="text-[10px] opacity-70 mt-1">The Curator and taste boost will come alive.</div>
+      <div id="recs-empty" class="hidden text-center py-8 text-zinc-500 text-sm">
+        <div class="text-2xl mb-2 opacity-40">🎬</div>
+        <div class="text-zinc-400">Add titles to your Watched list to unlock recs.</div>
+        <div class="text-[11px] opacity-60 mt-1">The Curator and taste boost will come alive.</div>
+      </div>
+    </div>
+
+    <!-- Personal Library Tabs -->
+    <div class="mb-3">
+      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
+        <div class="flex overflow-x-auto flex-1">
+          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+        </div>
+        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg flex-shrink-0 hover:bg-zinc-700 transition-colors" title="Hide all lists">▾</button>
+      </div>
+      <!-- Stats row with personality -->
+      <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-1.5 flex gap-4 flex-wrap border-x border-zinc-700 bg-zinc-900/60 items-center min-h-[28px]"></div>
+      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden">
+        <div id="pane-towatch" class="personal-pane">
+          <div class="flex justify-between mb-1.5 text-xs">
+            <div class="font-medium text-zinc-400">Upcoming nightmares</div>
+            <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
+          </div>
+          <div id="to-watch-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
+        </div>
+        <div id="pane-watched" class="personal-pane hidden">
+          <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
+          <div id="watched-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
+        </div>
+        <div id="pane-disliked" class="personal-pane hidden">
+          <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
+          <div id="disliked-content" class="space-y-1 text-sm max-h-[280px] overflow-auto"></div>
+        </div>
       </div>
     </div>
 
     <!-- Curator Chat: identity only via the red ghost inside message bubbles (no mascot or name in the header bar) -->
     <div class="mb-2">
       <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat">
-        <div class="flex items-center justify-between px-2 py-1 bg-zinc-800 border-b-2 border-red-900/60">
-          <div class="flex items-center gap-1.5">
-            <span class="curator-avatar" style="width:20px;height:20px;font-size:11px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c;">👻</span> 
+        <div class="flex items-center justify-between px-3 py-2 border-b border-red-900/40" style="background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);">
+          <div class="flex items-center gap-2">
+            <span class="curator-avatar" style="width:28px;height:28px;font-size:15px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 10px rgba(185,28,28,0.25);">👻</span>
             <div class="leading-none">
-              <div class="text-[10px] text-zinc-200 tracking-tight font-medium">keeper of dark cinema</div>
-              <div id="curator-mood" class="text-[8px] text-red-400/80 tracking-wider mt-px">THE REELS ARE RESTLESS</div>
+              <div class="text-[13px] text-zinc-100 tracking-tight font-semibold">The Curator</div>
+              <div id="curator-mood" class="text-[11px] text-red-400/75 tracking-widest mt-0.5 uppercase">THE REELS ARE RESTLESS</div>
             </div>
           </div>
-          <div class="flex gap-0.5">
-            <button onclick="clearCuratorPicks()" class="text-[9px] px-1 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 active:bg-zinc-900" title="Clear picks">🧹</button>
-            <button onclick="clearCuratorChat()" class="text-[9px] px-1 py-0.5 border border-zinc-700 rounded hover:bg-zinc-800 active:bg-zinc-900" title="Clear chat">🪦</button>
+          <div class="flex gap-1.5">
+            <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 active:bg-zinc-900 transition-colors" title="Clear picks">🧹 Picks</button>
+            <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 active:bg-zinc-900 transition-colors" title="Clear chat">🪦 Chat</button>
           </div>
         </div>
 
@@ -716,7 +717,7 @@
           <!-- Quick-reply chips for a more fun, interactive Curator experience (populated dynamically) -->
           <div class="flex flex-wrap gap-0.5 mt-1 text-[8px]" id="curator-quick-replies"></div>
 
-          <div id="curator-status" class="text-[8px] text-zinc-500 mt-0.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
+          <div id="curator-status" class="text-[11px] text-zinc-500 mt-1 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
     </div>
@@ -739,7 +740,7 @@
     <div class="mb-0.5">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
         <div class="flex items-center justify-between mb-0.5 px-1">
-          <div class="text-xs font-medium text-zinc-400">Discover</div>
+          <div class="text-[13px] font-semibold text-zinc-300 tracking-tight">Discover</div>
           <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
         </div>
 
@@ -846,10 +847,10 @@
     </div>
 
     <!-- Initial state / welcome message -->
-    <div id="initial-state" class="text-center py-12 text-zinc-400">
-      <i class="fa-solid fa-search text-4xl mb-4 opacity-40"></i>
-      <p class="text-lg text-zinc-300">Recommended for you is at the top • Search or Discover below</p>
-      <p class="text-sm mt-1">Dark cinema recs (horror / thrillers / sci-fi / suspense) powered by your watched library + The Curator.</p>
+    <div id="initial-state" class="text-center py-10 text-zinc-500">
+      <div class="text-3xl mb-3 opacity-25">🔍</div>
+      <p class="text-base text-zinc-400 font-medium">Search or Discover your next nightmare</p>
+      <p class="text-sm mt-1">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
     </div>
 
   </div>
@@ -1614,7 +1615,7 @@
       if (!el) return;
       const total = watchedList.length + toWatchList.length + dislikedList.length;
       if (total === 0) {
-        el.innerHTML = `<span class="opacity-60">Start your collection — search or Discover above.</span>`;
+        el.innerHTML = `<span style="color:#52525b;font-style:italic">No titles yet — search or Discover below to build your library.</span>`;
         return;
       }
       // Simple top genre from watched (rough)
@@ -1622,11 +1623,12 @@
       watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g]||0) + 1; }));
       const topGenreId = Object.keys(genreCounts).sort((a,b)=>genreCounts[b]-genreCounts[a])[0];
       const topGenre = topGenreId ? (GENRES.find(g=>g.id==topGenreId)?.name || '') : '';
-      el.innerHTML = `
-        <span>${watchedList.length} watched</span>
-        <span>${toWatchList.length} queued</span>
-        ${topGenre ? `<span class="text-red-400/80">top: ${topGenre}</span>` : ''}
-      `;
+      const parts = [];
+      if (watchedList.length) parts.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="color:#f87171">●</span><strong style="color:#e4e4e7">${watchedList.length}</strong><span style="color:#71717a">watched</span></span>`);
+      if (toWatchList.length) parts.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="color:#818cf8">●</span><strong style="color:#e4e4e7">${toWatchList.length}</strong><span style="color:#71717a">queued</span></span>`);
+      if (dislikedList.length) parts.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="color:#52525b">●</span><strong style="color:#e4e4e7">${dislikedList.length}</strong><span style="color:#71717a">disliked</span></span>`);
+      if (topGenre) parts.push(`<span style="color:#52525b">—</span><span style="color:rgba(248,113,113,0.7)">★ ${topGenre}</span>`);
+      el.innerHTML = parts.join('');
     }
 
     function posterHtml(item, size = 'w92') {
