@@ -16,6 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body { 
@@ -4096,12 +4097,21 @@
       const btn = document.getElementById('transfer-gen-btn');
       if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
       try {
+        // Guard: pako must be available
+        if (typeof pako === 'undefined') {
+          alert('Compression library not loaded yet. Please wait a moment and try again, or refresh the page.');
+          if (btn) { btn.textContent = 'Generate Transfer Link'; btn.disabled = false; }
+          return;
+        }
         const payload = minifyPayload();
         const json = JSON.stringify(payload);
         const encoded = _lzCompress(json);
+        if (!encoded) { throw new Error('Compression returned empty result'); }
 
+        // Build clean base URL (strip any existing ?t= so we don't double-encode)
         const url = new URL(window.location.href);
-        url.hash = ''; url.search = '';
+        url.hash = '';
+        url.search = '';
         url.searchParams.set('t', encoded);
         const final = url.toString();
 
@@ -4134,55 +4144,93 @@
       const qrArea = document.getElementById('transfer-qr-area');
       if (!qrArea || !url) return;
 
-      // Show loading placeholder
-      qrArea.innerHTML = `<div style="width:220px;height:220px;background:#18181b;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto;gap:8px;">
-        <div style="font-size:28px;">⏳</div>
-        <div style="font-size:11px;color:#71717a;">Loading QR...</div>
+      qrArea.innerHTML = `<div style="width:220px;height:220px;background:#18181b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+        <div style="font-size:11px;color:#71717a;">Generating QR...</div>
       </div>`;
 
-      const size = 220;
-      const enc = encodeURIComponent(url);
-      const primary  = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${enc}&margin=8`;
-      const fallback = `https://quickchart.io/qr?text=${enc}&size=${size}&margin=2&format=png`;
-
-      const img = new Image(size, size);
-      img.alt = 'QR Code';
-      img.style.cssText = 'border-radius:12px;background:#fff;display:block;margin:0 auto;';
-
-      let usedFallback = false;
-      img.onerror = () => {
-        if (!usedFallback) {
-          usedFallback = true;
-          img.src = fallback;
-        } else {
+      // Use local QRCode library — no network request, works offline, always reliable
+      if (typeof QRCode !== 'undefined') {
+        const canvas = document.createElement('canvas');
+        QRCode.toCanvas(canvas, url, {
+          width: 220,
+          margin: 2,
+          color: { dark: '#000000', light: '#ffffff' },
+          errorCorrectionLevel: 'M'
+        }, (err) => {
+          if (err) {
+            console.error('QR generation error:', err);
+            qrArea.innerHTML = `<div style="padding:16px;background:#1c1917;border:1px solid #3f3f46;border-radius:12px;text-align:center;max-width:220px;margin:0 auto;">
+              <div style="font-size:20px;margin-bottom:6px;">📋</div>
+              <div style="font-size:12px;color:#d4d4d8;font-weight:600;margin-bottom:4px;">QR unavailable — data too large</div>
+              <div style="font-size:11px;color:#a1a1aa;">Use Copy Link instead and send via iMessage or Notes.</div>
+            </div>`;
+            return;
+          }
+          canvas.style.cssText = 'border-radius:12px;display:block;margin:0 auto;max-width:100%;';
+          qrArea.innerHTML = '';
+          qrArea.appendChild(canvas);
+          const cap = document.createElement('div');
+          cap.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
+          cap.textContent = 'Scan with your phone camera';
+          qrArea.appendChild(cap);
+        });
+      } else {
+        // Fallback to API if qrcode.js didn't load
+        const enc = encodeURIComponent(url);
+        const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${enc}&margin=8`;
+        const img = new Image(220, 220);
+        img.alt = 'QR Code';
+        img.style.cssText = 'border-radius:12px;background:#fff;display:block;margin:0 auto;';
+        img.onerror = () => {
           qrArea.innerHTML = `<div style="padding:16px;background:#1c1917;border:1px solid #3f3f46;border-radius:12px;text-align:center;max-width:220px;margin:0 auto;">
             <div style="font-size:20px;margin-bottom:6px;">📋</div>
             <div style="font-size:12px;color:#d4d4d8;font-weight:600;margin-bottom:4px;">QR unavailable</div>
-            <div style="font-size:11px;color:#a1a1aa;">Tap Copy Link and send it to your phone via iMessage or Notes.</div>
+            <div style="font-size:11px;color:#a1a1aa;">Tap Copy Link and send via iMessage.</div>
           </div>`;
-        }
-      };
-      img.onload = () => {
-        qrArea.innerHTML = '';
-        qrArea.appendChild(img);
-        const cap = document.createElement('div');
-        cap.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
-        cap.textContent = 'Scan with your phone camera';
-        qrArea.appendChild(cap);
-      };
-      img.src = primary;
+        };
+        img.onload = () => {
+          qrArea.innerHTML = '';
+          qrArea.appendChild(img);
+          const cap = document.createElement('div');
+          cap.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
+          cap.textContent = 'Scan with your phone camera';
+          qrArea.appendChild(cap);
+        };
+        img.src = apiUrl;
+      }
     }
 
     async function importFromTransferLink(urlStr) {
-      const src = urlStr || document.getElementById('transfer-import-text')?.value?.trim();
+      // Sanitize input — strip whitespace, newlines, smart quotes, invisible chars
+      let rawSrc = urlStr || document.getElementById('transfer-import-text')?.value || '';
+      rawSrc = rawSrc.replace(/[\u2018\u2019\u201C\u201D\u2026\uFEFF]/g, '')  // smart quotes + BOM
+                     .replace(/\s+/g, '')  // all whitespace/newlines (mobile keyboards add them)
+                     .trim();
+      const src = rawSrc;
       const statusEl = document.getElementById('transfer-import-status');
       const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color||'#71717a'; } };
       if (!src) { setStatus('Paste a transfer link first.', '#f87171'); return; }
+
+      // Guard: pako must be available
+      if (typeof pako === 'undefined') {
+        setStatus('Compression library not loaded. Please refresh the page and try again.', '#f87171');
+        return;
+      }
+
       try {
         let encoded;
-        try { const u = new URL(src); encoded = u.searchParams.get('t') || u.searchParams.get('transfer'); }
-        catch(_) { encoded = src; }
-        if (!encoded) { setStatus('No transfer data in that link.', '#f87171'); return; }
+        // Try parsing as a full URL first
+        try {
+          const u = new URL(src);
+          encoded = u.searchParams.get('t') || u.searchParams.get('transfer');
+        } catch(_) {}
+        // If that didn't work, check if it's just the raw encoded string (starts with 'z')
+        if (!encoded) {
+          if (src.startsWith('z') && src.length > 10) {
+            encoded = src;
+          }
+        }
+        if (!encoded) { setStatus('No transfer data found. Make sure you copied the full link.', '#f87171'); return; }
 
         setStatus('Loading...', '#fbbf24');
         const json = _lzDecompress(encoded);
@@ -4226,7 +4274,18 @@
       document.body.appendChild(banner);
       document.getElementById('transfer-load-btn').onclick = async () => {
         const btn = document.getElementById('transfer-load-btn');
-        if (btn) btn.textContent = 'Loading...';
+        if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+        // If pako isn't ready yet (slow CDN on mobile), wait up to 5s for it
+        let waited = 0;
+        while (typeof pako === 'undefined' && waited < 5000) {
+          await new Promise(r => setTimeout(r, 200));
+          waited += 200;
+        }
+        if (typeof pako === 'undefined') {
+          if (btn) { btn.textContent = 'Load'; btn.disabled = false; }
+          alert('Could not load compression library. Please try refreshing the page.');
+          return;
+        }
         await importFromTransferLink(window.location.href);
         document.getElementById('transfer-banner')?.remove();
       };
