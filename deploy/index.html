@@ -513,51 +513,14 @@
         margin-bottom: 0 !important;
         line-height: 1 !important;
       }
-      /* Discover table: keep readable, reduce gaps, fill buttons, center where possible */
-      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
-        padding: 8px !important;
-      }
+      /* Discover chip overrides for mobile */
       #genre-chips, #rating-chips, #decade-chips {
-        gap: 2px !important;
-      }
-      .grid.grid-cols-2.gap-1.mb-0\\.5 {
         gap: 4px !important;
-        margin-bottom: 4px !important;
+        justify-content: flex-start !important;
       }
-      .flex.items-center.pt-1.border-t {
-        margin-top: 2px !important;
-        padding-top: 2px !important;
-      }
-      .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
-        font-size: 13px !important;
-        padding: 4px 6px !important;
-      }
-      .text-\\[8px\\] {
-        font-size: 13px !important;
-      }
-      .text-xs {
-        font-size: 14px !important;
-      }
-      #genre-chips {
-        justify-content: center !important;
-      }
-      #rating-chips, #decade-chips {
-        justify-content: space-around !important;
-      }
-      .flex.items-center.justify-between.mb-0\\.5,
-      .flex.items-center.justify-between.mb-px {
-        margin-bottom: 1px !important;
-      }
-      /* Ensure rating/decade flex fills full width to avoid right gap */
-      .flex.gap-1.mb-0\\.5.w-full {
-        width: 100% !important;
-      }
-      /* Chip buttons packed to fill width with small even gaps (not overly spread) */
       #genre-chips button, #rating-chips button, #decade-chips button {
-        min-width: 50px !important;
-        text-align: center !important;
-        padding-left: 6px !important;
-        padding-right: 6px !important;
+        font-size: 12px !important;
+        padding: 3px 10px !important;
       }
     }
 
@@ -736,59 +699,53 @@
       </div>
     </div>
 
-    <!-- Discover (clean, tight, readable table) -->
+    <!-- Discover -->
     <div class="mb-0.5">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
-        <div class="flex items-center justify-between mb-0.5 px-1">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
           <div class="text-[13px] font-semibold text-zinc-300 tracking-tight">Discover</div>
-          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
+          <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">Clear all</button>
         </div>
 
-        <!-- Genre chips - full width, centered, tighter gap -->
-        <div class="mb-0.5">
-          <div class="text-[8px] text-zinc-500 mb-px">Genres</div>
-          <div id="genre-chips" class="flex flex-wrap gap-1 w-full justify-center"></div>
+        <!-- Genre chips -->
+        <div class="mb-2">
+          <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Genre</div>
+          <div id="genre-chips" class="flex flex-wrap gap-1"></div>
         </div>
 
-        <!-- Rating + Decade side-by-side, buttons spaced to fill but with tighter gap -->
-        <div class="flex gap-1 mb-0.5 w-full">
-          <div class="flex-1">
-            <div class="text-[8px] text-zinc-500 mb-px">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+        <!-- Rating + Decade side-by-side -->
+        <div class="flex gap-4 mb-2">
+          <div>
+            <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-1"></div>
           </div>
-          <div class="flex-1">
-            <div class="text-[8px] text-zinc-500 mb-px">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+          <div>
+            <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-1"></div>
           </div>
         </div>
 
-        <!-- Bottom controls - compact, toggle good size, readable -->
-        <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800 text-sm">
-          <div class="flex-1">
-            <select id="discover-sort" onchange="performDiscover()"
-                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-2 py-1 text-sm text-zinc-200 outline-none w-full">
-              <option value="popularity.desc">Popular</option>
-              <option value="vote_average.desc">Rated</option>
-              <option value="release_date.desc">New</option>
-              <option value="release_date.asc">Old</option>
-            </select>
+        <!-- Bottom controls -->
+        <div class="flex items-center gap-2 pt-2 border-t border-zinc-800">
+          <select id="discover-sort" onchange="performDiscover()"
+                  class="bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-1 text-sm text-zinc-200 outline-none">
+            <option value="popularity.desc">Popular</option>
+            <option value="vote_average.desc">Top Rated</option>
+            <option value="release_date.desc">Newest</option>
+            <option value="release_date.asc">Oldest</option>
+          </select>
+
+          <div class="inline-flex rounded-xl bg-zinc-950 border border-zinc-700 p-0.5">
+            <button onclick="setDiscoverType('movie')" id="type-movie"
+                    class="px-3 py-1 rounded-lg text-sm font-medium bg-white text-black">Movies</button>
+            <button onclick="setDiscoverType('tv')" id="type-tv"
+                    class="px-3 py-1 rounded-lg text-sm font-medium text-zinc-300">TV</button>
           </div>
 
-          <div class="px-1">
-            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-1 text-sm">
-              <button onclick="setDiscoverType('movie')" id="type-movie"
-                      class="px-2 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
-              <button onclick="setDiscoverType('tv')" id="type-tv"
-                      class="px-2 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
-            </div>
-          </div>
-
-          <div class="flex-1 flex justify-end">
-            <button onclick="performDiscover()"
-                    class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-sm font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
-              Browse
-            </button>
-          </div>
+          <button onclick="performDiscover()"
+                  class="ml-auto px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.985]">
+            Browse
+          </button>
         </div>
       </div>
     </div>
