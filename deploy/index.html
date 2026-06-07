@@ -492,7 +492,7 @@
       /* Personal lists - bigger for scrolling readability */
       .library-item { padding: 8px 10px !important; gap: 10px; font-size: 15px !important; }
       .library-item button { font-size: 12px !important; padding: 3px 8px !important; }
-      .library-item img, .library-item div[class*="w-"] { width: 52px !important; height: 78px !important; }
+      .library-item img, .library-item div[class*="w-"] { width: 64px !important; height: 96px !important; }
       #to-watch-content, #watched-content, #disliked-content { max-height: 260px !important; }
       
       /* Modal */
@@ -917,18 +917,32 @@
     /* Enhanced library items */
     .library-item-v2 {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
       background: linear-gradient(135deg, #111113, #0f0e0f);
       border: 1px solid #27272a;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
-      transition: all 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
     }
+    .library-item-v2::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(185,28,28,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .library-item-v2:hover::after { opacity: 1; }
     .library-item-v2:hover {
-      border-color: #3f3f46;
-      background: linear-gradient(135deg, #18181b, #111113);
+      border-color: rgba(185,28,28,0.25);
+      background: linear-gradient(135deg, #1a1012, #111113);
+      transform: translateX(2px);
+      box-shadow: 0 4px 20px rgba(185,28,28,0.1), 0 1px 0 rgba(185,28,28,0.15) inset;
     }
     .library-genre-tag {
       font-size: 9px;
@@ -1068,6 +1082,188 @@
       color: #fca5a5;
       border-color: rgba(185,28,28,0.4);
       background: rgba(185,28,28,0.1);
+    }
+
+    /* ═══════════════════════════════════
+       CURATOR CHAT — REDESIGN v2
+    ═══════════════════════════════════ */
+
+    /* Container */
+    #curator-chat-full {
+      border: 1px solid rgba(185,28,28,0.3) !important;
+      border-radius: 20px !important;
+      background: #09090b !important;
+      box-shadow:
+        0 0 0 1px rgba(185,28,28,0.08),
+        0 0 40px rgba(185,28,28,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.04) !important;
+      overflow: hidden !important;
+    }
+
+    /* Header — glassmorphism with scanline */
+    #curator-chat-full > div:first-child {
+      background: linear-gradient(135deg, #0e0608 0%, #1a0a0a 50%, #120610 100%) !important;
+      border-bottom: 1px solid rgba(185,28,28,0.25) !important;
+      padding: 14px 16px !important;
+      position: relative;
+      overflow: hidden;
+    }
+    #curator-chat-full > div:first-child::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.12) 2px,
+        rgba(0,0,0,0.12) 4px
+      );
+      pointer-events: none;
+    }
+    #curator-chat-full > div:first-child::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(185,28,28,0.6), rgba(168,85,247,0.4), transparent);
+    }
+
+    /* Message area */
+    #curator-messages {
+      background: radial-gradient(ellipse at top center, rgba(120,0,0,0.06) 0%, #09090b 60%) !important;
+      padding: 16px !important;
+    }
+
+    /* AI message bubble — dark glass card */
+    .curator-msg:not(.user) {
+      background: linear-gradient(135deg, #141016 0%, #110d12 100%) !important;
+      border: 1px solid rgba(185,28,28,0.2) !important;
+      border-left: 3px solid transparent !important;
+      border-image: none !important;
+      position: relative;
+      overflow: hidden;
+      border-radius: 4px 18px 18px 18px !important;
+      padding: 12px 14px !important;
+      max-width: 84% !important;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(185,28,28,0.08) !important;
+    }
+    .curator-msg:not(.user)::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #ef4444 0%, #9333ea 100%);
+      border-radius: 0;
+    }
+    .curator-msg:not(.user)::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(239,68,68,0.04) 0%, rgba(147,51,234,0.03) 100%);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* User message bubble */
+    .curator-msg.user {
+      background: linear-gradient(135deg, #1c1020 0%, #170d1e 100%) !important;
+      border: 1px solid rgba(147,51,234,0.25) !important;
+      border-radius: 18px 4px 18px 18px !important;
+      padding: 10px 14px !important;
+      max-width: 74% !important;
+      box-shadow: 0 2px 8px rgba(147,51,234,0.1) !important;
+      color: #e2d9f3 !important;
+    }
+
+    /* Curator avatar — glow ring */
+    .curator-avatar {
+      background: linear-gradient(145deg, #7f1d1d, #4c1d95) !important;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.5), 0 0 12px rgba(185,28,28,0.3) !important;
+    }
+
+    /* Input area */
+    #curator-chat-full > div:last-child {
+      background: linear-gradient(180deg, #0c0a0e 0%, #0a090c 100%) !important;
+      border-top: 1px solid rgba(147,51,234,0.15) !important;
+      padding: 14px !important;
+    }
+
+    /* Input field */
+    #curator-input {
+      background: linear-gradient(135deg, #110d15 0%, #0e0b12 100%) !important;
+      border: 1px solid rgba(147,51,234,0.25) !important;
+      border-radius: 14px !important;
+      color: #e2d9f3 !important;
+      padding: 12px 16px !important;
+      font-size: 14px !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    #curator-input:focus {
+      border-color: rgba(147,51,234,0.5) !important;
+      box-shadow: 0 0 0 3px rgba(147,51,234,0.08), 0 0 16px rgba(147,51,234,0.1) !important;
+      outline: none !important;
+    }
+    #curator-input::placeholder { color: rgba(139,92,246,0.35) !important; }
+
+    /* Send button — red-to-purple gradient */
+    #curator-chat-full button[onclick="sendToCurator()"] {
+      background: linear-gradient(135deg, #b91c1c 0%, #7c3aed 100%) !important;
+      border: none !important;
+      border-radius: 14px !important;
+      padding: 12px 20px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.02em !important;
+      box-shadow: 0 2px 12px rgba(185,28,28,0.3), 0 1px 0 rgba(255,255,255,0.1) inset !important;
+      transition: all 0.18s ease !important;
+    }
+    #curator-chat-full button[onclick="sendToCurator()"]:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #8b5cf6 100%) !important;
+      box-shadow: 0 4px 20px rgba(185,28,28,0.4), 0 1px 0 rgba(255,255,255,0.15) inset !important;
+      transform: translateY(-1px) !important;
+    }
+    #curator-chat-full button[onclick="sendToCurator()"]:active {
+      transform: translateY(0) !important;
+    }
+
+    /* Quick reply chips */
+    #curator-quick-replies button {
+      background: rgba(147,51,234,0.1) !important;
+      border: 1px solid rgba(147,51,234,0.2) !important;
+      color: #c4b5fd !important;
+      border-radius: 999px !important;
+      font-size: 11px !important;
+      padding: 4px 10px !important;
+      transition: all 0.15s ease !important;
+    }
+    #curator-quick-replies button:hover {
+      background: rgba(147,51,234,0.2) !important;
+      border-color: rgba(147,51,234,0.4) !important;
+    }
+
+    /* Status line */
+    #curator-status { color: rgba(139,92,246,0.4) !important; }
+
+    /* Typing dots — purple */
+    .curator-typing-dots span {
+      background: linear-gradient(135deg, #ef4444, #8b5cf6) !important;
+    }
+
+    /* Mood tag */
+    #curator-mood { color: rgba(139,92,246,0.7) !important; }
+
+    /* Clear buttons in header */
+    #curator-chat-full > div:first-child button {
+      background: rgba(30,14,40,0.6) !important;
+      border: 1px solid rgba(147,51,234,0.2) !important;
+      color: rgba(196,181,253,0.7) !important;
+      border-radius: 10px !important;
+      transition: all 0.15s ease !important;
+    }
+    #curator-chat-full > div:first-child button:hover {
+      background: rgba(147,51,234,0.15) !important;
+      border-color: rgba(147,51,234,0.4) !important;
+      color: #c4b5fd !important;
     }
   </style>
 </head>
@@ -2197,9 +2393,9 @@
 
     function posterHtml(item, size = 'w92') {
       if (!item || !item.poster_path) {
-        return `<div class="w-12 h-[72px] bg-zinc-800 rounded flex-shrink-0"></div>`;
+        return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
       }
-      return `<div class="poster-wrap w-12 h-[72px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
+      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
     }
 
     function addToToWatch(item) {
@@ -2390,7 +2586,7 @@
       let html = '';
       toWatchList.forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = posterHtml(item, 'w92');
+        const poster = posterHtml(item, 'w185');
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         html += `<div class="library-item library-item-v2 text-sm items-center">
           ${poster}
@@ -2475,7 +2671,7 @@
       let html = '';
       watchedList.slice(0,12).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = posterHtml(item, 'w92');
+        const poster = posterHtml(item, 'w185');
         const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         html += `<div class="library-item library-item-v2 text-sm items-center">
           ${poster}
@@ -2516,7 +2712,7 @@
       if (!dislikedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Nothing disliked yet.<br><span class="text-[10px] opacity-70">Disliked titles are excluded from recommendations.</span></div>`; return; }
       let html = '';
       dislikedList.slice(0,8).forEach(item => {
-        const poster = posterHtml(item, 'w92');
+        const poster = posterHtml(item, 'w185');
         html += `<div class="library-item text-sm items-center">
           ${poster}
           <div class="flex-1 truncate">${item.title}</div>
