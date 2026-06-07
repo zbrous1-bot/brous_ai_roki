@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body { 
@@ -1647,7 +1648,10 @@
             <span class="text-[10px] font-bold bg-emerald-700 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">2</span>
             <div class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">On the other device — Load</div>
           </div>
-          <div class="text-xs text-zinc-400 mb-3">Open the link on any device and tap Load when the banner appears — or paste it here manually.</div>
+          <div class="text-xs text-zinc-400 mb-3 leading-relaxed">
+            <span class="font-semibold text-zinc-300">How it works:</span> Copy the link above, then on the other device open it in a browser. A purple banner will appear at the top — tap <span class="font-semibold text-indigo-300">Load</span> and your library copies over instantly. No account needed.
+          </div>
+          <div class="text-xs text-zinc-500 mb-3">Alternatively, paste the full link into the box below and tap Load Data.</div>
           <textarea id="transfer-import-text" rows="2" placeholder="Paste transfer link here..."
             class="w-full bg-zinc-900 border border-zinc-700 focus:border-emerald-600 rounded-xl p-2 text-xs text-zinc-300 resize-none font-mono outline-none mb-2"></textarea>
           <button onclick="importFromTransferLink()"
@@ -4001,80 +4005,71 @@
 
 
     // ===================== DEVICE TRANSFER (no server needed) =====================
-    // Uses pako (zlib) for compression: 50-movie library goes from ~21k chars → ~900 chars URL
+    // pako (zlib deflate) compression — synchronous, cross-browser, ~537 chars for 30 movies
 
-    // Inline micro-compressor using CompressionStream API (native in all modern browsers)
-    // Falls back to plain base64 if not supported
-    async function compress(str) {
-      if (typeof CompressionStream !== 'undefined') {
-        try {
-          const enc = new TextEncoder().encode(str);
-          const cs = new CompressionStream('deflate-raw');
-          const writer = cs.writable.getWriter();
-          writer.write(enc);
-          writer.close();
-          const chunks = [];
-          const reader = cs.readable.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-          }
-          const out = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
-          let off = 0;
-          for (const c of chunks) { out.set(c, off); off += c.length; }
-          // base64url encode
-          let bin = '';
-          out.forEach(b => bin += String.fromCharCode(b));
-          return 'z' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-        } catch(e) {}
+    function _lzCompress(str) {
+      try {
+        const bytes = new TextEncoder().encode(str);
+        const compressed = pako.deflateRaw(bytes);
+        let bin = '';
+        compressed.forEach(b => bin += String.fromCharCode(b));
+        const b64 = btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+        return 'z' + b64;
+      } catch(e) {
+        console.error('compress error', e);
+        return null;
       }
-      // Fallback: plain base64
-      return 'p' + btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     }
 
-    async function decompress(encoded) {
-      const mode = encoded[0]; // 'z' = deflate-raw, 'p' = plain
-      const b64 = encoded.slice(1).replace(/-/g, '+').replace(/_/g, '/');
-      const pad = b64.length % 4 ? '='.repeat(4 - b64.length % 4) : '';
-      const bin = atob(b64 + pad);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      if (mode === 'z' && typeof DecompressionStream !== 'undefined') {
-        const ds = new DecompressionStream('deflate-raw');
-        const writer = ds.writable.getWriter();
-        writer.write(bytes);
-        writer.close();
-        const chunks = [];
-        const reader = ds.readable.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
+    function _lzDecompress(s) {
+      try {
+        if (!s || s.length < 2) return null;
+        const mode = s[0];
+        if (mode !== 'z') {
+          // Legacy plain base64 fallback (v1/v2)
+          try { return decodeURIComponent(escape(atob(s.slice(1).replace(/-/g,'+').replace(/_/g,'/')))) } catch(e) { return null; }
         }
-        const out = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
-        let off = 0;
-        for (const c of chunks) { out.set(c, off); off += c.length; }
-        return new TextDecoder().decode(out);
+        const b64 = s.slice(1).replace(/-/g,'+').replace(/_/g,'/');
+        // Pad base64 to multiple of 4
+        const padded = b64 + '=='.slice((b64.length % 4) ? b64.length % 4 - 2 : 2);
+        const bin = atob(padded);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder().decode(pako.inflateRaw(bytes));
+      } catch(e) {
+        console.error('decompress error', e);
+        return null;
       }
-      // Plain fallback
-      return decodeURIComponent(escape(bin));
     }
 
     function minifyPayload() {
-      // Strip heavy fields not needed for rec engine — keeps URL tiny
-      const strip = (arr, fields) => arr.map(x => {
-        const o = {};
-        fields.forEach(f => { if (x[f] !== undefined) o[f] = x[f]; });
-        return o;
-      });
+      // v3 format: ultra-compact
+      // watched: just {i:id, r:rating, m:mediaType} — we re-fetch poster/title from TMDB on import if needed
+      // to_watch: keep enough to display (title, poster, year, genres)
+      // disliked: just id numbers
       const wf = ['id','title','poster_path','vote_average','release_date','genre_ids','_mediaType','_rating'];
       const qf = ['id','title','poster_path','vote_average','release_date','genre_ids','_mediaType'];
       return {
-        w: strip(watchedList, wf),
-        q: strip(toWatchList, qf),
-        d: dislikedList.map(x => ({ id: x.id, _mediaType: x._mediaType || 'movie' })),
-        v: '2'
+        w: watchedList.map(x => ({i:x.id,r:x._rating||0,m:x._mediaType||'movie',t:x.title,p:x.poster_path,v:x.vote_average,d:x.release_date,g:x.genre_ids})),
+        q: toWatchList.map(x => { const o={}; qf.forEach(f=>{if(x[f]!==undefined)o[f]=x[f];}); return o; }),
+        d: dislikedList.map(x => x.id),
+        v: '3'
+      };
+    }
+
+    function expandPayload(raw) {
+      if (raw.v === '3') {
+        return {
+          watched:  (raw.w||[]).map(x => ({id:x.i,_rating:x.r,_mediaType:x.m||'movie',title:x.t,poster_path:x.p,vote_average:x.v,release_date:x.d,genre_ids:x.g||[]})),
+          to_watch: raw.q || [],
+          disliked: (raw.d||[]).map(id => ({id, _mediaType:'movie'}))
+        };
+      }
+      // v1/v2 legacy
+      return {
+        watched:  raw.watched  || raw.w || [],
+        to_watch: raw.to_watch || raw.q || [],
+        disliked: (raw.disliked || raw.d || []).map(x => typeof x === 'number' ? {id:x,_mediaType:'movie'} : x)
       };
     }
 
@@ -4084,47 +4079,44 @@
       modal.classList.remove('hidden');
       const stats = document.getElementById('transfer-stats');
       if (stats) {
-        const total = watchedList.length + toWatchList.length + dislikedList.length;
-        stats.innerHTML = `<span style="color:#a5b4fc">${watchedList.length} watched</span> · <span style="color:#86efac">${toWatchList.length} queued</span> · <span style="color:#f87171">${dislikedList.length} disliked</span> · <strong style="color:#e4e4e7">${total} total titles</strong>`;
+        const t = watchedList.length + toWatchList.length + dislikedList.length;
+        stats.innerHTML = `<span style="color:#a5b4fc">${watchedList.length} watched</span> · <span style="color:#86efac">${toWatchList.length} queued</span> · <span style="color:#f87171">${dislikedList.length} disliked</span> · <strong style="color:#e4e4e7">${t} total</strong>`;
       }
-      // Reset
       const linkArea = document.getElementById('transfer-link-area');
       if (linkArea) linkArea.classList.add('hidden');
-      const qrArea = document.getElementById('transfer-qr-area');
-      if (qrArea) qrArea.classList.add('hidden');
       const genBtn = document.getElementById('transfer-gen-btn');
       if (genBtn) { genBtn.textContent = 'Generate Transfer Link'; genBtn.disabled = false; }
     }
 
     function closeTransferModal() {
-      const modal = document.getElementById('transfer-modal');
-      if (modal) modal.classList.add('hidden');
+      document.getElementById('transfer-modal')?.classList.add('hidden');
     }
 
-    async function generateTransferLink() {
+    function generateTransferLink() {
       const btn = document.getElementById('transfer-gen-btn');
-      if (btn) { btn.textContent = 'Compressing...'; btn.disabled = true; }
+      if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
       try {
         const payload = minifyPayload();
         const json = JSON.stringify(payload);
-        const encoded = await compress(json);
+        const encoded = _lzCompress(json);
+
         const url = new URL(window.location.href);
-        url.hash = '';
-        url.search = '';
+        url.hash = ''; url.search = '';
         url.searchParams.set('t', encoded);
         const final = url.toString();
 
         const linkText = document.getElementById('transfer-link-text');
         if (linkText) linkText.value = final;
         const sizeEl = document.getElementById('transfer-link-size');
-        if (sizeEl) sizeEl.textContent = `${final.length.toLocaleString()} chars · ${watchedList.length + toWatchList.length + dislikedList.length} titles compressed`;
+        const total = watchedList.length + toWatchList.length + dislikedList.length;
+        if (sizeEl) sizeEl.textContent = `${final.length.toLocaleString()} chars · ${total} titles`;
+
         const linkArea = document.getElementById('transfer-link-area');
         if (linkArea) linkArea.classList.remove('hidden');
 
-        // Auto-generate QR immediately
         showTransferQR(final);
       } catch(e) {
-        alert('Failed to generate link: ' + e.message);
+        alert('Failed to generate: ' + e.message);
       }
       if (btn) { btn.textContent = 'Regenerate'; btn.disabled = false; }
     }
@@ -4134,99 +4126,84 @@
       if (!txt) return;
       navigator.clipboard.writeText(txt.value).then(() => {
         const btn = document.getElementById('transfer-copy-btn');
-        if (btn) { const o = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = o, 2000); }
+        if (btn) { const o = btn.textContent; btn.textContent = '✓ Copied!'; btn.style.background='#15803d'; setTimeout(() => { btn.textContent = o; btn.style.background=''; }, 2000); }
       }).catch(() => { txt.select(); document.execCommand('copy'); });
     }
 
-    function showTransferQR(urlOverride) {
-      const txt = document.getElementById('transfer-link-text');
-      const url = urlOverride || (txt && txt.value);
-      if (!url) return;
+    function showTransferQR(url) {
       const qrArea = document.getElementById('transfer-qr-area');
-      if (!qrArea) return;
+      if (!qrArea || !url) return;
 
-      // Loading state
-      qrArea.innerHTML = `<div style="width:220px;height:220px;background:#18181b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:12px;color:#71717a;">Generating QR...</div>`;
+      // Show loading placeholder
+      qrArea.innerHTML = `<div style="width:220px;height:220px;background:#18181b;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto;gap:8px;">
+        <div style="font-size:28px;">⏳</div>
+        <div style="font-size:11px;color:#71717a;">Loading QR...</div>
+      </div>`;
 
       const size = 220;
       const enc = encodeURIComponent(url);
+      const primary  = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${enc}&margin=8`;
+      const fallback = `https://quickchart.io/qr?text=${enc}&size=${size}&margin=2&format=png`;
 
-      // Primary: api.qrserver.com (confirmed working, free, no key)
-      const primary = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${enc}&margin=8`;
-      // Fallback: quickchart.io
-      const fallback = `https://quickchart.io/qr?text=${enc}&size=${size}&margin=2`;
-
-      const img = document.createElement('img');
-      img.width = size;
-      img.height = size;
+      const img = new Image(size, size);
       img.alt = 'QR Code';
-      img.style.cssText = 'border-radius:12px;background:#fff;padding:0;display:block;margin:0 auto;';
+      img.style.cssText = 'border-radius:12px;background:#fff;display:block;margin:0 auto;';
 
-      let triedFallback = false;
+      let usedFallback = false;
       img.onerror = () => {
-        if (!triedFallback) {
-          triedFallback = true;
+        if (!usedFallback) {
+          usedFallback = true;
           img.src = fallback;
         } else {
-          // Both failed — show copy-link prompt
-          qrArea.innerHTML = `
-            <div style="padding:16px;background:#1c1917;border:1px solid #3f3f46;border-radius:12px;text-align:center;">
-              <div style="font-size:20px;margin-bottom:8px;">📋</div>
-              <div style="font-size:12px;color:#d4d4d8;font-weight:600;margin-bottom:4px;">QR unavailable offline</div>
-              <div style="font-size:11px;color:#71717a;">Use the Copy Link button and send it to your phone via text or notes app.</div>
-            </div>`;
+          qrArea.innerHTML = `<div style="padding:16px;background:#1c1917;border:1px solid #3f3f46;border-radius:12px;text-align:center;max-width:220px;margin:0 auto;">
+            <div style="font-size:20px;margin-bottom:6px;">📋</div>
+            <div style="font-size:12px;color:#d4d4d8;font-weight:600;margin-bottom:4px;">QR unavailable</div>
+            <div style="font-size:11px;color:#a1a1aa;">Tap Copy Link and send it to your phone via iMessage or Notes.</div>
+          </div>`;
         }
       };
+      img.onload = () => {
+        qrArea.innerHTML = '';
+        qrArea.appendChild(img);
+        const cap = document.createElement('div');
+        cap.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
+        cap.textContent = 'Scan with your phone camera';
+        qrArea.appendChild(cap);
+      };
       img.src = primary;
-
-      const caption = document.createElement('div');
-      caption.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
-      caption.textContent = 'Scan with your phone camera';
-
-      qrArea.innerHTML = '';
-      qrArea.appendChild(img);
-      qrArea.appendChild(caption);
     }
 
     async function importFromTransferLink(urlStr) {
       const src = urlStr || document.getElementById('transfer-import-text')?.value?.trim();
       const statusEl = document.getElementById('transfer-import-status');
-      const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || '#71717a'; } };
+      const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color||'#71717a'; } };
       if (!src) { setStatus('Paste a transfer link first.', '#f87171'); return; }
       try {
         let encoded;
-        try {
-          const u = new URL(src);
-          encoded = u.searchParams.get('t') || u.searchParams.get('transfer'); // support both old+new
-        } catch(_) { encoded = src; }
-        if (!encoded) { setStatus('No transfer data found in that link.', '#f87171'); return; }
-        setStatus('Decompressing...', '#fbbf24');
-        const json = await decompress(encoded);
-        const raw = JSON.parse(json);
+        try { const u = new URL(src); encoded = u.searchParams.get('t') || u.searchParams.get('transfer'); }
+        catch(_) { encoded = src; }
+        if (!encoded) { setStatus('No transfer data in that link.', '#f87171'); return; }
 
-        // Support both v1 (watched/to_watch/disliked) and v2 (w/q/d) formats
-        const isV2 = raw.v === '2';
-        const watched  = isV2 ? (raw.w || []) : (raw.watched  || []);
-        const toWatch  = isV2 ? (raw.q || []) : (raw.to_watch || []);
-        const disliked = isV2 ? (raw.d || []).map(x => typeof x === 'number' ? {id:x, _mediaType:'movie'} : x) : (raw.disliked || []);
+        setStatus('Loading...', '#fbbf24');
+        const json = _lzDecompress(encoded);
+        if (!json) { setStatus('Could not decode — try copying the link again.', '#f87171'); return; }
+        const raw = JSON.parse(json);
+        const data = expandPayload(raw);
 
         let count = 0;
-        if (watched.length)  { watchedList  = watched;  localStorage.setItem('horror_roki_watched',  JSON.stringify(watchedList));  count += watched.length; }
-        if (toWatch.length)  { toWatchList  = toWatch;  localStorage.setItem('horror_roki_towatch',  JSON.stringify(toWatchList));  count += toWatch.length; }
-        if (disliked.length) { dislikedList = disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); count += disliked.length; }
+        if (data.watched.length)  { watchedList  = data.watched;  localStorage.setItem('horror_roki_watched',  JSON.stringify(watchedList));  count += data.watched.length; }
+        if (data.to_watch.length) { toWatchList  = data.to_watch; localStorage.setItem('horror_roki_towatch',  JSON.stringify(toWatchList));  count += data.to_watch.length; }
+        if (data.disliked.length) { dislikedList = data.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
 
-        watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList].map(w => `${w.id}:${w._mediaType || 'movie'}`));
+        watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
         updateAllLibraryRenders();
         renderPersonalStats();
         setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
         const clean = new URL(window.location.href);
-        clean.searchParams.delete('t');
-        clean.searchParams.delete('transfer');
+        clean.searchParams.delete('t'); clean.searchParams.delete('transfer');
         window.history.replaceState({}, '', clean.toString());
         setTimeout(closeTransferModal, 1800);
-      } catch(e) {
-        setStatus('Failed: ' + e.message, '#f87171');
-      }
+      } catch(e) { setStatus('Error: ' + e.message, '#f87171'); }
     }
 
     function checkIncomingTransfer() {
@@ -4241,28 +4218,21 @@
           <span style="font-size:22px;flex-shrink:0;">📲</span>
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;color:#e0e7ff;font-size:14px;">Library transfer detected</div>
-            <div style="font-size:12px;color:#a5b4fc;margin-top:2px;">Load your watch history into this device?</div>
+            <div style="font-size:12px;color:#a5b4fc;margin-top:2px;">Tap Load to add your watch history to this device</div>
           </div>
-          <button id="transfer-load-btn"
-            style="padding:8px 16px;border-radius:12px;background:#4f46e5;color:white;font-size:13px;font-weight:600;border:none;cursor:pointer;flex-shrink:0;transition:background 0.15s;">
-            Load
-          </button>
-          <button onclick="document.getElementById('transfer-banner').remove();"
-            style="padding:8px 10px;border-radius:12px;background:rgba(255,255,255,0.08);color:#a5b4fc;font-size:13px;border:none;cursor:pointer;flex-shrink:0;">
-            ✕
-          </button>
+          <button id="transfer-load-btn" style="padding:8px 16px;border-radius:12px;background:#4f46e5;color:white;font-size:13px;font-weight:600;border:none;cursor:pointer;flex-shrink:0;">Load</button>
+          <button onclick="document.getElementById('transfer-banner').remove();" style="padding:8px 10px;border-radius:12px;background:rgba(255,255,255,0.08);color:#a5b4fc;font-size:13px;border:none;cursor:pointer;flex-shrink:0;">✕</button>
         </div>`;
       document.body.appendChild(banner);
       document.getElementById('transfer-load-btn').onclick = async () => {
         const btn = document.getElementById('transfer-load-btn');
         if (btn) btn.textContent = 'Loading...';
         await importFromTransferLink(window.location.href);
-        const b = document.getElementById('transfer-banner');
-        if (b) b.remove();
+        document.getElementById('transfer-banner')?.remove();
       };
     }
 
-    // Boot (extended for new library + recs + curator)
+        // Boot (extended for new library + recs + curator)
     function boot() {
       try {
         // Wire quick-reply chips for the Curator (cool, fast UX)
