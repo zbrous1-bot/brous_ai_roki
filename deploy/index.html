@@ -566,16 +566,181 @@
     @keyframes toast-out {
       to { opacity: 0; transform: translateY(8px); }
     }
+
+    /* ═══════════════════════════════════════════
+       VISUAL EFFECTS & COLOR — Horror Roki 2.0
+    ═══════════════════════════════════════════ */
+
+    /* Film grain texture overlay on body */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px 200px;
+    }
+
+    /* Hero atmospheric glow — crimson radial behind the headline */
+    .hero-glow {
+      position: relative;
+    }
+    .hero-glow::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: -80px;
+      width: 500px;
+      height: 300px;
+      background: radial-gradient(ellipse at 30% 50%, rgba(185,28,28,0.18) 0%, rgba(127,29,29,0.08) 45%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(30px);
+    }
+    .hero-glow > * { position: relative; z-index: 1; }
+
+    /* Nightmare word glow */
+    .nightmare-word {
+      color: #f87171;
+      text-shadow: 0 0 20px rgba(248,113,113,0.5), 0 0 40px rgba(185,28,28,0.3);
+    }
+
+    /* Red glow on search input focus */
+    .search-input:focus {
+      border-color: rgba(185, 28, 28, 0.7) !important;
+      box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15), 0 0 12px rgba(185, 28, 28, 0.1) !important;
+    }
+
+    /* Curator chat — deeper cinematic background + red edge glow */
+    #curator-chat {
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.2), 0 0 30px rgba(185,28,28,0.08), inset 0 0 60px rgba(0,0,0,0.4) !important;
+      border-color: rgba(185,28,28,0.25) !important;
+    }
+
+    /* Discover panel — gradient background + colored border */
+    .discover-panel {
+      background: linear-gradient(160deg, #18181b 0%, #1a1012 100%) !important;
+      border-color: rgba(185,28,28,0.2) !important;
+      box-shadow: 0 0 20px rgba(185,28,28,0.05) !important;
+    }
+
+    /* Active filter chips — red glow pulse */
+    .filter-chip-active {
+      background: linear-gradient(135deg, rgba(185,28,28,0.9), rgba(99,102,241,0.85)) !important;
+      border-color: #b91c1c !important;
+      box-shadow: 0 0 10px rgba(185,28,28,0.4), 0 0 20px rgba(185,28,28,0.15) !important;
+      color: white !important;
+    }
+
+    /* Browse button — gradient + glow */
+    .browse-btn {
+      background: linear-gradient(135deg, #4f46e5, #6d28d9) !important;
+      box-shadow: 0 0 12px rgba(99,102,241,0.3) !important;
+      transition: all 0.2s ease !important;
+    }
+    .browse-btn:hover {
+      box-shadow: 0 0 20px rgba(99,102,241,0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* Recommended section header — red left accent bar */
+    .recs-section-header {
+      position: relative;
+      padding-left: 12px;
+    }
+    .recs-section-header::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 2px;
+      bottom: 2px;
+      width: 3px;
+      background: linear-gradient(180deg, #ef4444, #7f1d1d);
+      border-radius: 2px;
+    }
+
+    /* Movie cards — red glow on hover */
+    .movie-card:hover {
+      box-shadow: 0 20px 30px -8px rgba(0,0,0,0.4),
+                  0 0 0 1px rgba(185,28,28,0.3),
+                  0 0 20px rgba(185,28,28,0.08) !important;
+      border-color: rgba(185,28,28,0.5) !important;
+    }
+
+    /* Personal tabs bar — subtle top red glow */
+    #personal-tabs-bar {
+      box-shadow: 0 -1px 0 0 rgba(185,28,28,0.15) inset !important;
+    }
+    .personal-tab.active {
+      border-bottom-color: #ef4444 !important;
+      color: white !important;
+    }
+
+    /* Section labels with gradient text */
+    .gradient-label {
+      background: linear-gradient(90deg, #f87171, #e2e8f0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Quick chips in Curator — red tint on hover */
+    #curator-quick-replies button:hover {
+      border-color: rgba(185,28,28,0.4) !important;
+      color: #fca5a5 !important;
+    }
+
+    /* Refresh Pool / Recompute buttons — subtle gradient */
+    .pool-btn {
+      background: linear-gradient(135deg, #27272a, #1c1c1f) !important;
+      border-color: #52525b !important;
+      transition: all 0.2s ease !important;
+    }
+    .pool-btn:hover {
+      background: linear-gradient(135deg, #3f3f46, #27272a) !important;
+      border-color: rgba(185,28,28,0.4) !important;
+      box-shadow: 0 0 8px rgba(185,28,28,0.1) !important;
+    }
+
+    /* Stats row colored dots already in JS — add pulsing red dot for watched */
+    @keyframes red-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Toast success gets a green shimmer */
+    .toast.success {
+      background: linear-gradient(135deg, #18181b, #0d1f12) !important;
+    }
+
+    /* Scrollbar — horror themed */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
+
+    /* Modal backdrop blur */
+    #detail-modal {
+      backdrop-filter: blur(8px) !important;
+    }
+    #detail-modal > div {
+      background: linear-gradient(160deg, #18181b, #120a0a) !important;
+      border-color: rgba(185,28,28,0.2) !important;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(185,28,28,0.15) !important;
+    }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-200 no-pull-refresh">
+<body class="bg-zinc-950 text-zinc-200 no-pull-refresh" style="background-color:#0f0e0f;">
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
-    <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60">
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60 hero-glow">
       <div class="min-w-0">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
-        <p class="text-zinc-300 text-[14px] sm:text-[15px] mt-1 tracking-tight">Find your next <span class="text-red-400">nightmare.</span></p>
+        <p class="text-zinc-300 text-[14px] sm:text-[15px] mt-1 tracking-tight">Find your next <span class="nightmare-word">nightmare.</span></p>
         <p class="text-[12px] sm:text-[13px] text-zinc-500 mt-0.5">Personal recs — horror, thrillers, sci-fi &amp; suspense.</p>
       </div>
       <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -600,14 +765,14 @@
     <div class="mb-4">
       <div class="flex items-center justify-between mb-2 px-1">
         <div>
-          <div class="font-semibold text-[15px] text-zinc-100 tracking-tight">Recommended for you</div>
+          <div class="font-semibold text-[15px] text-zinc-100 tracking-tight recs-section-header">Recommended for you</div>
           <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="refreshRecPool()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors">Refresh Pool</button>
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Refresh Pool</button>
           <button onclick="recomputeRecommendations()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors">Recompute</button>
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Recompute</button>
         </div>
       </div>
 
@@ -701,7 +866,7 @@
 
     <!-- Discover -->
     <div class="mb-0.5">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm discover-panel">
         <div class="flex items-center justify-between mb-2">
           <div class="text-[13px] font-semibold text-zinc-300 tracking-tight">Discover</div>
           <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">Clear all</button>
@@ -743,7 +908,7 @@
           </div>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.985]">
+                  class="ml-auto px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.985] browse-btn">
             Browse
           </button>
         </div>
