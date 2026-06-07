@@ -45,6 +45,10 @@
     }
     .rec-card {
       border-color: #7f1d1d;
+      padding: 10px 12px;
+    }
+    @media (min-width: 640px) {
+      .rec-card { padding: 16px 20px; }
     }
 
     .section-header {
@@ -1293,6 +1297,9 @@
       border-color: rgba(147,51,234,0.4) !important;
       color: #c4b5fd !important;
     }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    #nav-sync-btn:hover { background: rgba(255,255,255,0.1) !important; color: #e4e4e7 !important; }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 no-pull-refresh" style="background-color:#0f0e0f;">
@@ -1304,6 +1311,11 @@
       <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
       <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
+      <button id="nav-sync-btn" onclick="navSync()" title="Sync data across devices"
+        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
+        <span id="nav-sync-icon">⟳</span>
+        <span id="nav-sync-label">Sync</span>
+      </button>
     </div>
   </nav>
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
@@ -1368,7 +1380,7 @@
         </div>
       </div>
 
-      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
+      <div id="recs-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
       <div id="recs-empty" class="hidden empty-state text-sm">
@@ -2533,7 +2545,9 @@
 
         let changed = false;
 
-        if (Array.isArray(serverData.watched) && serverData.watched.length > (watchedList?.length || 0)) {
+        // Always overwrite local with server data — this ensures a fresh tab or new
+        // device pulls in all history rather than skipping because local count is 0.
+        if (Array.isArray(serverData.watched)) {
           watchedList = serverData.watched;
           localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
           changed = true;
@@ -2543,30 +2557,55 @@
           localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
           changed = true;
         }
-        if (Array.isArray(serverData.disliked) && serverData.disliked.length > (dislikedList?.length || 0)) {
+        if (Array.isArray(serverData.disliked)) {
           dislikedList = serverData.disliked;
           localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
           changed = true;
         }
-        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > (chatHistory?.length || 0)) {
+        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) {
           chatHistory = serverData.chat_history;
           localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory));
           changed = true;
         }
 
         if (changed) {
+          // Rebuild exclusion set after sync
+          watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList].map(w => `${w.id}:${w._mediaType || 'movie'}`));
           updateAllLibraryRenders();
+          renderPersonalStats();
           try { renderCuratorMessages(); } catch(e){}
-          console.log('[Horror Roki] Pulled fresher data from server KV');
+          console.log('[Horror Roki] Synced from server KV ✓');
+          setSyncLabel('✓ Synced', '#4ade80');
         }
         return serverData;
       } catch (e) {
         // Server not available or no KV bound yet — silently fall back to localStorage
-        if (!e.message?.includes('DATA_KV')) {
-          console.log('[Horror Roki] No server data (using local only):', e.message);
-        }
+        console.log('[Horror Roki] No server data (using local only):', e.message);
+        setSyncLabel('Sync', '#a1a1aa');
         return null;
       }
+    }
+
+    function setSyncLabel(text, color) {
+      const lbl = document.getElementById('nav-sync-label');
+      const icon = document.getElementById('nav-sync-icon');
+      if (lbl) { lbl.textContent = text; lbl.style.color = color; }
+      if (icon) { icon.style.color = color; }
+      if (text !== 'Sync') setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 2500);
+    }
+
+    async function navSync() {
+      const btn = document.getElementById('nav-sync-btn');
+      const icon = document.getElementById('nav-sync-icon');
+      if (icon) { icon.style.animation = 'spin 1s linear infinite'; }
+      setSyncLabel('Syncing...', '#fbbf24');
+      try {
+        await pushToServer(true);
+        await syncFromServer();
+      } catch(e) {
+        setSyncLabel('Error', '#f87171');
+      }
+      if (icon) { icon.style.animation = ''; }
     }
 
     function renderToWatch() {
@@ -3339,8 +3378,8 @@
         const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
-          <div class="flex flex-col sm:flex-row gap-3">
-            <img src="${poster}" class="w-full sm:w-20 h-40 sm:h-28 rounded-xl object-cover border border-zinc-800" alt="">
+          <div class="flex flex-row gap-3">
+            <img src="${poster}" class="w-16 h-24 sm:w-20 sm:h-28 rounded-xl object-cover border border-zinc-800 flex-shrink-0" alt="">
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
               <div class="flex items-center gap-1.5 flex-wrap mt-1">
