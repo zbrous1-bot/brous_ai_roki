@@ -11,6 +11,9 @@
   <title>Brous Movie Engine • Find your next nightmare</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%2318181b'/%3E%3Ctext x='90' y='115' font-size='80' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -731,15 +734,273 @@
       border-color: rgba(185,28,28,0.2) !important;
       box-shadow: 0 25px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(185,28,28,0.15) !important;
     }
+
+    /* ═══════════════════════════════════
+       FULL OVERHAUL CSS — Horror Roki
+    ═══════════════════════════════════ */
+
+    /* Cinematic headline font */
+    h1, .bebas { font-family: 'Bebas Neue', system-ui, sans-serif !important; letter-spacing: 1px; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+    /* Sticky top nav */
+    #sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 14, 15, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(185,28,28,0.15);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .nav-brand {
+      font-family: 'Bebas Neue', system-ui, sans-serif;
+      font-size: 20px;
+      letter-spacing: 1px;
+      color: white;
+      white-space: nowrap;
+    }
+    .nav-brand span { color: #f87171; }
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-link {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      color: #a1a1aa;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-link:hover {
+      color: #fff;
+      border-color: rgba(185,28,28,0.3);
+      background: rgba(185,28,28,0.08);
+    }
+    .nav-link.active {
+      color: #fca5a5;
+      border-color: rgba(185,28,28,0.4);
+      background: rgba(185,28,28,0.1);
+    }
+
+    /* Tab switch animation */
+    .personal-pane {
+      animation: pane-fade-in 0.22s cubic-bezier(0.4,0,0.2,1) both;
+    }
+    @keyframes pane-fade-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Shimmer skeleton cards */
+    .skeleton-card {
+      background: linear-gradient(145deg, #18181b, #111113);
+      border: 1px solid #3f3f46;
+      border-radius: 1.5rem;
+      padding: 1.25rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .skeleton-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: skeleton-sweep 1.4s ease-in-out infinite;
+    }
+    @keyframes skeleton-sweep {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-line {
+      background: #27272a;
+      border-radius: 6px;
+      height: 12px;
+      margin-bottom: 8px;
+    }
+    .skeleton-poster {
+      background: #27272a;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Improved typing indicator */
+    .curator-typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      padding: 2px 0;
+    }
+    .curator-typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: #b91c1c;
+      border-radius: 50%;
+      animation: dot-bounce 1.2s ease-in-out infinite;
+    }
+    .curator-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .curator-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40%           { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* Enhanced movie card */
+    .movie-card-v2 {
+      background: linear-gradient(160deg, #18181b 0%, #121014 100%);
+      border: 1px solid #3f3f46;
+      border-radius: 1.25rem;
+      overflow: hidden;
+      transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+      animation: card-enter 0.38s cubic-bezier(0.34,1.56,0.64,1) backwards;
+    }
+    .movie-card-v2:hover {
+      transform: translateY(-4px);
+      border-color: rgba(185,28,28,0.5);
+      box-shadow: 0 20px 40px -8px rgba(0,0,0,0.5),
+                  0 0 0 1px rgba(185,28,28,0.2),
+                  0 0 25px rgba(185,28,28,0.06);
+    }
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(251,191,36,0.15);
+      border: 1px solid rgba(251,191,36,0.25);
+      color: #fbbf24;
+    }
+    .rating-badge.high {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.25);
+      color: #4ade80;
+    }
+    .provider-logo-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .stream-badge {
+      background: rgba(99,102,241,0.15);
+      border-color: rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* Enhanced library items */
+    .library-item-v2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: linear-gradient(135deg, #111113, #0f0e0f);
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.15s ease;
+    }
+    .library-item-v2:hover {
+      border-color: #3f3f46;
+      background: linear-gradient(135deg, #18181b, #111113);
+    }
+    .library-genre-tag {
+      font-size: 9px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      background: rgba(185,28,28,0.15);
+      border: 1px solid rgba(185,28,28,0.2);
+      color: #fca5a5;
+      white-space: nowrap;
+    }
+    .library-rating {
+      font-size: 10px;
+      color: #fbbf24;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Atmospheric empty states */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .empty-state::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 80%, rgba(185,28,28,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .empty-state-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+      filter: grayscale(0.3);
+    }
+
+    /* Improved Curator message bubbles */
+    .curator-msg {
+      border-radius: 18px !important;
+      max-width: 88% !important;
+    }
+    .curator-msg.user {
+      background: linear-gradient(135deg, #27272a, #1f1f22) !important;
+      max-width: 78% !important;
+    }
+    #curator-messages {
+      background: linear-gradient(180deg, #0a0a0c 0%, #0f0e0f 100%) !important;
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 no-pull-refresh" style="background-color:#0f0e0f;">
+
+  <!-- Sticky navigation bar -->
+  <nav id="sticky-nav">
+    <div class="nav-brand">BROUS <span>●</span> MOVIE ENGINE</div>
+    <div class="nav-links">
+      <a class="nav-link" onclick="document.getElementById('section-recs').scrollIntoView({behavior:'smooth'})">For You</a>
+      <a class="nav-link" onclick="document.getElementById('section-library').scrollIntoView({behavior:'smooth'})">Library</a>
+      <a class="nav-link" onclick="document.getElementById('curator-chat').scrollIntoView({behavior:'smooth'})">Curator</a>
+      <a class="nav-link" onclick="document.getElementById('section-search').scrollIntoView({behavior:'smooth'})">Search</a>
+      <a class="nav-link" onclick="document.getElementById('section-discover').scrollIntoView({behavior:'smooth'})">Discover</a>
+    </div>
+  </nav>
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- Header -->
     <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60 hero-glow">
       <div class="min-w-0">
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
+        <h1 class="text-white bebas" style="font-size:clamp(2.8rem,6vw,5rem);letter-spacing:2px;line-height:1;">Brous Movie Engine</h1>
         <p class="text-zinc-300 text-[14px] sm:text-[15px] mt-1 tracking-tight">Find your next <span class="nightmare-word">nightmare.</span></p>
         <p class="text-[12px] sm:text-[13px] text-zinc-500 mt-0.5">Personal recs — horror, thrillers, sci-fi &amp; suspense.</p>
       </div>
@@ -762,6 +1023,7 @@
     </div>
 
     <!-- Recommended for you (primary content first) -->
+    <div id="section-recs"></div>
     <div class="mb-4">
       <div class="flex items-center justify-between mb-2 px-1">
         <div>
@@ -779,14 +1041,15 @@
       <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
-      <div id="recs-empty" class="hidden text-center py-8 text-zinc-500 text-sm">
-        <div class="text-2xl mb-2 opacity-40">🎬</div>
-        <div class="text-zinc-400">Add titles to your Watched list to unlock recs.</div>
-        <div class="text-[11px] opacity-60 mt-1">The Curator and taste boost will come alive.</div>
+      <div id="recs-empty" class="hidden empty-state text-sm">
+        <span class="empty-state-icon">🎬</span>
+        <div class="text-zinc-300 font-medium">No recs yet</div>
+        <div class="text-zinc-500 text-xs mt-1">Add titles to your Watched list to unlock personalized recs.</div>
       </div>
     </div>
 
     <!-- Personal Library Tabs -->
+    <div id="section-library"></div>
     <div class="mb-3">
       <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
         <div class="flex overflow-x-auto flex-1">
@@ -851,6 +1114,7 @@
     </div>
 
     <!-- Search -->
+    <div id="section-search"></div>
     <div class="mb-1">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm">
         <div class="flex gap-2 items-center">
@@ -865,6 +1129,7 @@
     </div>
 
     <!-- Discover -->
+    <div id="section-discover"></div>
     <div class="mb-0.5">
       <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm discover-panel">
         <div class="flex items-center justify-between mb-2">
@@ -969,10 +1234,10 @@
     </div>
 
     <!-- Initial state / welcome message -->
-    <div id="initial-state" class="text-center py-10 text-zinc-500">
-      <div class="text-3xl mb-3 opacity-25">🔍</div>
-      <p class="text-base text-zinc-400 font-medium">Search or Discover your next nightmare</p>
-      <p class="text-sm mt-1">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
+    <div id="initial-state" class="empty-state" style="margin-top:1rem;">
+      <span class="empty-state-icon">🔍</span>
+      <p class="text-base text-zinc-300 font-semibold">Search or Discover your next nightmare</p>
+      <p class="text-sm mt-1 text-zinc-500">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
     </div>
 
   </div>
@@ -1124,6 +1389,34 @@
     }
 
     // Simple toast system for action feedback (used by lists, curator, etc.)
+
+    function showSkeletons(containerId, count = 4) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.innerHTML = '';
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = 'none';
+      for (let i = 0; i < count; i++) {
+        const card = document.createElement('div');
+        card.className = 'skeleton-card';
+        card.style.animationDelay = (i * 0.07) + 's';
+        card.innerHTML = `
+          <div style="display:flex;gap:14px;">
+            <div class="skeleton-poster" style="width:80px;height:120px;"></div>
+            <div style="flex:1;">
+              <div class="skeleton-line" style="width:80%;height:14px;margin-bottom:10px;"></div>
+              <div class="skeleton-line" style="width:55%;height:10px;margin-bottom:8px;"></div>
+              <div class="skeleton-line" style="width:40%;height:10px;margin-bottom:16px;"></div>
+              <div style="display:flex;gap:6px;">
+                <div class="skeleton-line" style="width:70px;height:28px;border-radius:9999px;margin:0;"></div>
+                <div class="skeleton-line" style="width:60px;height:28px;border-radius:9999px;margin:0;"></div>
+              </div>
+            </div>
+          </div>`;
+        c.appendChild(card);
+      }
+    }
+
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
       if (!container) return;
@@ -1465,7 +1758,7 @@
       if (reset) {
         currentDiscoverPage = 1;
         currentDiscoverResults = [];
-        container.innerHTML = `<div class="text-center py-6 text-zinc-400">Finding titles...</div>`;
+        showSkeletons('results', 6);
       }
 
       const genreIds = Array.from(selectedGenres);
@@ -1942,21 +2235,26 @@
       const c = document.getElementById('to-watch-content');
       if (!c) return;
       if (!toWatchList.length) {
-        c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Your queue is empty.<br><span class="text-[10px] opacity-70">Add from recommendations, search, or ask the Curator for picks.</span></div>`;
+        c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🎬</span><div class="text-sm font-medium text-zinc-400">Your queue is empty</div><div class="text-xs text-zinc-600 mt-1">Add from recommendations, search, or ask the Curator.</div></div>`;
         return;
       }
       let html = '';
       toWatchList.forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
         const poster = posterHtml(item, 'w92');
-        html += `<div class="library-item text-sm items-center">
+        const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
+        html += `<div class="library-item library-item-v2 text-sm items-center">
           ${poster}
           <div class="flex-1 min-w-0">
-            <div class="font-medium truncate">${item.title} <span class="text-xs text-zinc-500">${year}</span></div>
+            <div class="font-medium truncate text-zinc-100">${item.title}</div>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+              ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
+            </div>
           </div>
-          <button onclick="markWatchedFromToWatch(${idx})" class="text-sm px-2 py-0.5 rounded-xl bg-emerald-800 text-emerald-100">⭐ Rate</button>
-          <button onclick="dislikeFromToWatch(${idx})" class="text-[10px] px-1 py-px rounded-xl border border-zinc-700 text-zinc-400">👎</button>
-          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[10px] text-red-400 px-1">×</button>
+          <button onclick="markWatchedFromToWatch(${idx})" class="text-[11px] px-2.5 py-1 rounded-xl bg-emerald-900 border border-emerald-700/50 text-emerald-300 flex-shrink-0">⭐ Rate</button>
+          <button onclick="dislikeFromToWatch(${idx})" class="text-[11px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-400 flex-shrink-0">👎</button>
+          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 flex-shrink-0 hover:text-red-300">×</button>
         </div>`;
       });
       c.innerHTML = html;
@@ -2024,16 +2322,23 @@
     function renderWatched() {
       const c = document.getElementById('watched-content');
       if (!c) return;
-      if (!watchedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">No watched titles yet.<br><span class="text-[10px] opacity-70">Rate movies as you watch — this powers your personal recs.</span></div>`; return; }
+      if (!watchedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👁️</span><div class="text-sm font-medium text-zinc-400">No watched titles yet</div><div class="text-xs text-zinc-600 mt-1">Rate movies as you watch — this powers your personal recs.</div></div>`; return; }
       let html = '';
       watchedList.slice(0,12).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const r = item.rating ? ` · ${item.rating}★` : '';
         const poster = posterHtml(item, 'w92');
-        html += `<div class="library-item text-sm items-center">
+        const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
+        html += `<div class="library-item library-item-v2 text-sm items-center">
           ${poster}
-          <div class="flex-1 truncate">${item.title} <span class="text-xs text-zinc-500">${year}${r}</span></div>
-          <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1">×</button>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium truncate text-zinc-100">${item.title}</div>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+              ${wGenre ? `<span class="library-genre-tag">${wGenre}</span>` : ''}
+              ${item.rating ? `<span class="library-rating">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : ''}
+            </div>
+          </div>
+          <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 hover:text-red-300 flex-shrink-0">×</button>
         </div>`;
       });
       if (watchedList.length > 12) html += `<div class="text-[10px] text-zinc-500 px-1">+${watchedList.length-12} more</div>`;
@@ -2170,7 +2475,12 @@
       document.querySelectorAll('.personal-pane').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.personal-tab').forEach(b => b.classList.remove('active'));
       const pane = document.getElementById('pane-' + tab);
-      if (pane) pane.classList.remove('hidden');
+      if (pane) {
+        pane.classList.remove('hidden');
+        pane.style.animation = 'none';
+        pane.offsetHeight; // reflow
+        pane.style.animation = '';
+      }
       const btn = document.getElementById('tab-' + tab);
       if (btn) btn.classList.add('active');
 
@@ -2333,10 +2643,7 @@
       const query = document.getElementById('search-input').value.trim();
       if (!query) return;
 
-      const container = document.getElementById('results');
-      const initial = document.getElementById('initial-state');
-      if (initial) initial.style.display = 'none';
-      container.innerHTML = `<div class="text-center py-6 text-zinc-400">Searching...</div>`;
+      showSkeletons('results', 4);
 
       const isMovie = currentSearchType === 'movie';
       const searchEndpoint = isMovie ? 'movie' : 'tv';
@@ -2460,7 +2767,7 @@
         const mediaColor = (m._mediaType || 'movie') === 'tv' ? 'bg-sky-900 text-sky-400' : 'bg-violet-900 text-violet-400';
 
         const card = document.createElement('div');
-        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
+        card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
             ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-52 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
@@ -2472,7 +2779,7 @@
                 </div>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
                   ${year ? `<span class="text-zinc-400 text-sm">${year}</span>` : ''}
-                  ${m.vote_average ? `<span class="inline-flex items-center gap-0.5 text-xs sm:text-sm px-1.5 py-px rounded bg-zinc-800 text-amber-400 font-medium"><i class="fa-solid fa-star text-[9px]"></i> ${m.vote_average.toFixed(1)}</span>` : ''}
+                  ${m.vote_average ? `<span class="rating-badge ${m.vote_average >= 7.5 ? 'high' : ''}"><i class="fa-solid fa-star" style="font-size:8px"></i> ${m.vote_average.toFixed(1)}</span>` : ''}
                   ${m.imdb_id ? `
                     <a href="https://www.imdb.com/title/${m.imdb_id}/" target="_blank" rel="noopener"
                        class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-95">
@@ -2745,8 +3052,9 @@
       // Cool horror-themed typing indicator
       const box = document.getElementById('curator-messages');
       const typingDiv = document.createElement('div');
-      typingDiv.className = 'curator-msg curator-typing';
-      typingDiv.innerHTML = `<span class="curator-avatar">👻</span> <span>whispering from the shadows...</span>`;
+      typingDiv.className = 'curator-msg';
+      typingDiv.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;';
+      typingDiv.innerHTML = `<span class="curator-avatar">👻</span><div class="curator-typing-dots"><span></span><span></span><span></span></div>`;
       if (box) {
         box.appendChild(typingDiv);
         box.scrollTop = box.scrollHeight;
