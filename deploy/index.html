@@ -4201,60 +4201,89 @@
     }
 
     async function importFromTransferLink(urlStr) {
-      // Sanitize input — strip whitespace, newlines, smart quotes, invisible chars
-      let rawSrc = urlStr || document.getElementById('transfer-import-text')?.value || '';
-      rawSrc = rawSrc.replace(/[\u2018\u2019\u201C\u201D\u2026\uFEFF]/g, '')  // smart quotes + BOM
-                     .replace(/\s+/g, '')  // all whitespace/newlines (mobile keyboards add them)
-                     .trim();
-      const src = rawSrc;
       const statusEl = document.getElementById('transfer-import-status');
-      const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color||'#71717a'; } };
-      if (!src) { setStatus('Paste a transfer link first.', '#f87171'); return; }
+      const setStatus = (msg, color) => {
+        console.log('[Transfer]', msg);
+        if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color||'#71717a'; }
+      };
 
       // Guard: pako must be available
       if (typeof pako === 'undefined') {
-        setStatus('Compression library not loaded. Please refresh the page and try again.', '#f87171');
+        setStatus('Compression library not loaded. Please refresh and try again.', '#f87171');
         return;
       }
 
       try {
-        let encoded;
-        // Try parsing as a full URL first
-        try {
-          const u = new URL(src);
-          encoded = u.searchParams.get('t') || u.searchParams.get('transfer');
-        } catch(_) {}
-        // If that didn't work, check if it's just the raw encoded string (starts with 'z')
+        // Resolve the encoded payload — prefer window._pendingTransferData (set at page load
+        // from URL params, immune to iOS URL mangling), then fallback to textarea/urlStr
+        let encoded = window._pendingTransferData || null;
+
         if (!encoded) {
-          if (src.startsWith('z') && src.length > 10) {
-            encoded = src;
-          }
+          // Sanitize — strip whitespace, smart quotes, invisible chars
+          let rawSrc = urlStr || document.getElementById('transfer-import-text')?.value || '';
+          rawSrc = rawSrc
+            .replace(/[\u2018\u2019\u201C\u201D\u2026\uFEFF]/g, '')
+            .replace(/\s+/g, '')
+            .trim();
+          if (!rawSrc) { setStatus('Paste a transfer link first.', '#f87171'); return; }
+
+          // Try as full URL
+          try { const u = new URL(rawSrc); encoded = u.searchParams.get('t') || u.searchParams.get('transfer'); } catch(_) {}
+          // Try as raw encoded string
+          if (!encoded && rawSrc.startsWith('z') && rawSrc.length > 10) encoded = rawSrc;
+          if (!encoded) { setStatus('No transfer data found. Make sure you copied the full link.', '#f87171'); return; }
         }
-        if (!encoded) { setStatus('No transfer data found. Make sure you copied the full link.', '#f87171'); return; }
 
         setStatus('Loading...', '#fbbf24');
         const json = _lzDecompress(encoded);
-        if (!json) { setStatus('Could not decode — try copying the link again.', '#f87171'); return; }
+        if (!json) { setStatus('Could not decode — link may be corrupted. Try again.', '#f87171'); return; }
+
         const raw = JSON.parse(json);
         const data = expandPayload(raw);
-
         let count = 0;
-        if (data.watched.length)  { watchedList  = data.watched;  localStorage.setItem('horror_roki_watched',  JSON.stringify(watchedList));  count += data.watched.length; }
-        if (data.to_watch.length) { toWatchList  = data.to_watch; localStorage.setItem('horror_roki_towatch',  JSON.stringify(toWatchList));  count += data.to_watch.length; }
-        if (data.disliked.length) { dislikedList = data.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
+
+        if (data.watched && data.watched.length)  {
+          watchedList = data.watched;
+          localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+          count += data.watched.length;
+        }
+        if (data.to_watch && data.to_watch.length) {
+          toWatchList = data.to_watch;
+          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+          count += data.to_watch.length;
+        }
+        if (data.disliked && data.disliked.length) {
+          dislikedList = data.disliked;
+          localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+        }
 
         watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
-        updateAllLibraryRenders();
-        renderPersonalStats();
+
+        // Safe render calls — each wrapped so one failure doesn’t block the rest
+        try { updateAllLibraryRenders(); } catch(e) { console.warn('[Transfer] render error:', e); }
+        try { renderPersonalStats(); } catch(e) { console.warn('[Transfer] stats error:', e); }
+
         setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
-        const clean = new URL(window.location.href);
-        clean.searchParams.delete('t'); clean.searchParams.delete('transfer');
-        window.history.replaceState({}, '', clean.toString());
+
+        // Clean URL
+        try {
+          const clean = new URL(window.location.href);
+          clean.searchParams.delete('t'); clean.searchParams.delete('transfer');
+          window.history.replaceState({}, '', clean.toString());
+        } catch(e) {}
+
         window._pendingTransferData = null;
-        // Alert on mobile so user definitely sees success
-        setTimeout(() => alert(`✓ Transfer complete! ${count} titles loaded to this device.`), 400);
-        setTimeout(closeTransferModal, 1800);
-      } catch(e) { setStatus('Error: ' + e.message, '#f87171'); }
+        document.getElementById('transfer-banner')?.remove();
+
+        // Native alert so mobile users definitely see success
+        alert(`✓ Transfer complete! ${count} titles loaded to this device.`);
+        setTimeout(closeTransferModal, 500);
+
+      } catch(e) {
+        console.error('[Transfer] import error:', e);
+        setStatus('Error: ' + e.message, '#f87171');
+        alert('Transfer failed: ' + e.message + '\n\nCheck browser console for details.');
+      }
     }
 
     function checkIncomingTransfer() {
