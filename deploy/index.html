@@ -318,8 +318,8 @@
     }
 
     .personal-tab {
-      padding: 8px 14px;
-      font-size: 15px;
+      padding: 7px 12px;
+      font-size: 13px;
       border-bottom: 3px solid transparent;
       color: #a1a1aa;
       white-space: nowrap;
@@ -327,6 +327,9 @@
       background: #18181b;
       border-radius: 8px 8px 0 0;
       margin-right: 2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
     .personal-tab:hover {
       color: #fff;
@@ -338,6 +341,26 @@
       font-weight: 600;
       background: #111113;
     }
+    /* Count badge inside tab buttons */
+    .personal-tab span[id$="-count"] {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      min-width: 18px;
+      height: 16px;
+      padding: 0 5px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.07);
+      color: #71717a;
+      line-height: 1;
+    }
+    .personal-tab.active span[id$="-count"] {
+      background: rgba(185,28,28,0.2);
+      color: #fca5a5;
+    }
+
     .personal-pane {
       min-height: 140px;
       background: #111113;
@@ -1492,9 +1515,9 @@
       <!-- Sub-tabs: To Watch / Watched / Disliked -->
       <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling:touch;">
         <div class="flex overflow-x-auto flex-1">
-          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
-          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count">(0)</span></button>
+          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count">(0)</span></button>
+          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count">(0)</span></button>
         </div>
         <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg flex-shrink-0 hover:bg-zinc-700 transition-colors" title="Hide all lists">▾</button>
       </div>
