@@ -1655,7 +1655,7 @@
           <div class="text-xs text-zinc-500 mb-3">Alternatively, paste the full link into the box below and tap Load Data.</div>
           <textarea id="transfer-import-text" rows="2" placeholder="Paste transfer link here..."
             class="w-full bg-zinc-900 border border-zinc-700 focus:border-emerald-600 rounded-xl p-2 text-xs text-zinc-300 resize-none font-mono outline-none mb-2"></textarea>
-          <button onclick="importFromTransferLink()"
+          <button id="transfer-load-data-btn"
             class="w-full py-2.5 rounded-2xl text-sm font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors">
             Load Data from Link
           </button>
@@ -4554,6 +4554,21 @@
     if (settingsBtn) settingsBtn.onclick = showSettings;
 
     if (passBtn) passBtn.onclick = managePassword;
+
+    // Wire the Load Data button via JS (not inline onclick) to guarantee correct scope
+    document.addEventListener('DOMContentLoaded', function() {
+      const loadBtn = document.getElementById('transfer-load-data-btn');
+      if (loadBtn) {
+        loadBtn.addEventListener('click', function() {
+          try {
+            importFromTransferLink();
+          } catch(e) {
+            alert('Transfer button error: ' + e.message);
+            console.error('Transfer load btn error:', e);
+          }
+        });
+      }
+    });
 
     window.onload = function() {
       try {
