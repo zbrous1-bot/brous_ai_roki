@@ -888,6 +888,11 @@
       border: 1px solid rgba(251,191,36,0.25);
       color: #fbbf24;
     }
+    .rating-badge.low {
+      background: rgba(113,113,122,0.25);
+      color: #a1a1aa;
+      border-color: rgba(113,113,122,0.3);
+    }
     .rating-badge.high {
       background: rgba(34,197,94,0.12);
       border-color: rgba(34,197,94,0.25);
@@ -3306,13 +3311,28 @@
         card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
+        const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
+        const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
+        const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
+        const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-3">
             <img src="${poster}" class="w-full sm:w-20 h-40 sm:h-28 rounded-xl object-cover border border-zinc-800" alt="">
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
-              <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
-              <div class="text-[10px] text-emerald-400/80 mt-1">✨ Smart match • based on your taste profile</div>
+              <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                ${year ? `<span class="text-xs text-zinc-500">${year}</span>` : ''}
+                ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" title="TMDB user score"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span>` : ''}
+                <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none">
+                  <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
+                </a>
+                <a href="${rtSearchUrl}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none">
+                  🍅 RT
+                </a>
+              </div>
+              <div class="text-[10px] text-emerald-400/80 mt-1.5">✨ Smart match • based on your taste profile</div>
             </div>
           </div>
           <div class="mt-2 flex gap-1 overflow-x-auto flex-nowrap pb-1 snap-x">
@@ -3321,6 +3341,16 @@
             <button class="flex-shrink-0 text-xs px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
           </div>
         `;
+        // Async: upgrade IMDB link from search → direct title page once we have the real ID
+        apiFetch(`/api/tmdb/3/movie/${item.id}/external_ids`).then(ext => {
+          if (ext && ext.imdb_id) {
+            const lnk = card.querySelector(`#imdb-link-${item.id}`);
+            if (lnk) {
+              lnk.href = `https://www.imdb.com/title/${ext.imdb_id}/`;
+              lnk.title = ext.imdb_id;
+            }
+          }
+        }).catch(() => {});
         // wire actions
         card.querySelector('[data-act="towatch"]').onclick = () => { addToToWatch(item); card.remove(); };
         card.querySelector('[data-act="watched"]').onclick = () => {
