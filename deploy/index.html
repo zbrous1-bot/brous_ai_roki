@@ -1311,10 +1311,14 @@
       <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
       <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
-      <button id="nav-sync-btn" onclick="navSync()" title="Sync data across devices"
+      <button id="nav-sync-btn" onclick="navSync()" title="Sync via Cloudflare KV (requires Worker setup)"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         <span id="nav-sync-icon">⟳</span>
         <span id="nav-sync-label">Sync</span>
+      </button>
+      <button onclick="showTransferModal()" title="Send your library to another device — no server needed"
+        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
+        📲 Transfer
       </button>
     </div>
   </nav>
@@ -1593,6 +1597,60 @@
 
   </div>
   <!-- Toast container for feedback -->
+  <!-- Data Transfer Modal -->
+  <div id="transfer-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onclick="if(event.target===this)closeTransferModal()">
+    <div class="bg-zinc-900 border border-indigo-500/30 rounded-3xl w-full max-w-md shadow-2xl" style="box-shadow:0 0 40px rgba(99,102,241,0.15)">
+      <div class="p-5 sm:p-6">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <div class="text-lg font-bold text-zinc-100">📲 Transfer to Another Device</div>
+            <div class="text-xs text-zinc-500 mt-0.5">No server or account needed</div>
+          </div>
+          <button onclick="closeTransferModal()" class="text-2xl text-zinc-500 hover:text-white leading-none">×</button>
+        </div>
+
+        <!-- Step 1: Generate link -->
+        <div class="space-y-3">
+          <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-4">
+            <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">On this device — Generate a transfer link</div>
+            <div class="text-xs text-zinc-400 mb-3">Creates a link with all your watched history, queue, and ratings embedded. Open it on any other device or browser.</div>
+            <div id="transfer-stats" class="text-xs text-zinc-500 mb-3"></div>
+            <button onclick="generateTransferLink()" class="w-full py-2.5 rounded-2xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
+              Generate Transfer Link
+            </button>
+            <div id="transfer-link-area" class="hidden mt-3 space-y-2">
+              <textarea id="transfer-link-text" rows="3" readonly
+                class="w-full bg-zinc-900 border border-indigo-500/40 rounded-xl p-2 text-xs text-zinc-300 resize-none font-mono"></textarea>
+              <div class="flex gap-2">
+                <button onclick="copyTransferLink()" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200">
+                  📋 Copy Link
+                </button>
+                <button onclick="showTransferQR()" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200">
+                  📷 Show QR Code
+                </button>
+              </div>
+              <div id="transfer-qr-area" class="hidden text-center py-3">
+                <canvas id="transfer-qr-canvas" class="mx-auto rounded-xl" style="image-rendering:pixelated"></canvas>
+                <div class="text-xs text-zinc-500 mt-2">Scan with your phone camera</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-4">
+            <div class="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">On the other device — Load a transfer link</div>
+            <div class="text-xs text-zinc-400 mb-3">Paste a transfer link here to load all the data from it into this device.</div>
+            <textarea id="transfer-import-text" rows="2" placeholder="Paste transfer link here..."
+              class="w-full bg-zinc-900 border border-zinc-700 focus:border-emerald-600 rounded-xl p-2 text-xs text-zinc-300 resize-none font-mono outline-none mb-2"></textarea>
+            <button onclick="importFromTransferLink()" class="w-full py-2.5 rounded-2xl text-sm font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors">
+              Load Data
+            </button>
+            <div id="transfer-import-status" class="text-xs mt-2 text-center text-zinc-500"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <script>
@@ -2595,15 +2653,20 @@
     }
 
     async function navSync() {
-      const btn = document.getElementById('nav-sync-btn');
       const icon = document.getElementById('nav-sync-icon');
       if (icon) { icon.style.animation = 'spin 1s linear infinite'; }
       setSyncLabel('Syncing...', '#fbbf24');
       try {
         await pushToServer(true);
-        await syncFromServer();
+        const result = await syncFromServer();
+        if (!result) {
+          // syncFromServer returned null — KV not bound or Worker not configured
+          setSyncLabel('No KV — use Transfer ↑', '#f87171');
+          setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
+        }
       } catch(e) {
-        setSyncLabel('Error', '#f87171');
+        setSyncLabel('Failed — use Transfer ↑', '#f87171');
+        setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
       }
       if (icon) { icon.style.animation = ''; }
     }
@@ -3926,6 +3989,167 @@
       a.click();
     }
 
+
+    // ===================== DEVICE TRANSFER (no server needed) =====================
+
+    function showTransferModal() {
+      const modal = document.getElementById('transfer-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      // Show current stats
+      const stats = document.getElementById('transfer-stats');
+      if (stats) {
+        const total = watchedList.length + toWatchList.length + dislikedList.length;
+        stats.textContent = `${watchedList.length} watched · ${toWatchList.length} queued · ${dislikedList.length} disliked · ${total} total titles`;
+      }
+      // Reset link area
+      const linkArea = document.getElementById('transfer-link-area');
+      if (linkArea) linkArea.classList.add('hidden');
+      const qrArea = document.getElementById('transfer-qr-area');
+      if (qrArea) qrArea.classList.add('hidden');
+    }
+
+    function closeTransferModal() {
+      const modal = document.getElementById('transfer-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function generateTransferLink() {
+      const payload = {
+        watched: watchedList,
+        to_watch: toWatchList,
+        disliked: dislikedList,
+        exported_at: new Date().toISOString(),
+        v: '1'
+      };
+      try {
+        const json = JSON.stringify(payload);
+        // Base64-encode the JSON (btoa needs ASCII — use encodeURIComponent trick)
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+        const url = new URL(window.location.href);
+        url.hash = ''; // clear hash
+        url.search = ''; // clear other params
+        url.searchParams.set('transfer', encoded);
+        const linkArea = document.getElementById('transfer-link-area');
+        const linkText = document.getElementById('transfer-link-text');
+        if (linkText) linkText.value = url.toString();
+        if (linkArea) linkArea.classList.remove('hidden');
+      } catch(e) {
+        alert('Failed to generate link: ' + e.message);
+      }
+    }
+
+    function copyTransferLink() {
+      const txt = document.getElementById('transfer-link-text');
+      if (!txt) return;
+      navigator.clipboard.writeText(txt.value).then(() => {
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+      }).catch(() => {
+        txt.select();
+        document.execCommand('copy');
+      });
+    }
+
+    function showTransferQR() {
+      const txt = document.getElementById('transfer-link-text');
+      if (!txt || !txt.value) return;
+      const qrArea = document.getElementById('transfer-qr-area');
+      const canvas = document.getElementById('transfer-qr-canvas');
+      if (!qrArea || !canvas) return;
+      qrArea.classList.remove('hidden');
+      // Simple QR code using a free API (image fallback — no JS lib needed)
+      const encoded = encodeURIComponent(txt.value);
+      const img = document.createElement('img');
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}`;
+      img.style.cssText = 'width:200px;height:200px;border-radius:12px;';
+      img.alt = 'QR Code';
+      const qrInner = document.getElementById('transfer-qr-area');
+      qrInner.innerHTML = '';
+      qrInner.appendChild(img);
+      const note = document.createElement('div');
+      note.className = 'text-xs text-zinc-500 mt-2';
+      note.textContent = 'Scan with your phone camera';
+      qrInner.appendChild(note);
+      qrInner.classList.remove('hidden');
+    }
+
+    function importFromTransferLink(urlStr) {
+      const src = urlStr || document.getElementById('transfer-import-text')?.value?.trim();
+      const statusEl = document.getElementById('transfer-import-status');
+      const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || '#71717a'; } };
+      if (!src) { setStatus('Paste a transfer link first.', '#f87171'); return; }
+      try {
+        let encoded;
+        try {
+          const u = new URL(src);
+          encoded = u.searchParams.get('transfer');
+        } catch(_) {
+          // Maybe they pasted just the encoded string
+          encoded = src;
+        }
+        if (!encoded) { setStatus('No transfer data found in that link.', '#f87171'); return; }
+        const json = decodeURIComponent(escape(atob(encoded)));
+        const data = JSON.parse(json);
+        let count = 0;
+        if (Array.isArray(data.watched) && data.watched.length > 0) {
+          watchedList = data.watched;
+          localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+          count += watchedList.length;
+        }
+        if (Array.isArray(data.to_watch) && data.to_watch.length > 0) {
+          toWatchList = data.to_watch;
+          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+          count += toWatchList.length;
+        }
+        if (Array.isArray(data.disliked) && data.disliked.length > 0) {
+          dislikedList = data.disliked;
+          localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+          count += dislikedList.length;
+        }
+        watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList].map(w => `${w.id}:${w._mediaType || 'movie'}`));
+        updateAllLibraryRenders();
+        renderPersonalStats();
+        setStatus(`✓ Loaded ${count} titles successfully!`, '#4ade80');
+        // Clean URL
+        const clean = new URL(window.location.href);
+        clean.searchParams.delete('transfer');
+        window.history.replaceState({}, '', clean.toString());
+        setTimeout(closeTransferModal, 1500);
+      } catch(e) {
+        setStatus('Failed to load: ' + e.message, '#f87171');
+      }
+    }
+
+    // Auto-detect transfer link in URL on page load
+    function checkIncomingTransfer() {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('transfer');
+      if (!encoded) return;
+      // Show a friendly banner asking to load
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;z-index:9999;display:flex;justify-content:center;padding:0 16px;';
+      banner.innerHTML = `
+        <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid rgba(99,102,241,0.5);border-radius:16px;padding:14px 20px;display:flex;align-items:center;gap:12px;max-width:480px;width:100%;box-shadow:0 4px 24px rgba(99,102,241,0.2);">
+          <span style="font-size:24px;">📲</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;color:#e0e7ff;font-size:14px;">Library transfer detected</div>
+            <div style="font-size:12px;color:#a5b4fc;margin-top:2px;">Load your watch history into this device?</div>
+          </div>
+          <button onclick="importFromTransferLink();this.closest('div[style*=fixed]').remove();"
+            style="padding:8px 16px;border-radius:12px;background:#4f46e5;color:white;font-size:13px;font-weight:600;border:none;cursor:pointer;flex-shrink:0;">
+            Load
+          </button>
+          <button onclick="this.closest('div[style*=fixed]').remove();"
+            style="padding:8px 12px;border-radius:12px;background:rgba(255,255,255,0.08);color:#a5b4fc;font-size:13px;border:none;cursor:pointer;flex-shrink:0;">
+            Skip
+          </button>
+        </div>`;
+      document.body.appendChild(banner);
+    }
+
     // Boot (extended for new library + recs + curator)
     function boot() {
       try {
@@ -4000,6 +4224,9 @@
         setTimeout(() => {
           if (typeof syncFromServer === 'function') syncFromServer().catch(() => {});
         }, 650);
+
+        // Check if page was opened from a Transfer link
+        if (typeof checkIncomingTransfer === 'function') checkIncomingTransfer();
 
         // Hide the beginner help note once password is set
         const helpNote = document.getElementById('first-time-help');
