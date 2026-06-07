@@ -4144,15 +4144,48 @@
       if (!url) return;
       const qrArea = document.getElementById('transfer-qr-area');
       if (!qrArea) return;
-      qrArea.classList.remove('hidden');
-      // Use Google Charts QR API — reliable, handles up to ~2000 chars
+
+      // Loading state
+      qrArea.innerHTML = `<div style="width:220px;height:220px;background:#18181b;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:12px;color:#71717a;">Generating QR...</div>`;
+
       const size = 220;
-      const src = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodeURIComponent(url)}&choe=UTF-8`;
-      qrArea.innerHTML = `
-        <img src="${src}" width="${size}" height="${size}" style="border-radius:12px;background:#fff;padding:8px;display:block;margin:0 auto;"
-             alt="QR Code" onerror="this.style.display='none';document.getElementById('qr-fallback').style.display='block'">
-        <div id="qr-fallback" style="display:none;font-size:11px;color:#f87171;margin-top:6px;">QR failed to load — copy the link instead</div>
-        <div style="font-size:11px;color:#71717a;margin-top:8px;">Scan with your phone camera to open on mobile</div>`;
+      const enc = encodeURIComponent(url);
+
+      // Primary: api.qrserver.com (confirmed working, free, no key)
+      const primary = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${enc}&margin=8`;
+      // Fallback: quickchart.io
+      const fallback = `https://quickchart.io/qr?text=${enc}&size=${size}&margin=2`;
+
+      const img = document.createElement('img');
+      img.width = size;
+      img.height = size;
+      img.alt = 'QR Code';
+      img.style.cssText = 'border-radius:12px;background:#fff;padding:0;display:block;margin:0 auto;';
+
+      let triedFallback = false;
+      img.onerror = () => {
+        if (!triedFallback) {
+          triedFallback = true;
+          img.src = fallback;
+        } else {
+          // Both failed — show copy-link prompt
+          qrArea.innerHTML = `
+            <div style="padding:16px;background:#1c1917;border:1px solid #3f3f46;border-radius:12px;text-align:center;">
+              <div style="font-size:20px;margin-bottom:8px;">📋</div>
+              <div style="font-size:12px;color:#d4d4d8;font-weight:600;margin-bottom:4px;">QR unavailable offline</div>
+              <div style="font-size:11px;color:#71717a;">Use the Copy Link button and send it to your phone via text or notes app.</div>
+            </div>`;
+        }
+      };
+      img.src = primary;
+
+      const caption = document.createElement('div');
+      caption.style.cssText = 'font-size:11px;color:#71717a;margin-top:8px;text-align:center;';
+      caption.textContent = 'Scan with your phone camera';
+
+      qrArea.innerHTML = '';
+      qrArea.appendChild(img);
+      qrArea.appendChild(caption);
     }
 
     async function importFromTransferLink(urlStr) {
