@@ -886,6 +886,42 @@
     .bg-zinc-950, .bg-\[\#09090b\] { background: var(--bg) !important; }
     .bg-zinc-900 { background: var(--bg2) !important; }
     .bg-zinc-800 { background: var(--bg4) !important; }
+
+    /* Provider pills + genre tags in light mode — override zinc darks to readable light chips */
+    /* Provider pills + genre tags — light mode overrides */
+    /* Modal availability (where to watch) pills */
+    html.light #modal-availability span {
+      border-color: rgba(0,0,0,0.15) !important;
+    }
+    html.light #modal-availability span[class*="bg-zinc-7"],
+    html.light #modal-availability span[class*="bg-zinc-8"],
+    html.light #modal-availability span[class*="bg-zinc-6"] {
+      background: #e4e4e7 !important;
+      color: #27272a !important;
+      border-color: rgba(0,0,0,0.12) !important;
+    }
+    /* Genre tag chips in modal */
+    html.light #modal-genres span,
+    html.light .modal-genre-chip {
+      background: #f0ece6 !important;
+      color: #44403c !important;
+      border: 1px solid rgba(0,0,0,0.1) !important;
+    }
+    /* Where to watch row in search/discover result cards */
+    html.light .movie-card span[class*="bg-zinc-7"],
+    html.light .movie-card span[class*="bg-zinc-8"],
+    html.light .movie-card span[class*="bg-zinc-6"] {
+      background: #e4e4e7 !important;
+      color: #27272a !important;
+      border-color: rgba(0,0,0,0.12) !important;
+    }
+    /* Modal action buttons in light mode */
+    html.light #modal-actions-row button[class*="bg-zinc-8"],
+    html.light #modal-actions-row button[class*="border-zinc-7"] {
+      background: #f0ece6 !important;
+      border-color: rgba(0,0,0,0.15) !important;
+      color: #292524 !important;
+    }
     .border-zinc-800 { border-color: var(--border2) !important; }
     .border-zinc-700 { border-color: var(--border) !important; }
     .text-zinc-100, .text-white { color: var(--text) !important; }
@@ -1081,6 +1117,9 @@
       font-weight: 600;
       border: 1px solid rgba(255,255,255,0.1);
       flex-shrink: 0;
+    }
+    html.light .provider-logo-pill {
+      border-color: rgba(0,0,0,0.12) !important;
     }
     .stream-badge {
       background: rgba(99,102,241,0.15);
@@ -2037,7 +2076,7 @@
       'Max': 'bg-purple-700 text-white',
       'Prime Video': 'bg-sky-600 text-white',
       'Peacock': 'bg-violet-600 text-white',
-      'Apple TV+': 'bg-zinc-800 text-white',
+      'Apple TV+': 'bg-zinc-600 text-white',
       'Paramount+': 'bg-blue-700 text-white',
       'Disney+': 'bg-indigo-700 text-white',
     };
@@ -3416,7 +3455,7 @@
         overviewEl.textContent = detail.overview || 'No overview available.';
 
         genresEl.innerHTML = (detail.genres || []).map(g => 
-          `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl">${g.name}</span>`
+          `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl modal-genre-chip">${g.name}</span>`
         ).join('');
 
       } catch (e) {
