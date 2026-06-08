@@ -3412,7 +3412,12 @@
 
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
 
+    let _recPoolLoading = false;
+
     async function refreshRecPool() {
+      if (_recPoolLoading) return; // prevent double-fire / infinite loop
+      _recPoolLoading = true;
+
       const grid = document.getElementById('recs-grid');
       const empty = document.getElementById('recs-empty');
       if (grid) {
@@ -3420,6 +3425,17 @@
         showSkeletons('recs-grid', 8);
       }
       if (empty) empty.classList.add('hidden');
+
+      // Ensure password is set before firing 16 parallel fetches
+      if (!apiPassword) {
+        apiPassword = prompt('Enter the shared Worker password to load recommendations:') || '';
+        if (apiPassword) localStorage.setItem('brous_password', apiPassword);
+      }
+      if (!apiPassword) {
+        _recPoolLoading = false;
+        if (grid) grid.innerHTML = `<div class="text-center py-8 text-zinc-400 text-sm col-span-full">Tap <strong>\uD83D\uDD10 Pass</strong> in the nav to set your Worker password, then tap Refresh.</div>`;
+        return;
+      }
 
       try {
         const excluded = getExcludedKeys();
@@ -3462,12 +3478,18 @@
         }));
 
         console.log('[Recs] Pool size:', currentRecPool.length);
-        recomputeRecommendations();
+        if (!currentRecPool.length) {
+          if (grid) grid.innerHTML = `<div class="text-center py-8 text-zinc-400 text-sm col-span-full">No results loaded. Check your Worker password (\uD83D\uDD10 Pass) or connection.</div>`;
+        } else {
+          recomputeRecommendations();
+        }
       } catch (e) {
         console.error('[Recs] Refresh pool failed:', e);
-        let poolMsg = 'Failed to load pool. Check 🔐 password / connection.';
-        if (e.message && e.message.length < 120) poolMsg = e.message;
-        if (grid) grid.innerHTML = `<div class="text-center py-6 text-red-400 text-sm col-span-full">${poolMsg}</div>`;
+        let poolMsg = 'Failed to load recommendations. Check \uD83D\uDD10 Pass button or connection.';
+        if (e.status === 401) poolMsg = 'Wrong password. Tap \uD83D\uDD10 Pass to reset it.';
+        if (grid) grid.innerHTML = `<div class="text-center py-8 text-red-400 text-sm col-span-full">${poolMsg}</div>`;
+      } finally {
+        _recPoolLoading = false;
       }
     }
 
@@ -3480,8 +3502,8 @@
         grid.innerHTML = '';
         if (empty) {
           empty.classList.remove('hidden');
-          // If user has watched titles but pool is empty, auto-trigger refresh
-          if (watchedList.length > 0) {
+          // Only auto-trigger once — the _recPoolLoading guard prevents loops
+          if (watchedList.length > 0 && !_recPoolLoading) {
             empty.innerHTML = `<span class="empty-state-icon">🎬</span><div class="text-zinc-300 font-medium">Loading your recommendations...</div><div class="text-zinc-500 text-xs mt-1">Fetching a fresh pool based on your taste.</div>`;
             refreshRecPool();
           }
