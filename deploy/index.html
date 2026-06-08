@@ -1823,9 +1823,10 @@
     // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
     // Default Worker URL — pre-configured so cloud sync works without manual setup
     const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
-    // Default to empty (relative /api/* on pages.dev) — avoids cross-origin password prompts.
-    // Only use the hardcoded Worker URL if the user explicitly saved it via Settings.
-    let apiBase = localStorage.getItem('brous_api_base') || '';
+    // Always use the Worker URL directly. Clear any stale overrides from localStorage.
+    localStorage.removeItem('brous_api_base');
+    localStorage.removeItem('brous_password');
+    let apiBase = DEFAULT_WORKER_URL;
     let cloudPin = localStorage.getItem('brous_cloud_pin') || '';
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
