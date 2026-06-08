@@ -27,18 +27,21 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     
+    /* ── Global theme wiring ── */
+    body { background: var(--bg); color: var(--text); transition: background 0.25s, color 0.25s; }
+
     .modern-card {
-      background-color: #18181b;
-      border: 1px solid #3f3f46;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 20px;
     }
 
     .movie-card { 
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
       box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      border: 1px solid #3f3f46;
+      border: 1px solid var(--border);
       overflow: hidden;
-      background: linear-gradient(145deg, #18181b, #111113);
+      background: var(--card-bg2);
     }
     .movie-card:hover { 
       transform: translateY(-3px); 
@@ -116,9 +119,57 @@
       overscroll-behavior: contain;
     }
 
-    /* Blue-violet accent colors */
+    /* ── Theme variables ── */
     :root {
-      --accent: 99, 102, 241; /* indigo-500 - nice blue-violet */
+      --accent: 99, 102, 241;
+      --bg:        #09090b;
+      --bg2:       #111113;
+      --bg3:       #18181b;
+      --bg4:       #27272a;
+      --border:    #3f3f46;
+      --border2:   #27272a;
+      --text:      #fafafa;
+      --text2:     #e4e4e7;
+      --text3:     #a1a1aa;
+      --text4:     #71717a;
+      --card-bg:   #18181b;
+      --card-bg2:  linear-gradient(145deg,#18181b,#111113);
+      --nav-bg:    rgba(9,9,11,0.92);
+      --input-bg:  #09090b;
+      --chip-bg:   #111113;
+      --chip-border: #3f3f46;
+      --lib-bg:    #111113;
+      --lib-border: #27272a;
+      --modal-bg:  #18181b;
+      --curator-bg: #18181b;
+      --curator-user-bg: #27272a;
+      --skeleton:  #27272a;
+      --skeleton2: #3f3f46;
+    }
+    html.light {
+      --bg:        #f4f4f5;
+      --bg2:       #ffffff;
+      --bg3:       #f9f9fa;
+      --bg4:       #e4e4e7;
+      --border:    #d4d4d8;
+      --border2:   #e4e4e7;
+      --text:      #09090b;
+      --text2:     #18181b;
+      --text3:     #52525b;
+      --text4:     #71717a;
+      --card-bg:   #ffffff;
+      --card-bg2:  linear-gradient(145deg,#ffffff,#f4f4f5);
+      --nav-bg:    rgba(255,255,255,0.93);
+      --input-bg:  #ffffff;
+      --chip-bg:   #f4f4f5;
+      --chip-border: #d4d4d8;
+      --lib-bg:    #ffffff;
+      --lib-border: #e4e4e7;
+      --modal-bg:  #ffffff;
+      --curator-bg: #f4f4f5;
+      --curator-user-bg: #e4e4e7;
+      --skeleton:  #e4e4e7;
+      --skeleton2: #d4d4d8;
     }
 
     /* Cool blue-violet highlights around availability "tables" with smooth animations */
@@ -772,7 +823,66 @@
     h1, .bebas { font-family: 'Bebas Neue', system-ui, sans-serif !important; letter-spacing: 1px; }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 
-    /* Sticky top nav */
+    /* ── Comprehensive theme overrides ── */
+    #sticky-nav { background: var(--nav-bg) !important; border-bottom-color: var(--border) !important; }
+    .nav-brand { color: var(--text) !important; }
+    .nav-link { color: var(--text3) !important; }
+    .nav-link:hover, .nav-link.active, .nav-link.page-active { color: var(--text) !important; background: var(--bg4) !important; }
+    .search-input { background: var(--input-bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
+    .search-input::placeholder { color: var(--text4) !important; }
+    .quick-chip { background: var(--chip-bg) !important; border-color: var(--chip-border) !important; color: var(--text3) !important; }
+    .quick-chip:hover { background: var(--bg4) !important; color: var(--text) !important; }
+    .section-header { color: var(--text4) !important; }
+    .library-item { background: var(--lib-bg) !important; border-color: var(--lib-border) !important; }
+    .library-item .text-white, .library-item .text-zinc-100 { color: var(--text) !important; }
+    .library-item .text-zinc-400, .library-item .text-zinc-500 { color: var(--text3) !important; }
+    .curator-msg { background: var(--curator-bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
+    .curator-msg.user { background: var(--curator-user-bg) !important; border-color: var(--border2) !important; }
+    .accordion-header { color: var(--text2) !important; }
+    .accordion-header:hover { background: var(--bg4) !important; }
+    #detail-modal > div, #transfer-modal > div, #settings-modal > div {
+      background: var(--modal-bg) !important;
+      border-color: var(--border) !important;
+      color: var(--text) !important;
+    }
+    /* Skeleton shimmer */
+    .skeleton-card { background: var(--skeleton) !important; }
+    .skeleton-card::after { background: linear-gradient(90deg, transparent, var(--skeleton2), transparent) !important; }
+    /* Cards / panels */
+    .bg-zinc-950, .bg-\[\#09090b\] { background: var(--bg) !important; }
+    .bg-zinc-900 { background: var(--bg2) !important; }
+    .bg-zinc-800 { background: var(--bg4) !important; }
+    .border-zinc-800 { border-color: var(--border2) !important; }
+    .border-zinc-700 { border-color: var(--border) !important; }
+    .text-zinc-100, .text-white { color: var(--text) !important; }
+    .text-zinc-300, .text-zinc-200 { color: var(--text2) !important; }
+    .text-zinc-400, .text-zinc-500 { color: var(--text3) !important; }
+    /* Main tab bar */
+    .main-tab-bar { border-color: var(--border2) !important; }
+    .main-tab-btn { color: var(--text3) !important; }
+    .main-tab-btn.active { color: var(--text) !important; border-bottom-color: rgb(var(--accent)) !important; }
+    /* Rec cards */
+    .rec-card { background: var(--card-bg) !important; border-color: var(--border) !important; }
+    /* Input / textarea theming */
+    input:not([type=file]), textarea, select {
+      background: var(--input-bg) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    /* Header text */
+    h1, h2, h3 { color: var(--text) !important; }
+    .top-header { border-color: var(--border2) !important; }
+
+    /* ── Light mode specific overrides ── */
+    html.light .nav-brand span { color: #b91c1c !important; }
+    html.light .movie-card:hover { border-color: #b91c1c !important; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 0 0 1px rgba(var(--accent),0.15) !important; }
+    html.light #curator-quick-replies button { background: var(--chip-bg) !important; border-color: var(--chip-border) !important; color: var(--text3) !important; }
+    html.light #curator-quick-replies button:hover { background: var(--bg4) !important; color: var(--text) !important; }
+    html.light .nightmare-word { color: #b91c1c !important; }
+    html.light .text-zinc-300 { color: #3f3f46 !important; }
+    html.light .text-zinc-500 { color: #71717a !important; }
+
+    /* ── Sticky top nav ── */
     #sticky-nav {
       position: sticky;
       top: 0;
@@ -1318,9 +1428,13 @@
         <span id="nav-sync-icon">⟳</span>
         <span id="nav-sync-label">Sync</span>
       </button>
-      <button onclick="showTransferModal()" title="Send your library to another device — no server needed"
+      <button onclick="showTransferModal()" title="Send your library to another device"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         📲 Transfer
+      </button>
+      <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode"
+        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
+        🌙 Dark
       </button>
     </div>
   </nav>
@@ -1912,6 +2026,29 @@
         c.appendChild(card);
       }
     }
+
+    // ── Theme toggle ──
+    let _isLight = localStorage.getItem('brous_theme') === 'light';
+    function applyTheme() {
+      const html = document.documentElement;
+      const btn = document.getElementById('theme-toggle-btn');
+      if (_isLight) {
+        html.classList.add('light');
+        if (btn) btn.innerHTML = '☀️ Light';
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f4f4f5');
+      } else {
+        html.classList.remove('light');
+        if (btn) btn.innerHTML = '🌙 Dark';
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#18181b');
+      }
+    }
+    function toggleTheme() {
+      _isLight = !_isLight;
+      localStorage.setItem('brous_theme', _isLight ? 'light' : 'dark');
+      applyTheme();
+    }
+    // Apply on load
+    applyTheme();
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
