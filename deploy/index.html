@@ -3178,20 +3178,22 @@
       if (!dislikedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👎</span><div class="text-sm font-medium text-zinc-400">Nothing disliked yet</div><div class="text-xs text-zinc-600 mt-1">Disliked titles are excluded from recommendations.</div></div>`; return; }
       let html = '';
       dislikedList.slice(0,8).forEach((item, idx) => {
-        const year = (item.release_date || '').slice(0,4);
+        // Defensive: title may be undefined in old saved data — fallback chain
+        const displayTitle = item.title || item.name || item.original_title || item.original_name || 'Unknown Title';
+        const year = (item.release_date || item.first_air_date || '').slice(0,4);
         const poster = posterHtml(item, 'w185');
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
-        html += `<div class="library-item library-item-v2 text-sm items-center">
+        html += `<div class="library-item library-item-v2 text-sm items-center" data-disliked-idx="${idx}">
           ${poster}
           <div class="flex-1 min-w-0">
-            <div class="font-medium truncate text-zinc-100">${item.title}</div>
+            <div class="font-medium truncate text-zinc-100">${displayTitle}</div>
             <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
               ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
               <span class="text-[10px] text-red-400/70">👎 disliked</span>
             </div>
           </div>
-          <button onclick="removeFromDisliked(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 hover:text-red-300 flex-shrink-0" title="Remove from disliked">×</button>
+          <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-[11px] text-red-400 px-1.5 hover:text-red-300 flex-shrink-0" title="Remove from disliked">×</button>
         </div>`;
       });
       if (dislikedList.length > 8) html += `<div class="text-[10px] text-zinc-500 px-1">+${dislikedList.length-8} more</div>`;
@@ -3212,6 +3214,33 @@
 
       // Swipe gestures on mobile
       setupSwipeActions(c, 'disliked');
+    }
+
+    // Migrate old disliked entries missing title/poster — re-fetch from TMDB silently
+    async function migrateDislikedData() {
+      const needsMigration = dislikedList.filter(d => !d.title && !d.name);
+      if (!needsMigration.length) return;
+      let changed = false;
+      for (const item of needsMigration) {
+        if (!item.id) continue;
+        try {
+          const mediaType = item._mediaType || 'movie';
+          const data = await apiFetch(`/api/tmdb/3/${mediaType}/${item.id}?language=en-US`);
+          if (data && (data.title || data.name)) {
+            item.title = data.title || data.name;
+            item.name = data.name || data.title;
+            item.poster_path = item.poster_path || data.poster_path;
+            item.release_date = item.release_date || data.release_date || data.first_air_date;
+            item.vote_average = item.vote_average || data.vote_average;
+            item.genre_ids = item.genre_ids && item.genre_ids.length ? item.genre_ids : (data.genre_ids || (data.genres || []).map(g=>g.id));
+            changed = true;
+          }
+        } catch(e) { /* silent */ }
+      }
+      if (changed) {
+        saveDisliked();
+        renderDisliked();
+      }
     }
 
     // Basic pull-to-refresh for personal lists area (mobile)
@@ -3260,6 +3289,8 @@
       renderToWatch();
       renderWatched();
       renderDisliked();
+      // Migrate any old disliked entries missing title/poster
+      setTimeout(() => migrateDislikedData().catch(()=>{}), 1500);
       try { renderWatchlist(); } catch(e){}
       applyListsCollapse();
     }
