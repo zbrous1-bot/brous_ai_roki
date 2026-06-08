@@ -4273,18 +4273,20 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
               poster_path = local.poster_path || null;
               id = local.id || id;
             }
+            let enrichExtra = {};
             if (!poster_path) {
               // Live search for poster thumbnail
               try {
-                const search = await apiFetch(`/api/tmdb/3/search/movie?query=${encodeURIComponent(t)}&page=1`);
+                const search = await apiFetch(`/api/tmdb/3/search/multi?query=${encodeURIComponent(t)}&page=1`);
                 if (search.results && search.results.length > 0) {
-                  const r = search.results[0];
+                  const r = search.results.find(x => x.media_type === 'movie' || x.media_type === 'tv') || search.results[0];
                   poster_path = r.poster_path;
                   id = r.id;
+                  enrichExtra = { year: (r.release_date || r.first_air_date || '').slice(0,4), vote: r.vote_average, mediaType: r.media_type || 'movie' };
                 }
               } catch (e) {}
             }
-            return {title: t, type: 'suggested', poster_path, id };
+            return {title: t, type: 'suggested', poster_path, id, year: enrichExtra.year || '', vote: enrichExtra.vote || null, mediaType: enrichExtra.mediaType || 'movie' };
           }));
           const excluded = getExcludedKeys();
           enrichedSuggested.filter(Boolean).forEach(item => {
@@ -4328,14 +4330,34 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           const posterHtml = p.poster_path 
             ? `<img src="https://image.tmdb.org/t/p/w92${p.poster_path}" class="w-12 h-16 rounded object-cover flex-shrink-0 border border-zinc-700" alt="">`
             : `<div class="w-12 h-16 bg-zinc-800 rounded flex-shrink-0 flex items-center justify-center text-[10px] text-zinc-500">📽️</div>`;
+          const pYear = p.year || '';
+          const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;
+          const rtUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(p.title)}`;
+          const voteStr = p.vote ? `<span class="text-[9px] text-amber-400/80 font-semibold">${p.vote.toFixed(1)}★</span>` : '';
+          const yearStr = pYear ? `<span class="text-[9px] text-zinc-500">${pYear}</span>` : '';
           row.innerHTML = `
             <div class="flex items-center gap-2 flex-1 min-w-0">
               ${posterHtml}
-              <span class="truncate">${p.title}</span>
+              <div class="flex flex-col min-w-0 gap-0.5">
+                <span class="truncate font-medium text-sm">${p.title}</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  ${yearStr}${voteStr}
+                  <a href="${imdbUrl}" target="_blank" rel="noopener"
+                     class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
+                    <i class="fa-brands fa-imdb" style="font-size:10px"></i> IMDb
+                  </a>
+                  <a href="${rtUrl}" target="_blank" rel="noopener"
+                     class="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
+                    🍅 RT
+                  </a>
+                </div>
+              </div>
             </div>
-            <button class="text-[10px] px-1.5 py-0.5 rounded-xl bg-emerald-700 text-white" data-add-towatch>+W</button>
-            <button class="text-sm px-2 py-0.5 rounded-xl border border-zinc-700" data-mark-watched>Rate</button>
-            <button class="text-[10px] px-1 py-0.5 rounded-xl border border-zinc-700 text-red-400" data-dislike>👎</button>
+            <div class="flex flex-col gap-1 flex-shrink-0">
+              <button class="text-[10px] px-1.5 py-0.5 rounded-xl bg-emerald-700 text-white" data-add-towatch>+Watch</button>
+              <button class="text-[10px] px-1.5 py-0.5 rounded-xl border border-zinc-700" data-mark-watched>Rate</button>
+              <button class="text-[10px] px-1 py-0.5 rounded-xl border border-zinc-700 text-red-400" data-dislike>👎</button>
+            </div>
           `;
         }
         wrap.appendChild(row);
@@ -4358,7 +4380,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             for(let r=1; r<=5; r++) {
               const b = document.createElement('button');
               b.textContent = r + '★';
-              b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
+              b.className = 'px-2 py-0.5 text-sm rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold transition-colors';
               b.onclick = (ev) => {
                 ev.stopImmediatePropagation();
                 addToWatched(found, r);
