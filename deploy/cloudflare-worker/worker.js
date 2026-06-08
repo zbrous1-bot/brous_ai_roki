@@ -29,17 +29,7 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // === 1. Authentication Check (skipped for PIN-based /api/data — PIN is its own auth) ===
-    const isDataRoute = pathname === '/api/data' || pathname === '/api/data/check';
-    if (!isDataRoute && !isAuthenticated(request, env)) {
-      return new Response('Unauthorized - Please log in', {
-        status: 401,
-        headers: {
-          ...CORS_HEADERS,
-          'WWW-Authenticate': 'Basic realm="Brous"',
-        },
-      });
-    }
+    // No password auth — TMDB token is protected server-side, /api/data uses PIN auth.
 
     // === 2. Generic TMDB Proxy ===
     if (pathname.startsWith('/api/tmdb/')) {
