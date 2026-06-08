@@ -2656,24 +2656,35 @@
 
     let _syncTimeout = null;
 
+    // Always use the Worker URL directly for data sync — pages.dev has no /api/* route binding.
+    const SYNC_URL = 'https://horror-roki.zbrous1.workers.dev';
+
+    async function _dataFetch(path, options = {}) {
+      const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json' } };
+      if (options.body) fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+      const res = await fetch(SYNC_URL + path, fetchOptions);
+      if (!res.ok && res.status !== 404) throw new Error('Sync error ' + res.status);
+      return res.json();
+    }
+
     async function pushToServer(immediate = false) {
-      if (!cloudPin) return; // No PIN set — skip cloud sync
+      if (!cloudPin) return;
       const payload = {
         watched: watchedList,
         to_watch: toWatchList,
         disliked: dislikedList,
         chat_history: chatHistory.slice(-30),
         llm_config: llmConfig,
-        synced_at: new Date().toISOString(),
-        pin: cloudPin
+        synced_at: new Date().toISOString()
       };
       const doPush = async () => {
         try {
-          await apiFetch('/api/data?pin=' + encodeURIComponent(cloudPin), { method: 'POST', body: payload });
-          console.log('[Brous] Cloud save OK (PIN:', cloudPin, ')');
+          const r = await _dataFetch('/api/data?pin=' + encodeURIComponent(cloudPin), { method: 'POST', body: payload });
+          console.log('[Brous] Cloud save OK:', r);
           setSyncLabel('✓ Saved', '#4ade80');
         } catch (e) {
           console.warn('[Brous] Cloud save failed:', e.message);
+          setSyncLabel('Save failed', '#f87171');
         }
       };
       if (immediate) { await doPush(); }
@@ -2683,7 +2694,7 @@
     async function syncFromServer() {
       if (!cloudPin) return null;
       try {
-        const resp = await apiFetch('/api/data?pin=' + encodeURIComponent(cloudPin));
+        const resp = await _dataFetch('/api/data?pin=' + encodeURIComponent(cloudPin));
         if (!resp || !resp.success || !resp.data) return null;
         const serverData = resp.data;
         let changed = false;
@@ -2692,7 +2703,7 @@
         if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
         if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
         if (changed) {
-          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`) );
+          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}'));
           updateAllLibraryRenders(); renderPersonalStats();
           try { renderCuratorMessages(); } catch(e){}
           setSyncLabel('✓ Synced', '#4ade80');
@@ -2700,8 +2711,9 @@
         }
         return serverData;
       } catch (e) {
-        console.log('[Brous] Cloud sync skipped:', e.message);
-        setSyncLabel('Sync', '#a1a1aa');
+        console.warn('[Brous] Cloud sync failed:', e.message);
+        setSyncLabel('Sync failed', '#f87171');
+        setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 3000);
         return null;
       }
     }
