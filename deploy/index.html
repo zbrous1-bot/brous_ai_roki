@@ -1754,7 +1754,9 @@
     // Optional: Custom API base for direct Worker access (useful for local testing or tunnels).
     // Example: 'https://your-worker.your-account.workers.dev'
     // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
-    let apiBase = localStorage.getItem('brous_api_base') || '';
+    // Default Worker URL — pre-configured so cloud sync works without manual setup
+    const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
+    let apiBase = localStorage.getItem('brous_api_base') || DEFAULT_WORKER_URL;
     let cloudPin = localStorage.getItem('brous_cloud_pin') || '';
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
