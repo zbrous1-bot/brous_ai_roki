@@ -1755,6 +1755,7 @@
     // Example: 'https://your-worker.your-account.workers.dev'
     // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
     let apiBase = localStorage.getItem('brous_api_base') || '';
+    let cloudPin = localStorage.getItem('brous_cloud_pin') || '';
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
     const urlParams = new URLSearchParams(window.location.search);
@@ -2579,10 +2580,7 @@
     let _syncTimeout = null;
 
     async function pushToServer(immediate = false) {
-      if (!apiBase && !location.hostname.includes('pages.dev')) {
-        // No worker configured — only localStorage
-        return;
-      }
+      if (!cloudPin) return; // No PIN set — skip cloud sync
       const payload = {
         watched: watchedList,
         to_watch: toWatchList,
@@ -2590,70 +2588,42 @@
         chat_history: chatHistory.slice(-30),
         llm_config: llmConfig,
         synced_at: new Date().toISOString(),
-        version: 'server-sync-1'
+        pin: cloudPin
       };
-
       const doPush = async () => {
         try {
-          await apiFetch('/api/data', { method: 'POST', body: payload });
-          console.log('[Horror Roki] Pushed data to server KV');
+          await apiFetch('/api/data?pin=' + encodeURIComponent(cloudPin), { method: 'POST', body: payload });
+          console.log('[Brous] Cloud save OK (PIN:', cloudPin, ')');
+          setSyncLabel('✓ Saved', '#4ade80');
         } catch (e) {
-          console.warn('[Horror Roki] Server push failed (will retry on next change):', e.message);
+          console.warn('[Brous] Cloud save failed:', e.message);
         }
       };
-
-      if (immediate) {
-        await doPush();
-      } else {
-        clearTimeout(_syncTimeout);
-        _syncTimeout = setTimeout(doPush, 1200); // debounce writes
-      }
+      if (immediate) { await doPush(); }
+      else { clearTimeout(_syncTimeout); _syncTimeout = setTimeout(doPush, 1200); }
     }
 
     async function syncFromServer() {
-      if (!apiBase && !location.hostname.includes('pages.dev')) return null;
+      if (!cloudPin) return null;
       try {
-        const serverData = await apiFetch('/api/data');
-        if (!serverData || typeof serverData !== 'object') return null;
-
+        const resp = await apiFetch('/api/data?pin=' + encodeURIComponent(cloudPin));
+        if (!resp || !resp.success || !resp.data) return null;
+        const serverData = resp.data;
         let changed = false;
-
-        // Always overwrite local with server data — this ensures a fresh tab or new
-        // device pulls in all history rather than skipping because local count is 0.
-        if (Array.isArray(serverData.watched)) {
-          watchedList = serverData.watched;
-          localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
-          changed = true;
-        }
-        if (Array.isArray(serverData.to_watch)) {
-          toWatchList = serverData.to_watch;
-          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
-          changed = true;
-        }
-        if (Array.isArray(serverData.disliked)) {
-          dislikedList = serverData.disliked;
-          localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
-          changed = true;
-        }
-        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) {
-          chatHistory = serverData.chat_history;
-          localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory));
-          changed = true;
-        }
-
+        if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
+        if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
+        if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
+        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
         if (changed) {
-          // Rebuild exclusion set after sync
-          watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList].map(w => `${w.id}:${w._mediaType || 'movie'}`));
-          updateAllLibraryRenders();
-          renderPersonalStats();
+          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`) );
+          updateAllLibraryRenders(); renderPersonalStats();
           try { renderCuratorMessages(); } catch(e){}
-          console.log('[Horror Roki] Synced from server KV ✓');
           setSyncLabel('✓ Synced', '#4ade80');
+          console.log('[Brous] Cloud load OK ✓');
         }
         return serverData;
       } catch (e) {
-        // Server not available or no KV bound yet — silently fall back to localStorage
-        console.log('[Horror Roki] No server data (using local only):', e.message);
+        console.log('[Brous] Cloud sync skipped:', e.message);
         setSyncLabel('Sync', '#a1a1aa');
         return null;
       }
@@ -3900,28 +3870,57 @@
       const whereWrap = document.querySelector('#detail-modal .mb-2');
       if (whereWrap) whereWrap.style.display = 'none'; // hide where-to-watch area for settings
       if (avail) avail.innerHTML = `
-        <div class="text-sm space-y-3">
-          <div>
-            <div class="text-xs text-zinc-500 mb-1">LLM Model</div>
-            <input id="set-model" value="${llmConfig.model || 'grok-4.3'}" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
-          </div>
-          <div>
-            <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for custom Worker)</div>
-            <input id="set-api-base" value="${apiBase || ''}" placeholder="Leave empty for normal use" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
-            <button onclick="copyShareableLink()" class="mt-1 text-[10px] px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">Copy shareable link</button>
-          </div>
-          <div class="mt-3 pt-2 border-t border-zinc-800">
-            <div class="flex gap-2">
-              <button id="server-pull" class="flex-1 px-3 py-1.5 rounded-2xl bg-emerald-700 text-white text-sm">Pull from Server</button>
-              <button id="server-push" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Push to Server</button>
+        <div class="text-sm space-y-4">
+
+          <!-- CLOUD SYNC — primary feature -->
+          <div class="rounded-2xl border border-indigo-500/40 bg-indigo-950/30 p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-lg">☁️</span>
+              <div>
+                <div class="font-semibold text-indigo-200 text-sm">Cloud Sync</div>
+                <div class="text-[11px] text-indigo-400">Pick a PIN — your library stays in sync across every device automatically</div>
+              </div>
             </div>
-            <div id="server-sync-status" class="text-[10px] text-zinc-500 mt-1"></div>
+            <div class="flex gap-2 items-center mb-3">
+              <input id="set-cloud-pin" value="${cloudPin || ''}" placeholder="Choose a PIN (e.g. brous42)" maxlength="16"
+                class="flex-1 bg-zinc-900 border ${cloudPin ? 'border-indigo-500' : 'border-zinc-700'} rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-indigo-400">
+              <button id="save-pin-btn"
+                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+                Save PIN
+              </button>
+            </div>
+            ${cloudPin ? `<div class="text-[11px] text-indigo-400 mb-3">✓ PIN set — your library auto-saves to the cloud on every change</div>` : '<div class="text-[11px] text-zinc-500 mb-3">No PIN set yet. Set one above to enable cloud sync.</div>'}
+            <div class="flex gap-2">
+              <button id="cloud-save-btn"
+                class="flex-1 py-2 rounded-xl ${cloudPin ? 'bg-emerald-700 hover:bg-emerald-600' : 'bg-zinc-700 opacity-50 cursor-not-allowed'} text-white text-sm font-semibold transition-colors">
+                ⬆ Save to Cloud
+              </button>
+              <button id="cloud-load-btn"
+                class="flex-1 py-2 rounded-xl ${cloudPin ? 'bg-indigo-700 hover:bg-indigo-600' : 'bg-zinc-700 opacity-50 cursor-not-allowed'} text-white text-sm font-semibold transition-colors">
+                ⬇ Load from Cloud
+              </button>
+            </div>
+            <div id="cloud-sync-status" class="text-[11px] mt-2 text-center text-zinc-500"></div>
           </div>
-          <div class="flex gap-2 mt-2">
-            <button id="save-llm" class="flex-1 px-3 py-1.5 rounded-2xl bg-indigo-600 text-white text-sm">Save Configs</button>
+
+          <!-- LLM + API -->
+          <div class="space-y-2">
+            <div>
+              <div class="text-xs text-zinc-500 mb-1">LLM Model</div>
+              <input id="set-model" value="${llmConfig.model || 'grok-4.3'}" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
+            </div>
+            <div>
+              <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for custom Worker)</div>
+              <input id="set-api-base" value="${apiBase || ''}" placeholder="Leave empty for normal use" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
+            </div>
+            <button id="save-llm" class="w-full px-3 py-1.5 rounded-2xl bg-indigo-600 text-white text-sm">Save Config</button>
+          </div>
+
+          <!-- Backup / Import -->
+          <div class="flex gap-2">
             <button id="do-backup" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Download Backup</button>
           </div>
-          <div class="mt-2">
+          <div>
             <div class="text-xs text-zinc-500 mb-1">Import backup JSON/CSV</div>
             <input type="file" id="import-file" accept=".json,.csv" class="text-xs">
             <button id="do-import" class="ml-2 px-3 py-1 rounded-2xl bg-zinc-700 text-sm">Import</button>
@@ -3929,6 +3928,39 @@
         </div>
       `;
       setTimeout(() => {
+        // ---- Cloud PIN ----
+        const savePinBtn = document.getElementById('save-pin-btn');
+        const cloudStatus = document.getElementById('cloud-sync-status');
+        const setCloudStatus = (msg, color) => { if (cloudStatus) { cloudStatus.textContent = msg; cloudStatus.style.color = color || '#71717a'; } };
+        if (savePinBtn) savePinBtn.onclick = () => {
+          const pinInput = document.getElementById('set-cloud-pin');
+          const newPin = (pinInput?.value || '').trim().replace(/[^a-zA-Z0-9]/g, '');
+          if (!newPin || newPin.length < 4) { setCloudStatus('PIN must be at least 4 characters (letters/numbers only)', '#f87171'); return; }
+          cloudPin = newPin;
+          localStorage.setItem('brous_cloud_pin', cloudPin);
+          setCloudStatus('✓ PIN saved! Auto-sync is now active.', '#4ade80');
+          // Immediately push current library to cloud
+          pushToServer(true).then(() => setCloudStatus('✓ Library saved to cloud under PIN: ' + cloudPin, '#4ade80'));
+        };
+        const cloudSaveBtn = document.getElementById('cloud-save-btn');
+        if (cloudSaveBtn) cloudSaveBtn.onclick = async () => {
+          if (!cloudPin) { setCloudStatus('Set a PIN first', '#f87171'); return; }
+          setCloudStatus('Saving...', '#fbbf24');
+          await pushToServer(true);
+          setCloudStatus('✓ Saved to cloud (' + watchedList.length + ' watched, ' + toWatchList.length + ' queued)', '#4ade80');
+        };
+        const cloudLoadBtn = document.getElementById('cloud-load-btn');
+        if (cloudLoadBtn) cloudLoadBtn.onclick = async () => {
+          if (!cloudPin) { setCloudStatus('Set a PIN first', '#f87171'); return; }
+          setCloudStatus('Loading from cloud...', '#fbbf24');
+          const data = await syncFromServer();
+          if (data) {
+            setCloudStatus('✓ Loaded! ' + watchedList.length + ' watched, ' + toWatchList.length + ' queued', '#4ade80');
+          } else {
+            setCloudStatus('No data found for PIN: ' + cloudPin + ' — save from another device first', '#f87171');
+          }
+        };
+        // ---- LLM + API Config ----
         const sm = document.getElementById('save-llm');
         if (sm) sm.onclick = () => {
           const m = document.getElementById('set-model');
@@ -3943,25 +3975,10 @@
             else newUrl.searchParams.delete('apiBase');
             window.history.replaceState({}, '', newUrl.toString());
           }
-          alert('Saved. Reload to apply if needed.');
+          alert('Saved.');
         };
         const db = document.getElementById('do-backup');
         if (db) db.onclick = downloadFullBackup;
-        const pullBtn = document.getElementById('server-pull');
-        const pushBtn = document.getElementById('server-push');
-        const statusEl = document.getElementById('server-sync-status');
-        if (pullBtn) pullBtn.onclick = async () => {
-          if (statusEl) statusEl.textContent = 'Pulling...';
-          const data = await syncFromServer();
-          if (statusEl) statusEl.textContent = data ? 'Pulled ✓' : 'No server data';
-          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
-        };
-        if (pushBtn) pushBtn.onclick = async () => {
-          if (statusEl) statusEl.textContent = 'Pushing...';
-          await pushToServer(true);
-          if (statusEl) statusEl.textContent = 'Pushed ✓';
-          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
-        };
         const impBtn = document.getElementById('do-import');
         const f = document.getElementById('import-file');
         if (impBtn && f) impBtn.onclick = () => {

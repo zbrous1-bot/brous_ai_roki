@@ -146,37 +146,60 @@ export default {
       });
     }
 
-    // === 4. Server-side Data Sync (for cross-device persistence of watched / disliked / to-watch / chat) ===
-    // Requires a KV namespace bound as DATA_KV in the Worker settings.
-    // After attaching the binding (even from the KV namespace page), you MUST click "Deploy" on the Worker.
-    if (pathname === '/api/data') {
+    // === 4. Server-side Data Sync (per-PIN cloud storage) ===
+    // GET  /api/data?pin=XXXX        — load library for that PIN
+    // POST /api/data?pin=XXXX        — save library for that PIN
+    // GET  /api/data/check?pin=XXXX  — check if a PIN has saved data (returns {exists, saved_at})
+    if (pathname === '/api/data' || pathname === '/api/data/check') {
       if (!env.DATA_KV) {
         return jsonResponse({
           error: 'DATA_KV binding not configured',
-          instructions: 'In Cloudflare dashboard: Workers & Pages > your Worker > Settings > Variables > KV Namespace Bindings. Create a KV namespace (e.g. HORROR_ROKI_DATA) and bind it as DATA_KV. Then redeploy the Worker.',
+          instructions: 'In Cloudflare dashboard: Workers & Pages > your Worker > Settings > Variables > KV Namespace Bindings. Bind your KV namespace as DATA_KV. Then redeploy the Worker.',
         }, 501);
       }
 
-      const DATA_KEY = 'roki_data_v1';
+      // PIN from query param or JSON body
+      let pin = url.searchParams.get('pin');
+      if (!pin && request.method === 'POST') {
+        // Try to get pin from body for POST requests
+        const cloned = request.clone();
+        try { const b = await cloned.json(); pin = b.pin || pin; } catch(_) {}
+      }
+
+      // Sanitize PIN — alphanumeric only, 4-16 chars
+      if (!pin || !/^[a-zA-Z0-9]{4,16}$/.test(pin)) {
+        return jsonError('Invalid or missing PIN. Must be 4-16 alphanumeric characters.', 400);
+      }
+
+      const DATA_KEY = `brous_v2_${pin.toLowerCase()}`;
+
+      // Check endpoint — just returns metadata, not the full payload
+      if (pathname === '/api/data/check') {
+        const meta = await env.DATA_KV.get(DATA_KEY + '_meta', { type: 'json' });
+        if (!meta) return jsonResponse({ exists: false });
+        return jsonResponse({ exists: true, saved_at: meta.saved_at, count: meta.count });
+      }
 
       if (request.method === 'GET') {
-        const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' }) || {};
-        return jsonResponse(data);
+        const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' });
+        if (!data) return jsonResponse({ error: 'No data found for that PIN', exists: false }, 404);
+        return jsonResponse({ success: true, data });
       }
 
       if (request.method === 'POST') {
         let payload;
-        try {
-          payload = await request.json();
-        } catch (e) {
-          return jsonError('Invalid JSON payload for /api/data', 400);
+        try { payload = await request.json(); } catch (e) {
+          return jsonError('Invalid JSON payload', 400);
         }
-        // Store the full backup-style object (watched, to_watch, disliked, chat_history, etc.)
+        delete payload.pin; // Don't store the PIN inside the data
+        const count = (payload.watched||[]).length + (payload.to_watch||[]).length;
+        const saved_at = new Date().toISOString();
         await env.DATA_KV.put(DATA_KEY, JSON.stringify(payload));
-        return jsonResponse({ success: true, saved_at: new Date().toISOString() });
+        await env.DATA_KV.put(DATA_KEY + '_meta', JSON.stringify({ saved_at, count }));
+        return jsonResponse({ success: true, saved_at, count });
       }
 
-      return jsonError('Method not allowed for /api/data (use GET or POST)', 405);
+      return jsonError('Method not allowed (use GET or POST)', 405);
     }
 
     // === 5. Health Check / Info ===
