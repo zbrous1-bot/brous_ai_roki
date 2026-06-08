@@ -147,29 +147,29 @@
       --skeleton2: #3f3f46;
     }
     html.light {
-      --bg:        #f4f4f5;
-      --bg2:       #ffffff;
-      --bg3:       #f9f9fa;
-      --bg4:       #e4e4e7;
-      --border:    #d4d4d8;
-      --border2:   #e4e4e7;
-      --text:      #09090b;
-      --text2:     #18181b;
-      --text3:     #52525b;
-      --text4:     #71717a;
-      --card-bg:   #ffffff;
-      --card-bg2:  linear-gradient(145deg,#ffffff,#f4f4f5);
-      --nav-bg:    rgba(255,255,255,0.93);
-      --input-bg:  #ffffff;
-      --chip-bg:   #f4f4f5;
-      --chip-border: #d4d4d8;
-      --lib-bg:    #ffffff;
-      --lib-border: #e4e4e7;
-      --modal-bg:  #ffffff;
-      --curator-bg: #f4f4f5;
-      --curator-user-bg: #e4e4e7;
-      --skeleton:  #e4e4e7;
-      --skeleton2: #d4d4d8;
+      --bg:        #f5f0ea;
+      --bg2:       #fdf8f2;
+      --bg3:       #f9f4ed;
+      --bg4:       #ede5d8;
+      --border:    #d6c9b8;
+      --border2:   #e8ddd0;
+      --text:      #1c120a;
+      --text2:     #2c1a0e;
+      --text3:     #6b4c2a;
+      --text4:     #9a7a55;
+      --card-bg:   #fdf8f2;
+      --card-bg2:  linear-gradient(145deg,#fdf8f2,#f5f0ea);
+      --nav-bg:    rgba(253,248,242,0.95);
+      --input-bg:  #fffaf4;
+      --chip-bg:   #f5f0ea;
+      --chip-border: #d6c9b8;
+      --lib-bg:    #fdf8f2;
+      --lib-border: #e8ddd0;
+      --modal-bg:  #fdf8f2;
+      --curator-bg: #fdf8f2;
+      --curator-user-bg: #ede5d8;
+      --skeleton:  #ede5d8;
+      --skeleton2: #d6c9b8;
     }
 
     /* Cool blue-violet highlights around availability "tables" with smooth animations */
@@ -1419,37 +1419,78 @@
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     #nav-sync-btn:hover { background: rgba(255,255,255,0.1) !important; color: #e4e4e7 !important; }
 
-    /* ── Light mode: curator overrides ── */
+    /* ── Light mode: curator — warm parchment / film-stock tone ── */
     html.light #curator-chat-full {
-      border-color: rgba(185,28,28,0.2) !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.07) !important;
+      border-color: rgba(180,120,60,0.25) !important;
+      box-shadow: 0 1px 8px rgba(120,60,20,0.07), 0 0 0 1px rgba(180,120,60,0.1) !important;
     }
+    /* Header: warm amber-tinted parchment */
     html.light #curator-chat-full > div:first-child {
-      background: linear-gradient(135deg, #fff1f2 0%, #fdf4ff 100%) !important;
-      border-bottom-color: rgba(185,28,28,0.15) !important;
+      background: linear-gradient(135deg, #fdf0e0 0%, #f5e6d0 100%) !important;
+      border-bottom: 1px solid rgba(180,120,60,0.2) !important;
     }
+    /* Remove dark scanline overlay in light mode */
+    html.light #curator-chat-full > div:first-child::before,
+    html.light #curator-chat-full > div:first-child::after { display: none !important; }
+    /* Message body: warm off-white, not bright white */
+    html.light #curator-messages {
+      background: #fdf8f2 !important;
+    }
+    /* Curator AI bubbles: warm cream */
+    html.light .curator-msg {
+      background: #fef3e2 !important;
+      border-color: rgba(180,120,60,0.2) !important;
+      color: #2c1a0e !important;
+    }
+    /* User bubbles: cool slate to contrast */
+    html.light .curator-msg.user {
+      background: #eef2f7 !important;
+      border-color: rgba(99,102,241,0.15) !important;
+      color: #1e2a3a !important;
+    }
+    /* Input bar */
     html.light #curator-chat-full > div:last-child {
-      background: #f9f9fa !important;
-      border-top-color: rgba(147,51,234,0.1) !important;
+      background: #f5ede0 !important;
+      border-top: 1px solid rgba(180,120,60,0.18) !important;
     }
     html.light #curator-input {
-      background: #ffffff !important;
-      border-color: rgba(147,51,234,0.2) !important;
-      color: #18181b !important;
+      background: #fffaf4 !important;
+      border-color: rgba(180,120,60,0.25) !important;
+      color: #2c1a0e !important;
     }
-    html.light #curator-input::placeholder { color: rgba(139,92,246,0.4) !important; }
+    html.light #curator-input::placeholder { color: rgba(140,90,40,0.4) !important; }
+    /* Header buttons */
     html.light #curator-chat-full > div:first-child button {
-      background: rgba(185,28,28,0.06) !important;
-      border-color: rgba(185,28,28,0.15) !important;
-      color: #7f1d1d !important;
+      background: rgba(180,120,60,0.1) !important;
+      border-color: rgba(180,120,60,0.2) !important;
+      color: #7a3c10 !important;
     }
-    html.light #curator-status { color: rgba(109,40,217,0.65) !important; }
-    html.light #curator-mood { color: rgba(109,40,217,0.85) !important; }
-    html.light .curator-avatar { box-shadow: 0 0 0 1px rgba(185,28,28,0.3), 0 0 8px rgba(185,28,28,0.15) !important; }
-    html.light .curator-msg.user { background: #f3f4f6 !important; border-color: #e5e7eb !important; }
+    html.light #curator-chat-full > div:first-child button:hover {
+      background: rgba(180,120,60,0.2) !important;
+    }
+    /* Status text / mood tag */
+    html.light #curator-status { color: rgba(120,70,20,0.65) !important; }
+    html.light #curator-mood { color: rgba(120,70,20,0.8) !important; letter-spacing: 0.1em; }
+    /* Avatar */
+    html.light .curator-avatar {
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.35), 0 0 10px rgba(185,28,28,0.15) !important;
+    }
+    /* Quick reply chips */
+    html.light #curator-quick-replies button {
+      background: #fef3e2 !important;
+      border-color: rgba(180,120,60,0.25) !important;
+      color: #7a3c10 !important;
+    }
+    html.light #curator-quick-replies button:hover {
+      background: #fde8c8 !important;
+      color: #5a2a08 !important;
+    }
+    /* Footer note */
+    html.light #curator-footer-note { color: rgba(120,70,20,0.55) !important; }
+    /* Discover panel */
     html.light .discover-panel {
-      background: linear-gradient(160deg, #fff1f2 0%, #fdf4ff 100%) !important;
-      border-color: rgba(185,28,28,0.15) !important;
+      background: linear-gradient(160deg, #fdf0e0 0%, #f5e6d0 100%) !important;
+      border-color: rgba(180,120,60,0.2) !important;
       box-shadow: none !important;
     }
     /* Library sub-tabs */
