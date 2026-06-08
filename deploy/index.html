@@ -2703,7 +2703,7 @@
         if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
         if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
         if (changed) {
-          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}'));
+          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           updateAllLibraryRenders(); renderPersonalStats();
           try { renderCuratorMessages(); } catch(e){}
           setSyncLabel('✓ Synced', '#4ade80');
