@@ -4050,35 +4050,125 @@
         box.scrollTop = box.scrollHeight;
       }
 
-      // Build context + grounding (simplified port of build_user_context + extract + live)
+      // ── Build rich Curator context ──────────────────────────────────────────
       const prefs = getUserGenrePrefs();
-      const twTitles = toWatchList.slice(0,12).map(x=>x.title);
-      const disTitles = dislikedList.slice(0,8).map(x=>x.title);
-      const recentW = watchedList.slice(0,5).map(x=>x.title);
-      const userCtx = `USER TASTE: ${JSON.stringify(prefs)}\nRECENT WATCHED: ${recentW}\nTO_WATCH: ${twTitles}\nDISLIKED: ${disTitles}\nCOUNTS: watched=${watchedList.length}, to_watch=${toWatchList.length}`;
 
-      // crude extract: titles mentioned in query that we know from lists or pool
-      const knownTitles = [...toWatchList, ...watchedList, ...dislikedList, ...currentRecPool].map(x=>x.title).filter(Boolean);
-      const mentioned = knownTitles.filter(t => text.toLowerCase().includes(t.toLowerCase().slice(0, Math.min(12,t.length))));
+      // Watched: full detail — title, year, rating, genres
+      const watchedDetail = watchedList.slice(0, 40).map(x => ({
+        title: x.title || x.name,
+        year: (x.release_date || x.first_air_date || '').slice(0, 4),
+        rating: x.rating || null,
+        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean),
+        type: x._mediaType || 'movie'
+      }));
+
+      // To Watch queue
+      const twDetail = toWatchList.slice(0, 30).map(x => ({
+        title: x.title || x.name,
+        year: (x.release_date || x.first_air_date || '').slice(0, 4),
+        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean),
+        type: x._mediaType || 'movie'
+      }));
+
+      // Disliked
+      const disDetail = dislikedList.slice(0, 20).map(x => ({
+        title: x.title || x.name,
+        year: (x.release_date || '').slice(0, 4),
+        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean)
+      }));
+
+      // Top-rated by user (5★ and 4★)
+      const loved = watchedList.filter(x => x.rating >= 4).slice(0, 10).map(x => `${x.title || x.name} (${x.rating}★)`);
+      const hated = watchedList.filter(x => x.rating <= 2).slice(0, 8).map(x => `${x.title || x.name} (${x.rating}★)`);
+
+      // Current rec pool — what the engine already surfaced
+      const poolSample = currentRecPool.slice(0, 15).map(x => ({
+        title: x.title || x.name,
+        year: (x.release_date || '').slice(0, 4),
+        score: x.vote_average,
+        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean)
+      }));
+
+      // All excluded titles (flat list for the LLM to check against)
+      const allExcluded = [...new Set([
+        ...watchedList.map(x => x.title || x.name),
+        ...toWatchList.map(x => x.title || x.name),
+        ...dislikedList.map(x => x.title || x.name)
+      ].filter(Boolean))];
+
+      // Grounding: extract any titles the user mentioned that we know about
+      const knownTitles = [...toWatchList, ...watchedList, ...dislikedList, ...currentRecPool].map(x => x.title || x.name).filter(Boolean);
+      const mentioned = knownTitles.filter(t => t && text.toLowerCase().includes((t.toLowerCase()).slice(0, Math.min(14, t.length))));
       const grounding = {};
-      mentioned.slice(0,4).forEach(t => {
-        const m = [...toWatchList, ...watchedList].find(x => x.title === t);
-        if (m) grounding[t] = { year: (m.release_date||'').slice(0,4), overview: (m.overview||'').slice(0,180), id: m.id };
+      mentioned.slice(0, 6).forEach(t => {
+        const m = [...toWatchList, ...watchedList, ...currentRecPool].find(x => (x.title || x.name) === t);
+        if (m) grounding[t] = {
+          year: (m.release_date || m.first_air_date || '').slice(0, 4),
+          overview: (m.overview || '').slice(0, 220),
+          genres: (m.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean),
+          rating: m.vote_average,
+          user_rating: m.rating || null,
+          id: m.id
+        };
       });
       lastGrounding = grounding;
 
-      // messages for LLM (SYSTEM + context + user)
-      const sys = `You are The Curator, eternal keeper of dark cinema — horror, thrillers, sci-fi, and suspense. Dry dark wit. Strict: NEVER suggest any title the user has watched, has in To Watch, or has disliked. The provided USER CONTEXT lists exact titles they have seen or queued — do not recommend any of those. Ground ONLY in the provided metadata. Suggest 3-5 fitting UNSEEN titles. End exactly with: SUGGESTED: ["Exact Title One", "Exact Title Two", ...] (up to 5). For batch: BATCH_RATE: [{"title":"..","suggested_rating":4,"reason":".."}]. Keep short and in character.`;
-      const fullUser = `USER CONTEXT:\n${userCtx}\n\nGROUNDING METADATA:\n${JSON.stringify(grounding)}\n\nUSER: ${text}`;
+      // ── System prompt ────────────────────────────────────────────────────────
+      const sys = `You are The Curator — an all-knowing, darkly witty keeper of cinema and television, specialising in horror, psychological thrillers, sci-fi, mystery, crime, and suspense. You have deep knowledge of:
+- Obscure cult classics, foreign-language gems, and under-seen indie horror
+- Directorial styles, cinematographers, and recurring themes across filmographies
+- Decade-by-decade trends in genre cinema (70s paranoia, 80s slashers, 90s neo-noir, 00s found-footage, prestige horror of the 2010s–2020s)
+- Streaming availability, sequel/prequel chains, shared universe connections
+- TV series as well as films — miniseries, anthologies, prestige cable
+
+PERSONALITY: Dry wit, slightly theatrical, never sycophantic. Brief but substantive. You may reference the user's taste patterns directly ("Given your clear affection for slow-burn dread..."). You are NOT limited to horror — if the user asks about sci-fi, crime, thriller, or drama, engage fully.
+
+HARD RULES (never break):
+1. NEVER suggest any title in EXCLUDED_TITLES — these are already watched, queued, or disliked.
+2. When recommending, always end your message with: SUGGESTED: ["Exact Title", "Exact Title 2", ...] (3–6 titles)
+3. For mood/theme queries: tailor suggestions to the specific mood (e.g. "cozy horror" vs "brutal disturbing")
+4. For "similar to X" queries: identify what makes X distinctive (pacing, tone, director style, themes) and match those specifically
+5. For decade/era queries: stay true to the era's aesthetic and production style
+6. For director/actor queries: include lesser-known works, not just greatest hits
+7. If the user asks a non-recommendation question (lore, discussion, opinion), answer fully without forcing SUGGESTED
+8. You may suggest TV series — flag them with [TV Series] or [Mini-Series] after the title
+9. Ratings context: user rates 1–5 stars. 5★ = loved it, 1★ = hated it. Weight your suggestions toward what they 5★ and 4★ rated.`;
+
+      const userCtxBlock = `=== USER PROFILE ===
+Genre preferences (weighted by watch history + ratings): ${JSON.stringify(prefs)}
+Loved (4–5★): ${loved.join(', ') || 'none yet'}
+Disliked (1–2★): ${hated.join(', ') || 'none yet'}
+Total watched: ${watchedList.length} | Queued: ${toWatchList.length} | Disliked: ${dislikedList.length}
+
+=== FULL WATCH HISTORY (newest first, up to 40) ===
+${JSON.stringify(watchedDetail, null, 0)}
+
+=== TO WATCH QUEUE (up to 30) ===
+${JSON.stringify(twDetail, null, 0)}
+
+=== DISLIKED TITLES (up to 20) ===
+${JSON.stringify(disDetail, null, 0)}
+
+=== EXCLUDED_TITLES (NEVER suggest these) ===
+${JSON.stringify(allExcluded)}
+
+=== CURRENT REC POOL (engine's top picks — avoid duplicating unless asked) ===
+${JSON.stringify(poolSample, null, 0)}
+
+=== GROUNDING (known metadata for titles mentioned in this query) ===
+${JSON.stringify(grounding, null, 2)}`;
+
+      const fullUser = `${userCtxBlock}\n\n=== USER MESSAGE ===\n${text}`;
 
       const payload = {
-        model: llmConfig.model || 'grok-4.3',
+        model: llmConfig.model || 'grok-3',
         messages: [
           {role: 'system', content: sys},
+          ...chatHistory.slice(-8).slice(0, -1), // last 8 turns for conversation memory (exclude current)
           {role: 'user', content: fullUser}
         ],
-        max_tokens: llmConfig.max_response_tokens || 1100,
-        temperature: 0.85,
+        max_tokens: llmConfig.max_response_tokens || 1600,
+        temperature: 0.82,
         stream: true
       };
 
