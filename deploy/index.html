@@ -398,24 +398,34 @@
       font-weight: 600;
       background: #111113;
     }
-    /* Count badge inside tab buttons */
+    /* Count badge pill inside tab buttons */
     .personal-tab span[id$="-count"] {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      font-weight: 600;
+      font-size: 9px;
+      font-weight: 700;
       min-width: 18px;
-      height: 16px;
+      height: 15px;
       padding: 0 5px;
       border-radius: 9999px;
-      background: rgba(255,255,255,0.07);
-      color: #71717a;
+      background: rgba(255,255,255,0.06);
+      color: #52525b;
       line-height: 1;
+      border: 1px solid rgba(255,255,255,0.07);
+      letter-spacing: 0.02em;
+    }
+    .personal-tab.active {
+      background: linear-gradient(135deg, rgba(185,28,28,0.75), rgba(99,102,241,0.65)) !important;
+      color: #fff !important;
+      border-color: rgba(185,28,28,0.6) !important;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.4), 0 2px 8px rgba(185,28,28,0.25) !important;
+      font-weight: 700 !important;
     }
     .personal-tab.active span[id$="-count"] {
-      background: rgba(185,28,28,0.2);
-      color: #fca5a5;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      border-color: rgba(255,255,255,0.15);
     }
 
     .personal-pane {
@@ -691,10 +701,17 @@
       text-shadow: 0 0 20px rgba(248,113,113,0.5), 0 0 40px rgba(185,28,28,0.3);
     }
 
-    /* Red glow on search input focus */
+    /* Red/violet glow on search input focus */
+    .search-input {
+      transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
     .search-input:focus {
-      border-color: rgba(185, 28, 28, 0.7) !important;
-      box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15), 0 0 12px rgba(185, 28, 28, 0.1) !important;
+      border-color: rgba(185, 28, 28, 0.8) !important;
+      box-shadow:
+        0 0 0 3px rgba(185, 28, 28, 0.18),
+        0 0 16px rgba(185, 28, 28, 0.12),
+        0 0 0 1.5px rgba(99, 102, 241, 0.15),
+        inset 0 1px 3px rgba(0,0,0,0.4) !important;
     }
 
     /* Curator chat — deeper cinematic background + red edge glow */
@@ -703,11 +720,28 @@
       border-color: rgba(185,28,28,0.25) !important;
     }
 
-    /* Discover panel — gradient background + colored border */
+    /* Discover panel — gradient background + red left accent border */
     .discover-panel {
       background: linear-gradient(160deg, #18181b 0%, #1a1012 100%) !important;
       border-color: rgba(185,28,28,0.2) !important;
+      border-left: 3px solid #b91c1c !important;
       box-shadow: 0 0 20px rgba(185,28,28,0.05) !important;
+      padding-left: 14px !important;
+    }
+    .discover-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .discover-panel-header::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #b91c1c;
+      box-shadow: 0 0 6px rgba(185,28,28,0.7);
+      flex-shrink: 0;
     }
 
     /* Active filter chips — red glow pulse */
@@ -1181,11 +1215,12 @@
     }
     .main-tab-btn.active .tab-icon { color: #f87171; }
     html.light .main-tab-btn.active {
-      background: linear-gradient(135deg, #fee2e2, #ede9fe);
-      color: #b91c1c;
-      box-shadow: 0 0 0 1px rgba(185,28,28,0.2), 0 2px 8px rgba(185,28,28,0.08);
+      background: linear-gradient(135deg, #dc2626, #9333ea);
+      color: #fff !important;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.5), 0 4px 14px rgba(185,28,28,0.3), 0 2px 6px rgba(147,51,234,0.2);
+      font-weight: 700;
     }
-    html.light .main-tab-btn.active .tab-icon { color: #dc2626; }
+    html.light .main-tab-btn.active .tab-icon { color: #fff !important; }
 
     /* Main page panels */
     .main-panel {
@@ -1540,18 +1575,35 @@
       <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
       <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
-      <button id="nav-sync-btn" onclick="navSync()" title="Sync via Cloudflare KV (requires Worker setup)"
-        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
-        <span id="nav-sync-icon">⟳</span>
-        <span id="nav-sync-label">Sync</span>
-      </button>
-      <button onclick="showTransferModal()" title="Send your library to another device"
-        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
-        📲 Transfer
-      </button>
+      <!-- Share button: combines Sync + Transfer -->
+      <div style="position:relative;display:inline-flex;" id="share-menu-wrap">
+        <button id="share-menu-btn" onclick="toggleShareMenu()" title="Sync or transfer your library"
+          style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.08);color:#a5b4fc;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
+          📡 Share
+        </button>
+        <div id="share-menu-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.35);z-index:200;overflow:hidden;">
+          <button onclick="navSync();toggleShareMenu()" id="nav-sync-btn"
+            style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;font-size:12px;color:var(--text2);background:none;border:none;cursor:pointer;transition:background 0.1s;" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">
+            <span id="nav-sync-icon" style="font-size:14px;">⟳</span>
+            <span>Cloud Sync <span id="nav-sync-label" style="font-size:10px;color:var(--text4);"></span></span>
+          </button>
+          <div style="height:1px;background:var(--border2);margin:0 10px;"></div>
+          <button onclick="showTransferModal();toggleShareMenu()"
+            style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;font-size:12px;color:var(--text2);background:none;border:none;cursor:pointer;transition:background 0.1s;" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">
+            <span style="font-size:14px;">📲</span>
+            <span>Transfer Link</span>
+          </button>
+        </div>
+      </div>
+      <!-- Theme toggle -->
       <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         🌙 Dark
+      </button>
+      <!-- Settings gear icon -->
+      <button onclick="showSettings()" id="settings-btn" title="Settings"
+        style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;font-size:15px;transition:all 0.15s ease;flex-shrink:0;">
+        ⚙︎
       </button>
     </div>
   </nav>
@@ -1559,27 +1611,16 @@
 
 <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
-    <!-- Header -->
-    <div class="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header pb-4 border-b border-zinc-800/60 hero-glow">
-      <div class="min-w-0">
-        <h1 class="text-white bebas" style="font-size:clamp(2.8rem,6vw,5rem);letter-spacing:2px;line-height:1;">Brous Movie Engine</h1>
-        <p class="text-zinc-300 text-[14px] sm:text-[15px] mt-1 tracking-tight">Find your next <span class="nightmare-word">nightmare.</span></p>
-        <p class="text-[12px] sm:text-[13px] text-zinc-500 mt-0.5">Personal recs — horror, thrillers, sci-fi &amp; suspense.</p>
+    <!-- Header — compact single-line -->
+    <div class="mb-4 flex items-center justify-between top-header pb-3 border-b border-zinc-800/60">
+      <div class="flex items-baseline gap-3 min-w-0">
+        <h1 class="text-white bebas flex-shrink-0" style="font-size:clamp(1.6rem,3.5vw,2.4rem);letter-spacing:2px;line-height:1;">Brous Movie Engine</h1>
+        <p class="text-zinc-500 text-[12px] tracking-tight hidden sm:block truncate">Find your next <span class="nightmare-word" style="font-size:12px;">nightmare.</span> &mdash; horror, thrillers, sci-fi &amp; suspense</p>
       </div>
-      <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+      <div class="flex items-center gap-1 flex-shrink-0">
         <button onclick="installPWA()" id="install-btn"
-                class="hidden text-[9px] sm:text-[10px] px-2 sm:px-3 py-1 sm:py-1.5 rounded-3xl bg-white text-black font-medium active:bg-zinc-200">
+                class="hidden text-[9px] px-2 py-1 rounded-3xl bg-white text-black font-medium">
           Install
-        </button>
-        <button onclick="managePassword()" id="pass-btn"
-                class="text-[9px] sm:text-[10px] px-2 py-1 rounded-3xl border border-zinc-700 text-zinc-400 hover:bg-zinc-800 active:bg-zinc-900"
-                title="Set or change the shared password for the API (required for search, discover, recs &amp; Curator)">
-          🔐 Pass
-        </button>
-        <button onclick="showSettings()" id="settings-btn"
-                class="text-[9px] sm:text-[10px] px-2 py-1 rounded-3xl border border-zinc-700 text-zinc-400 hover:bg-zinc-800 active:bg-zinc-900"
-                title="LLM settings, backup, import &amp; more">
-          ⚙︎ Settings
         </button>
       </div>
     </div>
@@ -1648,7 +1689,9 @@
     <div class="mb-0.5">
       <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm discover-panel">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-[13px] font-semibold text-zinc-300 tracking-tight">Discover</div>
+          <div class="discover-panel-header">
+            <div class="text-[13px] font-semibold text-red-400 tracking-tight uppercase" style="letter-spacing:0.08em;">Discover</div>
+          </div>
           <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">Clear all</button>
         </div>
 
@@ -2143,6 +2186,18 @@
         c.appendChild(card);
       }
     }
+
+    // ── Share menu toggle ──
+    function toggleShareMenu() {
+      const d = document.getElementById('share-menu-dropdown');
+      if (!d) return;
+      d.style.display = d.style.display === 'none' ? 'block' : 'none';
+    }
+    document.addEventListener('click', e => {
+      const wrap = document.getElementById('share-menu-wrap');
+      const d = document.getElementById('share-menu-dropdown');
+      if (wrap && d && !wrap.contains(e.target)) d.style.display = 'none';
+    });
 
     // ── Theme toggle ──
     let _isLight = localStorage.getItem('brous_theme') === 'light';
@@ -3760,7 +3815,7 @@
       grid.innerHTML = '';
       scored.slice(0, 20).forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
+        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
@@ -3769,12 +3824,14 @@
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
           <div class="flex flex-row gap-3">
-            <img src="${poster}" class="w-16 h-24 sm:w-20 sm:h-28 rounded-xl object-cover border border-zinc-800 flex-shrink-0" alt="">
+            <div class="relative flex-shrink-0">
+              <img src="${poster}" class="w-20 h-28 sm:w-24 sm:h-32 rounded-xl object-cover border border-zinc-800" alt="">
+              ${tmdbRating ? `<div class="absolute bottom-1.5 left-1 right-1 flex justify-center"><span class="rating-badge ${ratingBadgeClass}" style="font-size:9px;padding:2px 5px;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.12);"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span></div>` : ''}
+            </div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
               <div class="flex items-center gap-1.5 flex-wrap mt-1">
                 ${year ? `<span class="text-xs text-zinc-500">${year}</span>` : ''}
-                ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" title="TMDB user score"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span>` : ''}
                 <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener"
                    class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none">
                   <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
@@ -4891,9 +4948,9 @@
     };
   </script>
 
-  <div class="max-w-7xl mx-auto px-5 pb-8 text-center text-[11px] text-zinc-500">
-    Movies &amp; TV data powered by <a href="https://www.themoviedb.org" target="_blank" class="underline hover:text-zinc-300">TMDB</a>. Curator uses xAI (via your Worker). Not affiliated with any service. All your data stays in this browser.
-    <span style="margin-left:8px;opacity:0.6">v2024-06-fixed</span>
+  <div class="max-w-7xl mx-auto px-5 pb-6 text-center" style="font-size:9px;color:#3f3f46;opacity:0.55;line-height:1.5;">
+    Movies &amp; TV data by <a href="https://www.themoviedb.org" target="_blank" style="color:#52525b;text-decoration:underline;">TMDB</a> · Curator via xAI · Not affiliated with any service · Data stays local
+    <span style="margin-left:6px;opacity:0.5">v2024-06</span>
   </div>
 </body>
 </html>
