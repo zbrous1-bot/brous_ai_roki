@@ -1823,7 +1823,9 @@
     // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
     // Default Worker URL — pre-configured so cloud sync works without manual setup
     const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
-    let apiBase = localStorage.getItem('brous_api_base') || DEFAULT_WORKER_URL;
+    // Default to empty (relative /api/* on pages.dev) — avoids cross-origin password prompts.
+    // Only use the hardcoded Worker URL if the user explicitly saved it via Settings.
+    let apiBase = localStorage.getItem('brous_api_base') || '';
     let cloudPin = localStorage.getItem('brous_cloud_pin') || '';
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
@@ -2076,9 +2078,11 @@
       const res = await fetch(url, fetchOptions);
       console.log('[Horror Roki] apiFetch to:', url, 'status will be checked next');
       if (res.status === 401) {
-        // Bad or missing password
-        localStorage.removeItem('brous_password');
-        apiPassword = '';
+        // Only wipe password for non-data routes (data routes use PIN auth, not password)
+        if (!isDataPath) {
+          localStorage.removeItem('brous_password');
+          apiPassword = '';
+        }
         const err = new Error('Unauthorized (wrong or missing password)');
         err.status = 401;
         throw err;
