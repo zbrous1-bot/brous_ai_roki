@@ -2036,22 +2036,26 @@
       }
     }
 
+    // Returns auth headers silently (no prompt). Use requireAuthHeaders() when a password is mandatory.
     function getAuthHeaders() {
+      if (!apiPassword) return {};
+      return { 'Authorization': 'Basic ' + btoa('user:' + apiPassword) };
+    }
+
+    // Prompts for password only when a password-required feature is triggered by the user.
+    function requireAuthHeaders() {
       if (!apiPassword) {
         apiPassword = prompt('Enter the shared password for the Worker (same as your PASSWORD secret):') || '';
-        if (apiPassword) {
-          localStorage.setItem('brous_password', apiPassword);
-        }
+        if (apiPassword) localStorage.setItem('brous_password', apiPassword);
       }
       if (!apiPassword) return {};
-      // Worker accepts anything:password (username ignored)
-      return {
-        'Authorization': 'Basic ' + btoa('user:' + apiPassword)
-      };
+      return { 'Authorization': 'Basic ' + btoa('user:' + apiPassword) };
     }
 
     async function apiFetch(path, options = {}) {
-      const headers = getAuthHeaders();
+      // /api/data is PIN-protected at the Worker level — no password needed
+      const isDataPath = path.startsWith('/api/data');
+      const headers = isDataPath ? {} : requireAuthHeaders();
       if (options.body && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
       }
