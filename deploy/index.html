@@ -4012,8 +4012,14 @@
         if (turn.role === 'user') {
           div.innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
         } else {
-          // Curator replies always get the red ghost avatar inside the bubble
-          div.innerHTML = `<span class="curator-avatar">👻</span><div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+          // Strip SUGGESTED / BATCH_RATE blocks from visible text — they render as cards below
+          const displayText = (turn.content || '')
+            .replace(/SUGGESTED:\s*\[[^\]]*\]/gi, '')
+            .replace(/BATCH_RATE:\s*\[[\s\S]*?\]/gi, '')
+            .trim();
+          div.innerHTML = `<span class="curator-avatar">👻</span><div class="whitespace-pre-wrap">${escapeHtml(displayText)}</div>`;
+          // Render pick cards async for this message
+          parseAndRenderCuratorExtras(turn.content || '', div).catch(() => {});
         }
         box.appendChild(div);
       });
