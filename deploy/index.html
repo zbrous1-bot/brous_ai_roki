@@ -1148,8 +1148,8 @@
       display: flex;
       gap: 4px;
       padding: 4px;
-      background: #111113;
-      border: 1px solid #27272a;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
       border-radius: 16px;
       margin-bottom: 20px;
     }
@@ -1159,7 +1159,7 @@
       border-radius: 12px;
       font-size: 13px;
       font-weight: 600;
-      color: #71717a;
+      color: var(--text3);
       border: none;
       background: transparent;
       cursor: pointer;
@@ -1171,8 +1171,8 @@
       gap: 6px;
     }
     .main-tab-btn:hover {
-      color: #d4d4d8;
-      background: #18181b;
+      color: var(--text2);
+      background: var(--bg3);
     }
     .main-tab-btn.active {
       background: linear-gradient(135deg, #1c0a0a, #1a0d1a);
@@ -1180,6 +1180,12 @@
       box-shadow: 0 0 0 1px rgba(185,28,28,0.35), 0 2px 8px rgba(185,28,28,0.15);
     }
     .main-tab-btn.active .tab-icon { color: #f87171; }
+    html.light .main-tab-btn.active {
+      background: linear-gradient(135deg, #fee2e2, #ede9fe);
+      color: #b91c1c;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.2), 0 2px 8px rgba(185,28,28,0.08);
+    }
+    html.light .main-tab-btn.active .tab-icon { color: #dc2626; }
 
     /* Main page panels */
     .main-panel {
@@ -1236,7 +1242,7 @@
     #curator-chat-full {
       border: 1px solid rgba(185,28,28,0.3) !important;
       border-radius: 20px !important;
-      background: #09090b !important;
+      background: var(--curator-bg) !important;
       box-shadow:
         0 0 0 1px rgba(185,28,28,0.08),
         0 0 40px rgba(185,28,28,0.08),
@@ -1412,9 +1418,76 @@
 
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     #nav-sync-btn:hover { background: rgba(255,255,255,0.1) !important; color: #e4e4e7 !important; }
+
+    /* ── Light mode: curator overrides ── */
+    html.light #curator-chat-full {
+      border-color: rgba(185,28,28,0.2) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07) !important;
+    }
+    html.light #curator-chat-full > div:first-child {
+      background: linear-gradient(135deg, #fff1f2 0%, #fdf4ff 100%) !important;
+      border-bottom-color: rgba(185,28,28,0.15) !important;
+    }
+    html.light #curator-chat-full > div:last-child {
+      background: #f9f9fa !important;
+      border-top-color: rgba(147,51,234,0.1) !important;
+    }
+    html.light #curator-input {
+      background: #ffffff !important;
+      border-color: rgba(147,51,234,0.2) !important;
+      color: #18181b !important;
+    }
+    html.light #curator-input::placeholder { color: rgba(139,92,246,0.4) !important; }
+    html.light #curator-chat-full > div:first-child button {
+      background: rgba(185,28,28,0.06) !important;
+      border-color: rgba(185,28,28,0.15) !important;
+      color: #7f1d1d !important;
+    }
+    html.light #curator-status { color: rgba(109,40,217,0.65) !important; }
+    html.light #curator-mood { color: rgba(109,40,217,0.85) !important; }
+    html.light .curator-avatar { box-shadow: 0 0 0 1px rgba(185,28,28,0.3), 0 0 8px rgba(185,28,28,0.15) !important; }
+    html.light .curator-msg.user { background: #f3f4f6 !important; border-color: #e5e7eb !important; }
+    html.light .discover-panel {
+      background: linear-gradient(160deg, #fff1f2 0%, #fdf4ff 100%) !important;
+      border-color: rgba(185,28,28,0.15) !important;
+      box-shadow: none !important;
+    }
+    /* Library sub-tabs */
+    html.light .watch-sub-tab {
+      background: var(--bg3) !important;
+      border-color: var(--border) !important;
+      color: var(--text3) !important;
+    }
+    html.light .watch-sub-tab.active {
+      background: #fff !important;
+      color: #b91c1c !important;
+      border-color: rgba(185,28,28,0.3) !important;
+    }
+    /* Stats banner */
+    html.light #stats-banner {
+      background: linear-gradient(135deg, #fff1f2, #fdf4ff) !important;
+      border-color: rgba(185,28,28,0.15) !important;
+      color: var(--text) !important;
+    }
+    /* Library list content */
+    html.light #personal-content {
+      background: var(--bg2) !important;
+      border-color: var(--border) !important;
+    }
+    html.light .personal-pane {
+      background: var(--bg2) !important;
+      padding: 12px !important;
+    }
+    html.light #personal-content .text-zinc-400 { color: var(--text3) !important; }
+    html.light #personal-content .text-zinc-600 { color: var(--text4) !important; }
+    html.light #personal-content button { background: var(--bg4) !important; border-color: var(--border) !important; color: var(--text3) !important; }
+    /* Curator message body */
+    html.light #curator-messages {
+      background: #ffffff !important;
+    }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-200 no-pull-refresh" style="background-color:#0f0e0f;">
+<body class="no-pull-refresh" style="background:var(--bg);color:var(--text);">
 
   <!-- Sticky navigation bar -->
   <nav id="sticky-nav">
@@ -1608,7 +1681,7 @@
 
     <!-- ═══ TAB: CURATOR ═══ -->
     <div id="panel-curator" class="main-panel">
-      <div class="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner" id="curator-chat-full">
+      <div class="border border-zinc-800 rounded-2xl overflow-hidden shadow-inner" id="curator-chat-full" style="background:var(--curator-bg);">
         <div class="flex items-center justify-between px-3 py-2 border-b border-red-900/40" style="background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);">
           <div class="flex items-center gap-2">
             <span class="curator-avatar" style="width:28px;height:28px;font-size:15px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 10px rgba(185,28,28,0.25);">👻</span>
@@ -1623,7 +1696,7 @@
           </div>
         </div>
 
-        <div id="curator-messages" class="px-3 py-2 overflow-auto text-sm space-y-2" style="min-height:300px;max-height:calc(100vh - 320px);background:linear-gradient(180deg,#0a0a0c 0%,#0f0e0f 100%);"></div>
+        <div id="curator-messages" class="px-3 py-2 overflow-auto text-sm space-y-2" style="min-height:300px;max-height:calc(100vh - 320px);background:var(--curator-bg);"></div>
 
         <div class="p-2 border-t border-zinc-800 bg-zinc-900/80">
           <div class="flex gap-2">
