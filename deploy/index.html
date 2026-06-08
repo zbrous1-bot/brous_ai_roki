@@ -1240,20 +1240,20 @@
 
     /* Container */
     #curator-chat-full {
-      border: 1px solid rgba(185,28,28,0.3) !important;
+      border: 1px solid rgba(185,28,28,0.45) !important;
       border-radius: 20px !important;
       background: var(--curator-bg) !important;
       box-shadow:
-        0 0 0 1px rgba(185,28,28,0.08),
-        0 0 40px rgba(185,28,28,0.08),
+        0 0 0 1px rgba(185,28,28,0.12),
+        0 0 40px rgba(185,28,28,0.1),
         inset 0 1px 0 rgba(255,255,255,0.04) !important;
       overflow: hidden !important;
     }
 
     /* Header — glassmorphism with scanline */
     #curator-chat-full > div:first-child {
-      background: linear-gradient(135deg, #0e0608 0%, #1a0a0a 50%, #120610 100%) !important;
-      border-bottom: 1px solid rgba(185,28,28,0.25) !important;
+      background: linear-gradient(135deg, #160608 0%, #1e0a0a 50%, #160610 100%) !important;
+      border-bottom: 2px solid rgba(185,28,28,0.5) !important;
       padding: 14px 16px !important;
       position: relative;
       overflow: hidden;
@@ -1281,14 +1281,16 @@
 
     /* Message area */
     #curator-messages {
-      background: radial-gradient(ellipse at top center, rgba(120,0,0,0.06) 0%, #09090b 60%) !important;
+      background: #0e0c10 !important;
+      border-top: 1px solid rgba(185,28,28,0.12) !important;
+      border-bottom: 1px solid rgba(147,51,234,0.12) !important;
       padding: 16px !important;
     }
 
-    /* AI message bubble — dark glass card */
+    /* AI message bubble — clearly visible dark card */
     .curator-msg:not(.user) {
-      background: linear-gradient(135deg, #141016 0%, #110d12 100%) !important;
-      border: 1px solid rgba(185,28,28,0.2) !important;
+      background: linear-gradient(135deg, #1e1624 0%, #1a1220 100%) !important;
+      border: 1px solid rgba(185,28,28,0.35) !important;
       border-left: 3px solid transparent !important;
       border-image: none !important;
       position: relative;
@@ -1296,7 +1298,8 @@
       border-radius: 4px 18px 18px 18px !important;
       padding: 12px 14px !important;
       max-width: 84% !important;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(185,28,28,0.08) !important;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(185,28,28,0.15) !important;
+      color: #e8e0f0 !important;
     }
     .curator-msg:not(.user)::before {
       content: '';
@@ -1310,19 +1313,19 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(239,68,68,0.04) 0%, rgba(147,51,234,0.03) 100%);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05) 0%, rgba(147,51,234,0.04) 100%);
       pointer-events: none;
       border-radius: inherit;
     }
 
     /* User message bubble */
     .curator-msg.user {
-      background: linear-gradient(135deg, #1c1020 0%, #170d1e 100%) !important;
-      border: 1px solid rgba(147,51,234,0.25) !important;
+      background: linear-gradient(135deg, #1e1630 0%, #18102a 100%) !important;
+      border: 1px solid rgba(147,51,234,0.4) !important;
       border-radius: 18px 4px 18px 18px !important;
       padding: 10px 14px !important;
       max-width: 74% !important;
-      box-shadow: 0 2px 8px rgba(147,51,234,0.1) !important;
+      box-shadow: 0 2px 10px rgba(147,51,234,0.15), 0 0 0 1px rgba(147,51,234,0.1) !important;
       color: #e2d9f3 !important;
     }
 
@@ -1334,8 +1337,8 @@
 
     /* Input area */
     #curator-chat-full > div:last-child {
-      background: linear-gradient(180deg, #0c0a0e 0%, #0a090c 100%) !important;
-      border-top: 1px solid rgba(147,51,234,0.15) !important;
+      background: linear-gradient(180deg, #120e18 0%, #0e0b14 100%) !important;
+      border-top: 2px solid rgba(147,51,234,0.3) !important;
       padding: 14px !important;
     }
 
