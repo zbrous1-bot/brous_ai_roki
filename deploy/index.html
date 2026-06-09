@@ -1326,6 +1326,75 @@
       animation: pane-fade-in 0.2s ease both;
     }
     .main-panel.active { display: block; }
+    .home-command-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 18px;
+    }
+    .home-command-card {
+      text-align: left;
+      min-height: 86px;
+      border-radius: 18px;
+      border: 1px solid rgba(63,63,70,0.92);
+      background:
+        radial-gradient(circle at top right, rgba(185,28,28,0.13), transparent 38%),
+        linear-gradient(145deg, rgba(24,24,27,0.96), rgba(9,9,11,0.98));
+      padding: 12px 13px;
+      color: var(--text2);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+    .home-command-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(248,113,113,0.46);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .home-command-kicker {
+      display: block;
+      color: var(--text4);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .home-command-value {
+      display: block;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .home-command-note {
+      display: block;
+      color: var(--text3);
+      font-size: 11px;
+      line-height: 1.25;
+      margin-top: 6px;
+    }
+    .home-command-card.primary {
+      border-color: rgba(185,28,28,0.46);
+      background:
+        radial-gradient(circle at top right, rgba(147,51,234,0.2), transparent 42%),
+        linear-gradient(145deg, rgba(41,12,18,0.98), rgba(14,10,18,0.98));
+    }
+    @media (max-width: 820px) {
+      .home-command-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .home-command-card {
+        min-height: 74px;
+        padding: 10px;
+      }
+      .home-command-value {
+        font-size: 17px;
+      }
+    }
 
     /* Expanded Curator on its own page */
     #curator-chat-full #curator-messages {
@@ -1784,6 +1853,29 @@
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched">
         <span class="tab-icon">👁</span> My Library
+      </button>
+    </div>
+
+    <div class="home-command-grid" id="home-command-grid">
+      <button class="home-command-card primary" onclick="refreshRecPool()">
+        <span class="home-command-kicker">Recommendations</span>
+        <span class="home-command-value">Fresh pool</span>
+        <span class="home-command-note">Pull a wider set of dark cinema picks.</span>
+      </button>
+      <button class="home-command-card" onclick="switchMainTab('watched')">
+        <span class="home-command-kicker">Queue</span>
+        <span class="home-command-value" id="home-queue-count">0 waiting</span>
+        <span class="home-command-note" id="home-next-title">Add titles from search or Curator.</span>
+      </button>
+      <button class="home-command-card" onclick="switchMainTab('watched')">
+        <span class="home-command-kicker">Watched</span>
+        <span class="home-command-value" id="home-watched-count">0 rated</span>
+        <span class="home-command-note" id="home-taste-label">Taste profile is warming up.</span>
+      </button>
+      <button class="home-command-card" onclick="switchMainTab('curator')">
+        <span class="home-command-kicker">Curator</span>
+        <span class="home-command-value">Ask next</span>
+        <span class="home-command-note">Use your library to pick tonight.</span>
       </button>
     </div>
 
@@ -3002,6 +3094,7 @@
 
       // Mini stats row
       renderPersonalStats();
+      updateHomeSnapshot();
     }
 
     function renderPersonalStats() {
@@ -3023,6 +3116,26 @@
       if (dislikedList.length) parts.push(`<span style="display:inline-flex;align-items:center;gap:4px"><span style="color:#52525b">●</span><strong style="color:#e4e4e7">${dislikedList.length}</strong><span style="color:#71717a">disliked</span></span>`);
       if (topGenre) parts.push(`<span style="color:#52525b">—</span><span style="color:rgba(248,113,113,0.7)">★ ${topGenre}</span>`);
       el.innerHTML = parts.join('');
+    }
+
+    function updateHomeSnapshot() {
+      const queueEl = document.getElementById('home-queue-count');
+      const watchedEl = document.getElementById('home-watched-count');
+      const nextEl = document.getElementById('home-next-title');
+      const tasteEl = document.getElementById('home-taste-label');
+      if (queueEl) queueEl.textContent = `${toWatchList.length} waiting`;
+      if (watchedEl) watchedEl.textContent = `${watchedList.length} rated`;
+      if (nextEl) {
+        const nextTitle = toWatchList[0]?.title || toWatchList[0]?.name;
+        nextEl.textContent = nextTitle ? `Next up: ${nextTitle}` : 'Add titles from search or Curator.';
+      }
+      if (tasteEl) {
+        const genreCounts = {};
+        watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
+        const topGenreId = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0];
+        const topGenre = topGenreId ? (GENRES.find(g => g.id == topGenreId)?.name || '') : '';
+        tasteEl.textContent = topGenre ? `Leaning ${topGenre.toLowerCase()} lately.` : 'Taste profile is warming up.';
+      }
     }
 
     function posterHtml(item, size = 'w92') {
@@ -3542,6 +3655,9 @@
         if (btn) btn.classList.toggle('active', t === tab);
         if (navLink) navLink.classList.toggle('page-active', t === tab);
       });
+      const homeGrid = document.getElementById('home-command-grid');
+      if (homeGrid) homeGrid.style.display = tab === 'foryou' ? '' : 'none';
+      if (tab === 'foryou') updateHomeSnapshot();
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
       // When switching to Library, refresh lists
@@ -5196,6 +5312,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         if (typeof setCuratorMood === 'function') setCuratorMood();
         if (typeof setupPullToRefresh === 'function') setupPullToRefresh();
         if (typeof renderPersonalStats === 'function') renderPersonalStats();
+        if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
 
         // init top personal tabs (default to To Watch)
         if (typeof switchPersonalTab === 'function') switchPersonalTab('towatch');
