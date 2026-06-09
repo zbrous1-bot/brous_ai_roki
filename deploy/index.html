@@ -71,6 +71,46 @@
     .quick-chip:active {
       transform: scale(0.95);
     }
+    .browse-panel-card {
+      background:
+        radial-gradient(circle at top right, rgba(99,102,241,0.12), transparent 34%),
+        linear-gradient(145deg, rgba(24,24,27,0.96), rgba(9,9,11,0.98));
+      border: 1px solid #3f3f46;
+      border-radius: 24px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .browse-start-chip {
+      min-height: 34px;
+      border-radius: 9999px;
+      border: 1px solid #3f3f46;
+      background: rgba(24,24,27,0.86);
+      color: #d4d4d8;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 650;
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+    }
+    .browse-start-chip:hover {
+      background: #27272a;
+      border-color: #71717a;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .browse-empty-panel {
+      grid-column: 1 / -1;
+      min-height: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(185,28,28,0.13), transparent 38%),
+        linear-gradient(145deg, rgba(24,24,27,0.84), rgba(9,9,11,0.94));
+      border: 1px solid #27272a;
+      border-radius: 24px;
+      color: #a1a1aa;
+      padding: 24px;
+    }
 
     /* Curator polish */
     #curator-chat {
@@ -253,6 +293,14 @@
       border: 1px solid #27272a;
       border-radius: 12px;
       overflow: hidden;
+    }
+    .library-empty-state {
+      min-height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #71717a;
     }
 
     .curator-msg {
@@ -572,6 +620,13 @@
         padding-top: 2px !important;
         padding-bottom: 2px !important;
       }
+      .library-empty-state {
+        min-height: 54px !important;
+        padding: 6px 8px !important;
+      }
+      .library-empty-state span {
+        display: none;
+      }
 
       /* Tiny compact toggle (symbol only) */
       #lists-toggle {
@@ -841,13 +896,13 @@
       </div>
     </div>
 
-    <div class="main-tabs-bar" id="main-tabs-bar">
-      <button class="main-tab active" id="main-tab-recs" onclick="switchMainTab('recs')"><i class="fa-solid fa-clapperboard text-xs"></i> Recs</button>
-      <button class="main-tab" id="main-tab-curator" onclick="switchMainTab('curator')"><i class="fa-solid fa-comments text-xs"></i> Curator</button>
-      <button class="main-tab" id="main-tab-browse" onclick="switchMainTab('browse')"><i class="fa-solid fa-magnifying-glass text-xs"></i> Browse</button>
+    <div class="main-tabs-bar" id="main-tabs-bar" role="tablist" aria-label="Main sections">
+      <button class="main-tab active" id="main-tab-recs" role="tab" aria-controls="main-panel-recs" aria-selected="true" onclick="switchMainTab('recs')"><i class="fa-solid fa-clapperboard text-xs"></i> Recs</button>
+      <button class="main-tab" id="main-tab-curator" role="tab" aria-controls="main-panel-curator" aria-selected="false" tabindex="-1" onclick="switchMainTab('curator')"><i class="fa-solid fa-comments text-xs"></i> Curator</button>
+      <button class="main-tab" id="main-tab-browse" role="tab" aria-controls="main-panel-browse" aria-selected="false" tabindex="-1" onclick="switchMainTab('browse')"><i class="fa-solid fa-magnifying-glass text-xs"></i> Browse</button>
     </div>
 
-    <div id="main-panel-recs" class="main-panel">
+    <div id="main-panel-recs" class="main-panel" role="tabpanel" aria-labelledby="main-tab-recs">
     <!-- Recommended for you (top area, with Refresh Pool + Recompute buttons) -->
     <div class="mb-2">
       <div class="flex items-start justify-between gap-3 mb-1.5 px-1">
@@ -883,7 +938,7 @@
     </div>
     </div>
 
-    <div id="main-panel-curator" class="main-panel hidden">
+    <div id="main-panel-curator" class="main-panel hidden" role="tabpanel" aria-labelledby="main-tab-curator">
     <!-- Curator Chat -->
     <div class="mb-2">
       <div class="border border-zinc-800 rounded-2xl overflow-hidden" id="curator-chat">
@@ -920,17 +975,28 @@
     </div>
     </div>
 
-    <div id="main-panel-browse" class="main-panel hidden">
+    <div id="main-panel-browse" class="main-panel hidden" role="tabpanel" aria-labelledby="main-tab-browse">
     <!-- Search -->
     <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm">
-        <div class="flex gap-2 items-center">
+      <div class="browse-panel-card p-2.5 sm:p-3">
+        <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <div class="relative flex-1">
             <i class="fa-solid fa-search absolute left-3 top-2.5 text-zinc-500"></i>
             <input id="search-input" type="text" placeholder="Search for a movie or show..."
                    class="search-input w-full bg-zinc-950 border border-zinc-700 focus:border-zinc-400 pl-9 pr-3 py-2 rounded-3xl text-base outline-none placeholder:text-zinc-500"
                    onkeypress="if (event.key === 'Enter') performSearch()">
           </div>
+          <button onclick="performSearch()"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-semibold rounded-3xl transition-colors">
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+            <span>Search</span>
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-2 px-0.5" aria-label="Quick searches">
+          <button class="browse-start-chip" onclick="quickSearch('folk horror')">Folk horror</button>
+          <button class="browse-start-chip" onclick="quickSearch('psychological thriller')">Psychological</button>
+          <button class="browse-start-chip" onclick="quickSearch('creature feature')">Creature feature</button>
+          <button class="browse-start-chip" onclick="quickSearch('hidden gem horror')">Hidden gems</button>
         </div>
       </div>
     </div>
@@ -1047,10 +1113,12 @@
     </div>
 
     <!-- Initial state / welcome message -->
-    <div id="initial-state" class="text-center py-12 text-zinc-400">
-      <i class="fa-solid fa-search text-4xl mb-4 opacity-40"></i>
-      <p class="text-lg text-zinc-300">Recommended for you is at the top • Search or Discover below</p>
-      <p class="text-sm mt-1">Dark cinema recs (horror / thrillers / sci-fi / suspense) powered by your watched library + The Curator.</p>
+    <div id="initial-state" class="hidden text-center py-10 text-zinc-400 browse-empty-panel">
+      <div>
+        <i class="fa-solid fa-clapperboard text-4xl mb-4 opacity-45"></i>
+        <p class="text-lg text-zinc-200 font-semibold">Search a title or browse a mood</p>
+        <p class="text-sm mt-1 max-w-xl mx-auto">Use the chips above for a fast start, or tune genre, rating, decade, and format below.</p>
+      </div>
     </div>
 
   </div>
@@ -2043,7 +2111,7 @@
       const c = document.getElementById('to-watch-content');
       if (!c) return;
       if (!toWatchList.length) {
-        c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Your queue is empty.<br><span class="text-[10px] opacity-70">Add from recommendations, search, or ask the Curator for picks.</span></div>`;
+        c.innerHTML = `<div class="library-empty-state text-xs">Your queue is empty.<br><span class="text-[10px] opacity-70">Add from recommendations, search, or ask the Curator for picks.</span></div>`;
         return;
       }
       let html = '';
@@ -2125,7 +2193,7 @@
     function renderWatched() {
       const c = document.getElementById('watched-content');
       if (!c) return;
-      if (!watchedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">No watched titles yet.<br><span class="text-[10px] opacity-70">Rate movies as you watch — this powers your personal recs.</span></div>`; return; }
+      if (!watchedList.length) { c.innerHTML = `<div class="library-empty-state text-xs">No watched titles yet.<br><span class="text-[10px] opacity-70">Rate movies as you watch so your recs get sharper.</span></div>`; return; }
       let html = '';
       watchedList.slice(0,12).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
@@ -2160,7 +2228,7 @@
     function renderDisliked() {
       const c = document.getElementById('disliked-content');
       if (!c) return;
-      if (!dislikedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Nothing disliked yet.<br><span class="text-[10px] opacity-70">Disliked titles are excluded from recommendations.</span></div>`; return; }
+      if (!dislikedList.length) { c.innerHTML = `<div class="library-empty-state text-xs">Nothing disliked yet.<br><span class="text-[10px] opacity-70">Disliked titles are excluded from recommendations.</span></div>`; return; }
       let html = '';
       dislikedList.slice(0,8).forEach(item => {
         const poster = posterHtml(item, 'w92');
@@ -2291,11 +2359,29 @@
     function switchMainTab(tab) {
       localStorage.setItem('horror_roki_main_tab', tab);
       document.querySelectorAll('.main-panel').forEach(p => p.classList.add('hidden'));
-      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.main-tab').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+        b.setAttribute('tabindex', '-1');
+      });
       const pane = document.getElementById('main-panel-' + tab);
       const btn = document.getElementById('main-tab-' + tab);
       if (pane) pane.classList.remove('hidden');
-      if (btn) btn.classList.add('active');
+      if (btn) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('tabindex', '0');
+      }
+      updateBrowseEmptyState();
+    }
+
+    function updateBrowseEmptyState() {
+      const initial = document.getElementById('initial-state');
+      const results = document.getElementById('results');
+      if (!initial) return;
+      const browseOpen = !document.getElementById('main-panel-browse')?.classList.contains('hidden');
+      const hasResults = !!(results && results.children.length);
+      initial.classList.toggle('hidden', !browseOpen || hasResults);
     }
 
     // ===================== MODAL =====================
@@ -2538,6 +2624,19 @@
         return !excluded.has(key);
       });
 
+      if (!items.length) {
+        container.innerHTML = `
+          <div class="browse-empty-panel">
+            <div>
+              <i class="fa-solid fa-filter-circle-xmark text-3xl mb-3 opacity-50"></i>
+              <p class="text-zinc-200 font-semibold">Everything here is already sorted</p>
+              <p class="text-sm mt-1">These results are already watched, queued, or disliked. Try another search or loosen the filters.</p>
+            </div>
+          </div>`;
+        updateBrowseEmptyState();
+        return;
+      }
+
       items.forEach(m => {
         const title = m.title || m.name || 'Untitled';
         const year = (m.release_date || m.first_air_date || '').slice(0, 4);
@@ -2638,6 +2737,7 @@
 
         container.appendChild(card);
       });
+      updateBrowseEmptyState();
     }
 
     // ===================== HORROR ROKI RECS + TASTE (port of boost_by_user_taste + get_user_genre_preferences) =====================
