@@ -1751,6 +1751,8 @@
         <div class="flex items-center gap-2">
           <button onclick="refreshRecPool()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Refresh Pool</button>
+          <button onclick="loadMoreRecommendations()"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">More Recs</button>
           <button onclick="recomputeRecommendations()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Recompute</button>
         </div>
@@ -2181,6 +2183,7 @@
       console.warn('localStorage parse failed (data may be corrupted or cleared):', e);
     }
     let currentRecPool = [];
+    let recPageCursor = 1;
     let currentMood = 'All';
     let curatorPicks = []; // parsed SUGGESTED for cards + optional BATCH_RATE items
     let lastGrounding = {}; // title -> metadata for curator turns
@@ -3634,7 +3637,7 @@
       if (!query) return;
 
       if (initial) initial.style.display = 'none';
-      showSkeletons('results', 4);
+      showSkeletons('results', 8);
 
       const isMovie = currentSearchType === 'movie';
       const searchEndpoint = isMovie ? 'movie' : 'tv';
@@ -3657,7 +3660,9 @@
           return;
         }
 
-        const top = searchData.results.slice(0, 6);
+        const top = searchData.results
+          .filter(item => item && (item.title || item.name))
+          .slice(0, 18);
         const enriched = await Promise.all(top.map(async item => {
           try {
             const [provData, extData] = await Promise.all([
@@ -3873,57 +3878,79 @@
 
     let _recPoolLoading = false;
 
-    async function refreshRecPool() {
+    async function refreshRecPool(options = {}) {
       if (_recPoolLoading) return; // prevent double-fire / infinite loop
       _recPoolLoading = true;
+      const append = !!options.append;
 
       const grid = document.getElementById('recs-grid');
       const empty = document.getElementById('recs-empty');
       if (grid) {
-        grid.innerHTML = '';
-        showSkeletons('recs-grid', 8);
+        if (!append) {
+          grid.innerHTML = '';
+          showSkeletons('recs-grid', 8);
+        } else {
+          const loading = document.createElement('div');
+          loading.id = 'recs-loading-more';
+          loading.className = 'text-center py-6 text-zinc-400 text-sm col-span-full';
+          loading.textContent = 'Looking deeper...';
+          grid.appendChild(loading);
+        }
       }
       if (empty) empty.classList.add('hidden');
 
       try {
         const excluded = getExcludedKeys();
-        // Fetch movies AND TV across horror/thriller/sci-fi/mystery — multiple pages for a deep pool
-        const genreIds = [27, 53, 878, 9648, 80]; // horror, thriller, sci-fi, mystery, crime
-        const pages = [1, 2, 3]; // 3 pages per genre = much deeper pool
-        const sorts = ['popularity.desc', 'vote_average.desc'];
+        // Fetch a broad dark cinema pool across horror, thriller, sci-fi, mystery, crime, fantasy, and drama.
+        const genreIds = [27, 53, 878, 9648, 80, 14, 18];
+        const startPage = append ? recPageCursor : 1;
+        const pages = [startPage, startPage + 1, startPage + 2, startPage + 3, startPage + 4];
+        const sorts = ['popularity.desc', 'vote_average.desc', 'primary_release_date.desc'];
         let raw = [];
 
         const fetchJobs = [];
         for (const g of genreIds) {
           for (const page of pages) {
-            fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.desc&include_adult=false&with_genres=${g}&page=${page}&vote_count.gte=30`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+            for (const sort of sorts) {
+              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=10&vote_average.gte=4.8`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+            }
           }
         }
         // Also pull trending this week for freshness
         fetchJobs.push(apiFetch(`/api/tmdb/3/trending/movie/week`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&vote_count.gte=200&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&vote_count.gte=80&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.asc&include_adult=false&vote_count.gte=25&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
 
         await Promise.all(fetchJobs);
 
         // Dedupe + filter
         const seen = new Set();
         let results = [];
-        const sorted = [...raw].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        if (append) {
+          currentRecPool.forEach(r => seen.add(r.id));
+        }
+        const sorted = [...raw].sort((a, b) => {
+          const aScore = (a.vote_average || 0) * 10 + (a.vote_count || 0) * 0.015 + (a.popularity || 0) * 0.08;
+          const bScore = (b.vote_average || 0) * 10 + (b.vote_count || 0) * 0.015 + (b.popularity || 0) * 0.08;
+          return bScore - aScore;
+        });
         for (const r of sorted) {
           if (!seen.has(r.id)) { seen.add(r.id); results.push(r); }
         }
         // Filter out already seen/queued, and low quality
         results = results.filter(r => {
           const key = `${r.id}:movie`;
-          return !excluded.has(key) && (r.vote_average || 0) >= 5.5 && r.poster_path;
+          return !excluded.has(key) && (r.vote_average || 0) >= 4.8 && r.poster_path;
         });
 
-        currentRecPool = results.slice(0, 60).map(r => ({
+        const mapped = results.slice(0, append ? 90 : 120).map(r => ({
           id: r.id, title: r.title, _mediaType: 'movie',
           poster_path: r.poster_path, release_date: r.release_date,
           vote_average: r.vote_average, genre_ids: r.genre_ids || [],
           overview: r.overview || '', popularity: r.popularity || 0
         }));
+        currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
+        recPageCursor = startPage + pages.length;
 
         console.log('[Recs] Pool size:', currentRecPool.length);
         if (!currentRecPool.length) {
@@ -3937,8 +3964,14 @@
         if (e.status === 401) poolMsg = 'Wrong password. Tap \uD83D\uDD10 Pass to reset it.';
         if (grid) grid.innerHTML = `<div class="text-center py-8 text-red-400 text-sm col-span-full">${poolMsg}</div>`;
       } finally {
+        const loading = document.getElementById('recs-loading-more');
+        if (loading) loading.remove();
         _recPoolLoading = false;
       }
+    }
+
+    async function loadMoreRecommendations() {
+      await refreshRecPool({ append: true });
     }
 
     function recomputeRecommendations() {
@@ -3951,8 +3984,8 @@
         if (empty) {
           empty.classList.remove('hidden');
           // Only auto-trigger once — the _recPoolLoading guard prevents loops
-          if (watchedList.length > 0 && !_recPoolLoading) {
-            empty.innerHTML = `<span class="empty-state-icon">🎬</span><div class="text-zinc-300 font-medium">Loading your recommendations...</div><div class="text-zinc-500 text-xs mt-1">Fetching a fresh pool based on your taste.</div>`;
+          if (!_recPoolLoading) {
+            empty.innerHTML = `<span class="empty-state-icon">🎬</span><div class="text-zinc-300 font-medium">Loading recommendations...</div><div class="text-zinc-500 text-xs mt-1">Fetching a wider dark cinema pool.</div>`;
             refreshRecPool();
           }
         }
@@ -3966,6 +3999,14 @@
       let scored = currentRecPool.map(it => ({...it, _score: boostScore(it, prefs)}));
       // Strict filter against all personal lists (watched, to-watch, disliked) - fixes suggesting already seen titles
       scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
+      if (!scored.length) {
+        grid.innerHTML = `<div class="empty-state col-span-full">
+          <span class="empty-state-icon">🎬</span>
+          <div class="text-zinc-300 font-medium">This pool is tapped out</div>
+          <div class="text-zinc-500 text-xs mt-1">Use More Recs to search deeper pages and less obvious titles.</div>
+        </div>`;
+        return;
+      }
       // light mood filter demo (for real would use more metadata or keywords)
       if (currentMood !== 'All') {
         // keep all but sort "moodier" first by slight random + vote for demo
