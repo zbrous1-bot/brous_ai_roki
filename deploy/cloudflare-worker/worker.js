@@ -199,7 +199,7 @@ export default {
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
         version: '3.1.0',
-        note: 'TMDB via /api/tmdb/* ; LLM (Curator) via POST /api/llm ; Data sync via GET/POST /api/data . Password required.',
+        note: 'TMDB via /api/tmdb/* ; LLM (Curator) via POST /api/llm ; Data sync via GET/POST /api/data . TMDB does not require the shared password in this Worker.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
       });
     }

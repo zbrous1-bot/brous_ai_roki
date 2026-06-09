@@ -1,1 +1,3546 @@
-FULL UPDATED CONTENT - see local file /home/workdir/artifacts/deploy_index_updated.html which now contains the complete working HTML + new Curator cosmic void CSS
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#18181b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Brous Movie Engine">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Brous Movie Engine • Find your next nightmare</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%2318181b'/%3E%3Ctext x='90' y='115' font-size='80' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { 
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      /* iPhone + Android safe area support */
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .modern-card {
+      background-color: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 20px;
+    }
+
+    .movie-card { 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      border: 1px solid #3f3f46;
+      overflow: hidden;
+      background: linear-gradient(145deg, #18181b, #111113);
+    }
+    .movie-card:hover { 
+      transform: translateY(-3px); 
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 10px 10px -5px rgb(0 0 0 / 0.1);
+      border-color: #b91c1c;
+    }
+    .rec-card {
+      border-color: #7f1d1d;
+    }
+
+    .section-header {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #71717a;
+    }
+
+    .search-input {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+    .search-input:focus {
+      border-color: rgb(99, 102, 241);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+    }
+
+    .quick-chip {
+      transition: all 0.1s ease;
+      font-weight: 500;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .quick-chip:active {
+      transform: scale(0.95);
+    }
+
+    /* Curator polish */
+    #curator-chat {
+      background:
+        radial-gradient(circle at top left, rgba(185, 28, 28, 0.14), transparent 32%),
+        linear-gradient(180deg, #111113 0%, #09090b 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px rgba(0,0,0,0.32);
+    }
+    .curator-header {
+      background: linear-gradient(135deg, rgba(39, 39, 42, 0.98), rgba(24, 24, 27, 0.98));
+    }
+    .curator-icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      border: 1px solid #3f3f46;
+      background: rgba(24, 24, 27, 0.86);
+      color: #d4d4d8;
+      transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    .curator-icon-btn:hover {
+      background: #27272a;
+      border-color: #52525b;
+      transform: translateY(-1px);
+    }
+    #curator-messages {
+      min-height: 210px;
+      background:
+        linear-gradient(rgba(15, 15, 17, 0.95), rgba(15, 15, 17, 0.95)),
+        radial-gradient(circle at 15% 20%, rgba(185, 28, 28, 0.12), transparent 28%);
+      scrollbar-color: #3f3f46 #111113;
+    }
+    .curator-composer {
+      background: linear-gradient(180deg, rgba(24,24,27,0.98), rgba(9,9,11,0.98));
+    }
+    #curator-input:focus {
+      box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.16);
+    }
+    #curator-quick-replies button {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 9999px;
+      background: rgba(24, 24, 27, 0.92);
+      border-color: #3f3f46;
+      color: #d4d4d8;
+      min-height: 32px;
+      transition: all 0.12s ease;
+    }
+    #curator-quick-replies button:hover {
+      background: #27272a;
+      color: #fff;
+      border-color: #7f1d1d;
+    }
+
+    .accordion-header {
+      transition: background-color 0.1s ease;
+    }
+    .accordion-header:hover {
+      background-color: #27272a;
+    }
+
+    /* Better touch behavior for iPhone + Android */
+    button, .quick-chip, summary {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Prevent pull-to-refresh on some browsers */
+    .no-pull-refresh {
+      overscroll-behavior: contain;
+    }
+
+    /* Blue-violet accent colors */
+    :root {
+      --accent: 99, 102, 241; /* indigo-500 - nice blue-violet */
+    }
+
+    /* Cool blue-violet highlights around availability "tables" with smooth animations */
+    .provider-table {
+      border: 1px solid rgba(var(--accent), 0.25);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.08);
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .provider-table:hover {
+      border-color: rgba(var(--accent), 0.5);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.22);
+    }
+
+    /* Animated blue-violet treatment for Streaming sections */
+    .provider-table.streaming {
+      border-color: rgba(var(--accent), 0.38);
+      background: linear-gradient(150deg, rgba(var(--accent), 0.04), transparent);
+    }
+    .provider-table.streaming:hover {
+      border-color: rgba(var(--accent), 0.6);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.32),
+                  0 0 12px rgba(var(--accent), 0.18);
+    }
+
+    /* Subtle animated glow on streaming tables (breathing effect on hover) */
+    .provider-table.streaming:hover {
+      animation: streaming-glow 2.2s ease-in-out infinite;
+    }
+
+    @keyframes streaming-glow {
+      0%, 100% {
+        box-shadow: 0 0 0 1px rgba(var(--accent), 0.32),
+                    0 0 12px rgba(var(--accent), 0.18);
+      }
+      50% {
+        box-shadow: 0 0 0 1px rgba(var(--accent), 0.42),
+                    0 0 22px rgba(var(--accent), 0.28);
+      }
+    }
+
+    /* Blue-violet lift + glow on result cards - smooth animated transition */
+    .movie-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: card-enter 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+      padding: 1.25rem; /* slightly more breathing room */
+      overflow: hidden;
+    }
+    .movie-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 22px 28px -8px rgb(0 0 0 / 0.12), 
+                  0 10px 12px -6px rgb(0 0 0 / 0.1),
+                  0 0 0 1px rgba(var(--accent), 0.16);
+    }
+
+    @keyframes card-enter {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Blue-violet accent on active filter chips - with pop animation */
+    .filter-chip-active {
+      background-color: rgba(var(--accent), 0.92);
+      border-color: rgb(var(--accent));
+      color: white;
+      font-weight: 600;
+      transform: scale(1.02);
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  background-color 0.2s ease,
+                  border-color 0.2s ease;
+    }
+    .filter-chip-active:active {
+      transform: scale(0.98);
+    }
+
+    /* Horror Roki accents: blood-red for nightmares, danger, watched actions */
+    .horror-accent {
+      color: #f87171;
+    }
+    .btn-nightmare {
+      background-color: #991b1b;
+      color: white;
+    }
+    .btn-nightmare:hover { background-color: #b91c1c; }
+    .btn-nightmare:active { background-color: #7f1d1d; }
+
+    /* .mood-chip styles removed (mood filter buttons removed from recommendations) */
+
+    .library-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #111113;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .curator-msg {
+      background: linear-gradient(145deg, rgba(39,39,42,0.92), rgba(24,24,27,0.96));
+      border: 1px solid #3f3f46;
+      padding: 11px 13px;
+      border-radius: 18px;
+      margin-bottom: 8px;
+      max-width: min(84%, 720px);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.24);
+      opacity: 0;
+      transform: translateY(6px);
+      animation: curator-msg-in 0.2s ease forwards;
+      position: relative;
+      line-height: 1.42;
+    }
+    .curator-msg.user {
+      background: linear-gradient(145deg, #3f3f46, #27272a);
+      margin-left: auto;
+      border-color: #52525b;
+      max-width: min(76%, 620px);
+    }
+    .curator-msg .curator-avatar {
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .curator-msg:not(.user)::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 10px;
+      width: 3px;
+      height: 18px;
+      background: linear-gradient(#b91c1c, #7f1d1d);
+      border-radius: 2px;
+    }
+    @keyframes curator-msg-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .curator-typing {
+      font-style: italic;
+      opacity: 0.7;
+      padding: 6px 12px;
+    }
+    .curator-avatar {
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #7f1d1d, #450a0a);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    /* Better distinction: Curator messages have a subtle left accent */
+    .curator-msg:not(.user) {
+      border-left: 3px solid #b91c1c;
+      padding-left: 10px;
+    }
+
+    /* Swipe gesture visual feedback for library items on mobile */
+    .library-item {
+      transition: transform 0.2s ease, background 0.2s ease;
+      touch-action: pan-y;
+    }
+
+    /* Poster loading states */
+    .poster-wrap {
+      position: relative;
+      background: #27272a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .poster-wrap img {
+      transition: opacity 0.3s ease;
+    }
+    .poster-wrap.loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+      background-size: 200% 100%;
+      animation: poster-shimmer 1.2s infinite;
+    }
+    @keyframes poster-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .library-item.swiping {
+      transition: none;
+    }
+
+    .suggested-card {
+      background: linear-gradient(145deg, rgba(24,24,27,0.98), rgba(9,9,11,0.98));
+      border: 1px solid rgba(185,28,28,0.34);
+      border-radius: 18px;
+      padding: 10px;
+      margin-top: 10px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.28);
+    }
+    .rec-toolbar-btn {
+      min-height: 34px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      border: 1px solid #3f3f46;
+      background: #18181b;
+      color: #d4d4d8;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+      transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+    }
+    .rec-toolbar-btn:hover {
+      background: #27272a;
+      border-color: #52525b;
+      transform: translateY(-1px);
+    }
+    .rec-toolbar-btn.primary {
+      background: #991b1b;
+      border-color: #b91c1c;
+      color: #fff;
+    }
+    .rec-toolbar-btn.primary:hover {
+      background: #b91c1c;
+    }
+    .rec-meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 9999px;
+      border: 1px solid #27272a;
+      background: rgba(24,24,27,0.78);
+      color: #a1a1aa;
+      padding: 4px 9px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .rec-empty-panel {
+      background:
+        radial-gradient(circle at 50% 10%, rgba(185,28,28,0.16), transparent 34%),
+        linear-gradient(145deg, rgba(24,24,27,0.96), rgba(9,9,11,0.98));
+      border: 1px solid rgba(185,28,28,0.28);
+      border-radius: 22px;
+      padding: 24px;
+    }
+    .curator-pick-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      background: rgba(9,9,11,0.78);
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 8px;
+    }
+    .curator-pick-row:hover {
+      border-color: rgba(185,28,28,0.46);
+      background: rgba(24,24,27,0.82);
+    }
+    .curator-pick-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .curator-action-btn {
+      min-height: 32px;
+      border-radius: 9999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .personal-tab {
+      padding: 8px 14px;
+      font-size: 15px;
+      border-bottom: 3px solid transparent;
+      color: #a1a1aa;
+      white-space: nowrap;
+      transition: all 0.1s ease;
+      background: #18181b;
+      border-radius: 8px 8px 0 0;
+      margin-right: 2px;
+    }
+    .personal-tab:hover {
+      color: #fff;
+      background: #27272a;
+    }
+    .personal-tab.active {
+      color: #fff;
+      border-bottom-color: #b91c1c;
+      font-weight: 600;
+      background: #111113;
+    }
+    .personal-pane {
+      min-height: 140px;
+      background: #111113;
+      border: 1px solid #3f3f46;
+      border-radius: 0 8px 8px 8px;
+      padding: 8px;
+      margin-top: -1px; /* seamless with tab bar */
+    }
+
+    /* Larger fonts for readability on live site - easier on the eyes */
+    body {
+      font-size: 17px;
+      line-height: 1.45;
+    }
+    .library-item,
+    .curator-msg,
+    #curator-input,
+    .suggested-card {
+      font-size: 16px;
+    }
+    .text-xs {
+      font-size: 14px !important;
+    }
+    .text-sm {
+      font-size: 15px !important;
+    }
+    .text-[10px], .text-[11px], .text-[9px] {
+      font-size: 13px !important;
+    }
+    .text-[13px] {
+      font-size: 16px !important;
+    }
+    input, button, .movie-card {
+      font-size: 16px;
+    }
+    /* Top section larger fonts */
+    .top-header h1 {
+      font-size: 3.75rem;
+    }
+    .top-header p {
+      font-size: 16px;
+    }
+
+    /* Mobile friendliness: tighten for phones (iPhone SE, Android small screens) - but keep fonts larger for eyes */
+    @media (max-width: 640px) {
+      .max-w-screen-2xl { max-width: 100%; }
+      
+      /* Header */
+      .top-header h1 { font-size: 2.5rem !important; letter-spacing: -1.5px; }
+      .top-header p { font-size: 14px !important; }
+      
+      /* Tabs - more compact scrollable */
+      .personal-tab {
+        padding: 5px 9px !important;
+        font-size: 13px !important;
+        margin-right: 1px;
+      }
+      .personal-pane { padding: 6px; min-height: 130px; }
+
+      /* Aggressively eliminate gap: the toggle is now a tiny ▾ symbol in the bar (no wrapping, no "sits below"), lists content starts immediately under the bar */
+      #personal-tabs-bar {
+        padding: 2px 3px !important;
+      }
+      #personal-content {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+      }
+      .personal-pane {
+        padding: 1px 2px !important;
+        min-height: 60px !important;
+      }
+      .personal-pane > div {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+      #to-watch-content, #watched-content, #disliked-content {
+        padding: 1px !important;
+        margin-top: 0 !important;
+        border: none !important;
+      }
+      /* Keep items readable but kill top-of-list deadspace */
+      .library-item {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+      }
+
+      /* Tiny compact toggle (symbol only) */
+      #lists-toggle {
+        font-size: 11px !important;
+        padding: 0 4px !important;
+        margin-left: 0.125rem !important;
+        min-height: 22px !important;
+      }
+
+      /* Hide the sub-label rows ("Upcoming nightmares", "Watched library...", "Disliked...") on mobile.
+         This is the last source of random vertical space above the actual listed movies.
+         The 🎲 Random button (in the To Watch row) will remain as a tiny control right above the list. */
+      .personal-pane > div.text-xs.text-zinc-500:not(.flex) {
+        display: none !important;
+      }
+      .personal-pane > div.flex.justify-between > div:first-child {
+        display: none !important; /* hide the text label, keep the random button */
+      }
+      
+      /* Curator input */
+      #curator-input { font-size: 16px !important; }
+      #curator-messages {
+        min-height: 190px;
+        max-height: 310px !important;
+        padding: 10px !important;
+      }
+      .curator-header {
+        padding: 8px 10px !important;
+      }
+      .curator-composer {
+        padding: 10px !important;
+      }
+      .curator-msg { padding: 8px 10px; font-size: 14px !important; max-width: 88%; }
+      .curator-msg.user { max-width: 84%; }
+      #curator-quick-replies button {
+        padding: 5px 8px !important;
+        font-size: 12px !important;
+        min-height: 30px !important;
+      }
+      #curator-status {
+        font-size: 11px !important;
+        margin-top: 6px !important;
+      }
+      .curator-pick-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .curator-pick-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+      .curator-action-btn {
+        flex: 1;
+        min-height: 34px;
+      }
+      
+      /* Recommended header buttons */
+      .mb-2 > .flex.items-center.justify-between button {
+        font-size: 11px !important;
+        padding-left: 9px !important;
+        padding-right: 9px !important;
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
+      }
+      
+      /* Mood chips removed */
+      
+      /* Search / Discover */
+      .search-input { font-size: 16px; }
+      #discover-sort, .inline-flex button { font-size: 12px !important; }
+      
+      /* Results cards (search/discover) - expanded for easier viewing */
+      .movie-card { padding: 16px !important; }
+      .movie-card .flex.gap-4, .movie-card .flex.gap-5 { gap: 16px; }
+      /* Allow responsive poster sizes from template for expanded cards on mobile */
+      /* .movie-card img { width: 80px !important; height: 120px !important; } */
+      
+      /* Action buttons row - expanded */
+      .mt-2.flex.gap-2 > button,
+      .mt-3.flex.gap-2 > button,
+      .mt-3.flex.gap-2 > button {
+        font-size: 13px !important;
+        padding: 6px 10px !important;
+      }
+      
+      /* Recs grid cards (top Recommended) - bigger for readability */
+      #recs-grid .movie-card { padding: 16px !important; }
+      /* Allow template responsive sizes for expanded recs on mobile */
+      /* #recs-grid .movie-card img { width: 72px !important; height: 108px !important; } */
+      #recs-grid .mt-2.flex.gap-1 > button { font-size: 11px !important; padding: 5px 8px !important; }
+      
+      /* Personal lists - bigger for scrolling readability */
+      .library-item { padding: 8px 10px !important; gap: 10px; font-size: 15px !important; }
+      .library-item button { font-size: 12px !important; padding: 3px 8px !important; }
+      .library-item img, .library-item div[class*="w-"] { width: 52px !important; height: 78px !important; }
+      #to-watch-content, #watched-content, #disliked-content { max-height: 260px !important; }
+      
+      /* Modal */
+      #detail-modal .p-4 { padding: 14px; }
+      #detail-modal .text-xl { font-size: 1.2rem; }
+      
+      /* General */
+      .text-lg { font-size: 16px !important; }
+      button, input { min-height: 38px; font-size: 15px; }
+
+      /* Make titles larger and more readable in cards on mobile */
+      .movie-card .font-semibold { font-size: 16px !important; line-height: 1.3 !important; }
+      .movie-card .text-base, .movie-card .text-lg, .movie-card .text-xl { font-size: 16px !important; }
+      .movie-card .text-sm, .movie-card .text-xs { font-size: 14px !important; }
+
+      /* Aggressively remove gap between rating and decade filters in Discover (mobile) */
+      .grid.grid-cols-1.sm\\:grid-cols-2 {
+        gap: 0 !important;
+      }
+      .grid.grid-cols-1.sm\\:grid-cols-2 > div > div.text-\\[8px\\] {
+        margin-bottom: 0 !important;
+        line-height: 1 !important;
+      }
+      /* Discover table: keep readable, reduce gaps, fill buttons, center where possible */
+      .bg-zinc-900.border.border-zinc-700.rounded-3xl.p-1 {
+        padding: 8px !important;
+      }
+      #genre-chips, #rating-chips, #decade-chips {
+        gap: 2px !important;
+      }
+      .grid.grid-cols-2.gap-1.mb-0\\.5 {
+        gap: 4px !important;
+        margin-bottom: 4px !important;
+      }
+      .flex.items-center.pt-1.border-t {
+        margin-top: 2px !important;
+        padding-top: 2px !important;
+      }
+      .inline-flex.rounded-3xl, select#discover-sort, button[onclick*="performDiscover"] {
+        font-size: 13px !important;
+        padding: 4px 6px !important;
+      }
+      .text-\\[8px\\] {
+        font-size: 13px !important;
+      }
+      .text-xs {
+        font-size: 14px !important;
+      }
+      #genre-chips {
+        justify-content: center !important;
+      }
+      #rating-chips, #decade-chips {
+        justify-content: space-around !important;
+      }
+      .flex.items-center.justify-between.mb-0\\.5,
+      .flex.items-center.justify-between.mb-px {
+        margin-bottom: 1px !important;
+      }
+      /* Ensure rating/decade flex fills full width to avoid right gap */
+      .flex.gap-1.mb-0\\.5.w-full {
+        width: 100% !important;
+      }
+      /* Chip buttons packed to fill width with small even gaps (not overly spread) */
+      #genre-chips button, #rating-chips button, #decade-chips button {
+        min-width: 50px !important;
+        text-align: center !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+      }
+    }
+
+    /* Toast notifications - clean, contained, horror themed */
+    #toast-container {
+      position: fixed;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      max-width: 90vw;
+    }
+    .toast {
+      pointer-events: auto;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      color: #e4e4e7;
+      padding: 10px 16px;
+      border-radius: 9999px;
+      font-size: 14px;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      animation: toast-in 0.2s ease forwards;
+      max-width: 320px;
+    }
+    .toast.success { border-color: #4ade80; }
+    .toast.error { border-color: #f87171; }
+    .toast.info { border-color: #60a5fa; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast.out {
+      animation: toast-out 0.15s ease forwards;
+    }
+    @keyframes toast-out {
+      to { opacity: 0; transform: translateY(8px); }
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200 no-pull-refresh">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
+
+    <!-- Header -->
+    <div class="mb-0.5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 top-header">
+      <div class="min-w-0">
+        <h1 class="text-4xl sm:text-5xl font-semibold tracking-[-2px] sm:tracking-[-2.5px] text-white">Brous Movie Engine</h1>
+        <p class="text-zinc-400 text-[13px] sm:text-[14px] mt-0.5 tracking-tight">Find your next <span class="text-red-400/90">nightmare</span>.</p>
+        <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-0.5">Personal recs for horror, thrillers, sci-fi &amp; suspense.</p>
+      </div>
+      <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <button onclick="installPWA()" id="install-btn"
+                class="hidden text-[9px] sm:text-[10px] px-2 sm:px-3 py-1 sm:py-1.5 rounded-3xl bg-white text-black font-medium active:bg-zinc-200">
+          Install
+        </button>
+        <button onclick="managePassword()" id="pass-btn"
+                class="text-[9px] sm:text-[10px] px-2 py-1 rounded-3xl border border-zinc-700 text-zinc-400 hover:bg-zinc-800 active:bg-zinc-900"
+                title="Set or change the shared password for the API (required for search, discover, recs &amp; Curator)">
+          🔐 Pass
+        </button>
+        <button onclick="showSettings()" id="settings-btn"
+                class="text-[9px] sm:text-[10px] px-2 py-1 rounded-3xl border border-zinc-700 text-zinc-400 hover:bg-zinc-800 active:bg-zinc-900"
+                title="LLM settings, backup, import &amp; more">
+          ⚙︎ Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- Top Personal Tabs (To Watch / Watched / Disliked) with master toggle inline in the same bar (no extra row or left gap) -->
+    <div class="mb-0">
+      <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling: touch;">
+        <div class="flex overflow-x-auto flex-1">
+          <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count" class="text-[10px] text-zinc-400">(0)</span></button>
+          <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count" class="text-[10px] text-zinc-400">(0)</span></button>
+        </div>
+        <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1 py-px bg-zinc-800 border border-zinc-700 rounded flex-shrink-0" title="Hide all lists">▾</button>
+      </div>
+      <!-- Mini stats row for density and personality -->
+      <div id="personal-stats" class="text-[10px] text-zinc-500 px-2 py-0.5 flex gap-3 flex-wrap border-x border-zinc-700 bg-zinc-900/40"></div>
+      <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden">
+        <div id="pane-towatch" class="personal-pane">
+          <div class="flex justify-between mb-1 text-xs text-zinc-500">
+            <div>Upcoming nightmares</div>
+            <button onclick="pickRandomToWatch()" class="text-[10px] px-1.5 py-px bg-zinc-800 rounded">🎲 Random</button>
+          </div>
+          <div id="to-watch-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
+        </div>
+        <div id="pane-watched" class="personal-pane hidden">
+          <div class="text-xs text-zinc-500 mb-1">Watched library (drives recs)</div>
+          <div id="watched-content" class="space-y-1 text-sm max-h-[320px] overflow-auto"></div>
+        </div>
+        <div id="pane-disliked" class="personal-pane hidden">
+          <div class="text-xs text-zinc-500 mb-1">Disliked (excluded from recs)</div>
+          <div id="disliked-content" class="space-y-1 text-sm max-h-[280px] overflow-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended for you (top area, with Refresh Pool + Recompute buttons) -->
+    <div class="mb-2">
+      <div class="flex items-start justify-between gap-3 mb-1.5 px-1">
+        <div>
+          <div class="font-semibold text-sm">Recommended for you</div>
+          <div class="text-xs text-zinc-500">Based on what you’ve watched • refreshed from a deeper pool</div>
+        </div>
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <button onclick="refreshRecPool()" 
+                  class="rec-toolbar-btn primary">Fresh Pool</button>
+          <button onclick="loadMoreRecommendations()" 
+                  class="rec-toolbar-btn">More</button>
+          <button onclick="refreshDeepRecommendations()" 
+                  class="rec-toolbar-btn">Deep Cuts</button>
+          <button onclick="recomputeRecommendations()" 
+                  class="rec-toolbar-btn">Rescore</button>
+        </div>
+      </div>
+      <div id="recs-status" class="flex flex-wrap gap-1.5 mb-2 px-1"></div>
+
+      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
+        <!-- Populated by recomputeRecommendations() -->
+      </div>
+      <div id="recs-empty" class="hidden text-center text-zinc-500 text-sm rec-empty-panel">
+        <div class="font-semibold text-zinc-100 mb-1">No fresh picks in this pool</div>
+        <div class="text-xs text-zinc-500 mb-4">Pull more pages or try deeper cuts to get beyond the obvious titles.</div>
+        <div class="flex justify-center gap-2 flex-wrap">
+          <button onclick="loadMoreRecommendations()" class="rec-toolbar-btn primary">Find More</button>
+          <button onclick="refreshDeepRecommendations()" class="rec-toolbar-btn">Deep Cuts</button>
+          <button onclick="document.querySelectorAll('[data-tab]')[0]?.click()" class="rec-toolbar-btn">Browse</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Curator Chat -->
+    <div class="mb-2">
+      <div class="border border-zinc-800 rounded-2xl overflow-hidden" id="curator-chat">
+        <div class="curator-header flex items-center justify-between px-3 py-2 border-b border-red-900/60">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="curator-avatar" style="width:28px;height:28px;font-size:14px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 18px rgba(185,28,28,0.25);">👻</span>
+            <div class="leading-tight min-w-0">
+              <div class="text-sm text-zinc-100 tracking-tight font-semibold">The Curator</div>
+              <div id="curator-mood" class="text-[10px] text-red-300/85 tracking-[0.8px] uppercase truncate">THE REELS ARE RESTLESS</div>
+            </div>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="clearCuratorPicks()" class="curator-icon-btn" title="Clear picks" aria-label="Clear picks"><i class="fa-solid fa-broom text-xs"></i></button>
+            <button onclick="clearCuratorChat()" class="curator-icon-btn" title="Clear chat" aria-label="Clear chat"><i class="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+        </div>
+
+        <div id="curator-messages" class="px-3 py-3 max-h-[340px] overflow-auto text-sm"></div>
+
+        <div class="curator-composer p-3 border-t border-zinc-800">
+          <div class="flex gap-2">
+            <input id="curator-input" type="text" placeholder="Ask for a mood, a double feature, or your next watch..." class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-900/60 text-base rounded-3xl px-4 py-2 outline-none placeholder:text-zinc-500" onkeypress="if (event.key === 'Enter') sendToCurator()">
+            <button onclick="sendToCurator()" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-semibold rounded-3xl transition-colors">
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+              <span class="hidden sm:inline">Send</span>
+            </button>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mt-2" id="curator-quick-replies"></div>
+
+          <div id="curator-status" class="text-[10px] text-zinc-500 mt-2 px-1">Grounded in your watched library • history kept until cleared</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="mb-1">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm">
+        <div class="flex gap-2 items-center">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-search absolute left-3 top-2.5 text-zinc-500"></i>
+            <input id="search-input" type="text" placeholder="Search for a movie or show..."
+                   class="search-input w-full bg-zinc-950 border border-zinc-700 focus:border-zinc-400 pl-9 pr-3 py-2 rounded-3xl text-base outline-none placeholder:text-zinc-500"
+                   onkeypress="if (event.key === 'Enter') performSearch()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discover (clean, tight, readable table) -->
+    <div class="mb-0.5">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-1.5 shadow-sm">
+        <div class="flex items-center justify-between mb-0.5 px-1">
+          <div class="text-xs font-medium text-zinc-400">Discover</div>
+          <button onclick="clearSelectedGenres()" class="text-[8px] text-zinc-500 hover:text-zinc-400">Clear</button>
+        </div>
+
+        <!-- Genre chips - full width, centered, tighter gap -->
+        <div class="mb-0.5">
+          <div class="text-[8px] text-zinc-500 mb-px">Genres</div>
+          <div id="genre-chips" class="flex flex-wrap gap-1 w-full justify-center"></div>
+        </div>
+
+        <!-- Rating + Decade side-by-side, buttons spaced to fill but with tighter gap -->
+        <div class="flex gap-1 mb-0.5 w-full">
+          <div class="flex-1">
+            <div class="text-[8px] text-zinc-500 mb-px">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+          </div>
+          <div class="flex-1">
+            <div class="text-[8px] text-zinc-500 mb-px">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-1 w-full justify-around"></div>
+          </div>
+        </div>
+
+        <!-- Bottom controls - compact, toggle good size, readable -->
+        <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-800 text-sm">
+          <div class="flex-1">
+            <select id="discover-sort" onchange="performDiscover()"
+                    class="bg-zinc-950 border border-zinc-700 rounded-3xl px-2 py-1 text-sm text-zinc-200 outline-none w-full">
+              <option value="popularity.desc">Popular</option>
+              <option value="vote_average.desc">Rated</option>
+              <option value="release_date.desc">New</option>
+              <option value="release_date.asc">Old</option>
+            </select>
+          </div>
+
+          <div class="px-1">
+            <div class="inline-flex rounded-3xl bg-zinc-950 border border-zinc-700 p-1 text-sm">
+              <button onclick="setDiscoverType('movie')" id="type-movie"
+                      class="px-2 py-0.5 rounded-3xl font-medium bg-white text-black">Movies</button>
+              <button onclick="setDiscoverType('tv')" id="type-tv"
+                      class="px-2 py-0.5 rounded-3xl font-medium text-zinc-300">TV</button>
+            </div>
+          </div>
+
+          <div class="flex-1 flex justify-end">
+            <button onclick="performDiscover()"
+                    class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-sm font-semibold rounded-3xl shadow-sm transition-all active:scale-[0.985]">
+              Browse
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Filters Summary -->
+    <div id="active-filters" class="hidden mb-3 flex flex-wrap gap-2 px-1"></div>
+
+    <!-- Results -->
+    <div id="results" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4"></div>
+
+    <!-- Load more for Discover -->
+    <div id="load-more-container" class="hidden text-center mt-4">
+      <button onclick="loadMoreDiscover()"
+              class="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-white text-sm font-medium rounded-3xl border border-zinc-700">
+        Show more
+      </button>
+    </div>
+
+
+
+
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+        <div class="p-4 sm:p-6">
+          <div class="flex justify-between items-start mb-3 sm:mb-4">
+            <div class="min-w-0 pr-2">
+              <div id="modal-title" class="text-xl sm:text-2xl font-semibold leading-tight"></div>
+              <div id="modal-meta" class="text-zinc-400 mt-1 text-sm"></div>
+            </div>
+            <button onclick="closeModal()" class="text-2xl text-zinc-400 hover:text-white flex-shrink-0">×</button>
+          </div>
+
+          <div id="modal-overview" class="text-zinc-300 leading-relaxed mb-3 text-sm sm:text-base"></div>
+
+          <div id="modal-genres" class="flex flex-wrap gap-1 sm:gap-2 mb-3"></div>
+
+          <div class="mb-2">
+            <div class="text-[10px] font-medium text-zinc-400 mb-1">Where to watch</div>
+            <div id="modal-availability"></div>
+          </div>
+
+          <div class="flex gap-2 sm:gap-3">
+            <button id="modal-add-button"
+                    class="flex-1 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 text-white text-sm font-semibold rounded-3xl">
+              Add to My List
+            </button>
+            <button onclick="closeModal()"
+                    class="px-4 sm:px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-3xl">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Initial state / welcome message -->
+    <div id="initial-state" class="text-center py-12 text-zinc-400">
+      <i class="fa-solid fa-search text-4xl mb-4 opacity-40"></i>
+      <p class="text-lg text-zinc-300">Recommended for you is at the top • Search or Discover below</p>
+      <p class="text-sm mt-1">Dark cinema recs (horror / thrillers / sci-fi / suspense) powered by your watched library + The Curator.</p>
+    </div>
+
+  </div>
+
+  <!-- Toast container for feedback -->
+  <div id="toast-container"></div>
+
+  <script>
+    // Global error catcher to show problems visibly (since nothing is "responding")
+    window.addEventListener('error', function(e) {
+      console.error('Global JS error:', e);
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:10px 15px;z-index:999999;font-size:13px;font-family:monospace;';
+      banner.innerHTML = 'JS ERROR: ' + (e.message || e) + ' (see browser Console F12 for details). App may not have initialized.';
+      if (document.body) document.body.insertBefore(banner, document.body.firstChild);
+      else document.addEventListener('DOMContentLoaded', function() { document.body.insertBefore(banner, document.body.firstChild); });
+    });
+
+    // Discover data
+    const GENRES = [
+      {id: 28, name: 'Action'}, {id: 12, name: 'Adventure'}, {id: 16, name: 'Animation'},
+      {id: 35, name: 'Comedy'}, {id: 80, name: 'Crime'}, {id: 99, name: 'Documentary'},
+      {id: 18, name: 'Drama'}, {id: 10751, name: 'Family'}, {id: 14, name: 'Fantasy'},
+      {id: 27, name: 'Horror'}, {id: 9648, name: 'Mystery'}, {id: 10749, name: 'Romance'},
+      {id: 878, name: 'Sci-Fi'}, {id: 53, name: 'Thriller'}
+    ];
+
+    // Nice colors for provider pills (still used in modal for "where to watch")
+    // Provider colors for the "where to watch" modal (My Services UI removed, but modal still shows availability)
+    const PROVIDER_COLORS = {
+      'Netflix': 'bg-red-600 text-white',
+      'Hulu': 'bg-green-600 text-white',
+      'Max': 'bg-purple-700 text-white',
+      'Prime Video': 'bg-sky-600 text-white',
+      'Peacock': 'bg-violet-600 text-white',
+      'Apple TV+': 'bg-zinc-800 text-white',
+      'Paramount+': 'bg-blue-700 text-white',
+      'Disney+': 'bg-indigo-700 text-white',
+    };
+
+    let selectedGenres = new Set();
+    let currentDiscoverType = 'movie';
+    let minRating = 0;
+    let selectedDecade = null; // {label, gte, lte} or null
+    let currentSearchType = 'movie';
+    let currentDiscoverPage = 1;
+    let currentDiscoverResults = [];
+
+    // Watchlist (legacy quick list, kept working for existing search/discover "My List" flows)
+    let watchlist = JSON.parse(localStorage.getItem('brous_watchlist') || '[]');
+    // Use composite key to safely handle movie vs tv with potentially overlapping numeric ids
+    let watchedIds = new Set(watchlist.map(w => `${w.id}:${w._mediaType || 'movie'}`));
+    let lastRenderedItems = [];
+
+    // === Horror Roki full personal state (from Streamlit current setup) ===
+    // Stored only in browser (localStorage). Matches backup/restore contract (lists + chat_history + llm_config no secrets).
+    let toWatchList = [];
+    let watchedList = [];
+    let dislikedList = [];
+    let chatHistory = [];
+    let llmConfig = { provider: 'xAI', base_url: 'https://api.x.ai/v1', model: 'grok-4.3', max_history_turns: 12, max_response_tokens: 900 };
+    try {
+      toWatchList = JSON.parse(localStorage.getItem('horror_roki_towatch') || '[]');
+      watchedList = JSON.parse(localStorage.getItem('horror_roki_watched') || '[]');
+      dislikedList = JSON.parse(localStorage.getItem('horror_roki_disliked') || '[]');
+      chatHistory = JSON.parse(localStorage.getItem('horror_roki_chat') || '[]');
+      llmConfig = JSON.parse(localStorage.getItem('horror_roki_llm') || JSON.stringify(llmConfig));
+    } catch(e) {
+      console.warn('localStorage parse failed (data may be corrupted or cleared):', e);
+    }
+    let currentRecPool = [];
+    let recPageCursor = Number(localStorage.getItem('horror_roki_rec_page') || '1') || 1;
+    let recLastMode = localStorage.getItem('horror_roki_rec_mode') || 'fresh';
+    let recLoading = false;
+    let currentMood = 'All';
+    let curatorPicks = []; // parsed SUGGESTED for cards + optional BATCH_RATE items
+    let lastGrounding = {}; // title -> metadata for curator turns
+
+    // Combined exclusion for recs / search results (watched + disliked + to_watch treated as "seen or queued")
+    function getExcludedKeys() {
+      const keys = new Set();
+      [...watchlist, ...toWatchList, ...watchedList, ...dislikedList].forEach(it => {
+        const k = `${it.id}:${it._mediaType || 'movie'}`;
+        keys.add(k);
+      });
+      return keys;
+    }
+
+    // === Password for Cloudflare Worker (Basic Auth) ===
+    // The Worker requires a shared password on all /api/tmdb and /api/llm calls.
+    // We store it in localStorage (per-browser). Username is ignored by the Worker.
+    let apiPassword = localStorage.getItem('brous_password') || '';
+
+    // Optional: Custom API base for direct Worker access (useful for local testing or tunnels).
+    // Example: 'https://your-worker.your-account.workers.dev'
+    // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
+    let apiBase = localStorage.getItem('brous_api_base') || '';
+    // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
+    // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlApiBase = urlParams.get('apiBase');
+    if (urlApiBase) {
+      apiBase = urlApiBase;
+      localStorage.setItem('brous_api_base', apiBase); // persist for this visitor too
+      console.log('[Horror Roki] apiBase overridden from URL param:', apiBase);
+    }
+    console.log('[Horror Roki] Current apiBase at load:', apiBase || '(relative)');
+
+    // Curator mood lines for personality (subtle, rotates occasionally)
+    const CURATOR_MOODS = [
+      'THE REELS ARE RESTLESS',
+      'SLOW BURNS ONLY',
+      'GORE IS IN THE AIR',
+      'FOLK HORROR SEASON',
+      'THE SHADOWS ARE TALKING',
+      'CLASSICS AWAKENING'
+    ];
+
+    function setCuratorMood() {
+      const el = document.getElementById('curator-mood');
+      if (el) {
+        el.textContent = CURATOR_MOODS[Math.floor(Math.random() * CURATOR_MOODS.length)];
+      }
+    }
+
+    // Contextual quick replies for Curator (rotates based on recent watched)
+    function refreshCuratorQuickReplies() {
+      const container = document.getElementById('curator-quick-replies');
+      if (!container) return;
+      container.innerHTML = '';
+      const base = [
+        {q: 'Something slow burn and psychological', label: 'Slow burn'},
+        {q: 'Recommend something really gory', label: 'Gory'},
+        {q: 'What should I watch next', label: 'What next?'},
+        {q: 'Folk horror or supernatural', label: 'Folk / Supernatural'}
+      ];
+      // Add one contextual from recent watched genres if possible
+      let contextual = null;
+      if (watchedList.length) {
+        const last = watchedList[0];
+        if (last.genre_ids && last.genre_ids.includes(27)) contextual = {q: 'More horror like the last one', label: 'More like last'};
+        else if (last.genre_ids && last.genre_ids.includes(9648)) contextual = {q: 'Psychological thriller please', label: 'Mind bender'};
+      }
+      const picks = contextual ? [contextual, ...base.slice(0,3)] : base;
+      picks.forEach(p => {
+        const b = document.createElement('button');
+        b.textContent = p.label;
+        b.className = 'text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800';
+        b.dataset.q = p.q;
+        container.appendChild(b);
+      });
+    }
+
+    // Simple toast system for action feedback (used by lists, curator, etc.)
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      // Auto dismiss
+      setTimeout(() => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 150);
+      }, 2400);
+      // Tap to dismiss early
+      toast.onclick = () => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 100);
+      };
+    }
+
+    // Swipe actions for library items (mobile only, nice dense UX)
+    function setupSwipeActions(container, listType) {
+      if (!container) return;
+      const isMobile = window.innerWidth < 640 || 'ontouchstart' in window;
+      if (!isMobile) return;
+
+      const items = container.querySelectorAll('.library-item');
+      items.forEach((item, index) => {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+
+        const onStart = (e) => {
+          if (e.touches) {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+            item.classList.add('swiping');
+          }
+        };
+        const onMove = (e) => {
+          if (!isDragging || !e.touches) return;
+          currentX = e.touches[0].clientX - startX;
+          // limit drag
+          const limited = Math.max(Math.min(currentX, 120), -120);
+          item.style.transform = `translateX(${limited}px)`;
+          // subtle bg hint
+          if (limited > 40) item.style.background = 'rgba(52, 211, 153, 0.15)';
+          else if (limited < -40) item.style.background = 'rgba(248, 113, 113, 0.15)';
+          else item.style.background = '';
+        };
+        const onEnd = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          item.classList.remove('swiping');
+          const threshold = 60;
+
+          if (currentX > threshold) {
+            // swipe right
+            item.style.transition = 'transform 0.2s, opacity 0.2s';
+            item.style.transform = 'translateX(100%)';
+            item.style.opacity = '0';
+            setTimeout(() => {
+              handleSwipeRight(listType, index, item);
+            }, 180);
+          } else if (currentX < -threshold) {
+            item.style.transition = 'transform 0.2s, opacity 0.2s';
+            item.style.transform = 'translateX(-100%)';
+            item.style.opacity = '0';
+            setTimeout(() => {
+              handleSwipeLeft(listType, index, item);
+            }, 180);
+          } else {
+            // reset
+            item.style.transition = 'transform 0.2s ease';
+            item.style.transform = '';
+            item.style.background = '';
+          }
+          currentX = 0;
+        };
+
+        item.addEventListener('touchstart', onStart, {passive: true});
+        item.addEventListener('touchmove', onMove, {passive: true});
+        item.addEventListener('touchend', onEnd);
+        item.addEventListener('touchcancel', onEnd);
+      });
+    }
+
+    function handleSwipeRight(listType, index, itemEl) {
+      if (listType === 'towatch') {
+        markWatchedFromToWatch(index);
+      } else if (listType === 'disliked') {
+        // move disliked back to to watch
+        const item = dislikedList[index];
+        if (item) {
+          toWatchList.unshift(item);
+          dislikedList.splice(index, 1);
+          saveToWatch();
+          saveDisliked();
+          showToast('Moved to To Watch');
+        }
+      } else {
+        itemEl.style.transform = '';
+        itemEl.style.background = '';
+      }
+    }
+
+    function handleSwipeLeft(listType, index, itemEl) {
+      if (listType === 'towatch') {
+        dislikeFromToWatch(index);
+      } else if (listType === 'watched') {
+        // from watched to disliked
+        const item = watchedList[index];
+        if (item) {
+          dislikedList.unshift(item);
+          watchedList.splice(index, 1);
+          saveWatched();
+          saveDisliked();
+          showToast('Moved to Disliked');
+        }
+      } else {
+        itemEl.style.transform = '';
+        itemEl.style.background = '';
+      }
+    }
+
+    function getAuthHeaders() {
+      if (!apiPassword) return {};
+      return getStoredAuthHeaders();
+    }
+
+    function getStoredAuthHeaders() {
+      if (!apiPassword) return {};
+      // Worker accepts anything:password (username ignored)
+      return {
+        'Authorization': 'Basic ' + btoa('user:' + apiPassword)
+      };
+    }
+
+    function promptForWorkerPassword() {
+      if (!apiPassword) {
+        apiPassword = prompt('Enter the shared password for the Worker (same as your PASSWORD secret):') || '';
+        if (apiPassword) {
+          localStorage.setItem('brous_password', apiPassword);
+        }
+      }
+      return getStoredAuthHeaders();
+    }
+
+    async function apiFetch(path, options = {}) {
+      let url = path;
+      if (apiBase) {
+        // Support absolute Worker URL for local testing / tunnels / direct calls
+        const base = apiBase.replace(/\/+$/, '');
+        const p = path.startsWith('/') ? path : '/' + path;
+        url = base + p;
+      }
+
+      const method = options.method || 'GET';
+      const isTmdbGet = method === 'GET' && path.startsWith('/api/tmdb/');
+      const buildFetchOptions = (authHeaders = {}) => {
+        const headers = {...authHeaders};
+        if (options.body && !headers['Content-Type']) {
+          headers['Content-Type'] = 'application/json';
+        }
+        const fetchOptions = { method, headers };
+        if (options.body) {
+          fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+        }
+        return fetchOptions;
+      };
+
+      let res = await fetch(url, buildFetchOptions(isTmdbGet ? getStoredAuthHeaders() : getAuthHeaders()));
+      if (res.status === 401) {
+        localStorage.removeItem('brous_password');
+        apiPassword = '';
+        const promptedHeaders = promptForWorkerPassword();
+        if (promptedHeaders.Authorization) {
+          res = await fetch(url, buildFetchOptions(promptedHeaders));
+        }
+      }
+      console.log('[Horror Roki] apiFetch to:', url, 'status will be checked next');
+      if (res.status === 401) {
+        // Bad or missing password
+        localStorage.removeItem('brous_password');
+        apiPassword = '';
+        const err = new Error('Worker rejected the password. Click 🔐 Pass and enter the same PASSWORD secret from Cloudflare.');
+        err.status = 401;
+        throw err;
+      }
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          // Likely hit Pages static 404 instead of Worker route
+          const err = new Error('API call failed: received HTML instead of JSON. This usually means the Worker Route is not set up for this domain (or wrong domain). Check Cloudflare Worker Routes for your Pages URL + /api/*');
+          err.status = res.status;
+          err.isRouteError = true;
+          throw err;
+        }
+        let msg = 'API error ' + res.status;
+        let errData = null;
+        try {
+          errData = await res.json();
+          if (errData && errData.error) {
+            msg = errData.error;
+          } else if (errData && errData.status_message) {
+            msg = errData.status_message;
+          }
+        } catch (_) {}
+        const err = new Error(msg);
+        err.status = res.status;
+        err.details = errData;
+        throw err;
+      }
+      // For non-JSON responses (rare), just return the response
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        return res.json();
+      }
+      return res;
+    }
+
+    const RATING_OPTIONS = [0, 6, 7, 7.5, 8];
+    const DECADES = [
+      {label: '2020s', gte: '2020-01-01', lte: '2029-12-31'},
+      {label: '2010s', gte: '2010-01-01', lte: '2019-12-31'},
+      {label: '2000s', gte: '2000-01-01', lte: '2009-12-31'},
+      {label: '1990s', gte: '1990-01-01', lte: '1999-12-31'},
+      {label: '1980s', gte: '1980-01-01', lte: '1989-12-31'},
+      {label: '1970s', gte: '1970-01-01', lte: '1979-12-31'},
+    ];
+
+    function renderGenreChips() {
+      const container = document.getElementById('genre-chips');
+      if (!container) return;
+      container.innerHTML = '';
+      GENRES.forEach(g => {
+        const isSelected = selectedGenres.has(g.id);
+        const btn = document.createElement('button');
+        btn.textContent = g.name;
+        btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
+          ? 'filter-chip-active' 
+          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+        btn.onclick = () => {
+          if (selectedGenres.has(g.id)) selectedGenres.delete(g.id);
+          else selectedGenres.add(g.id);
+          renderGenreChips();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function clearSelectedGenres() {
+      selectedGenres.clear();
+      minRating = 0;
+      selectedDecade = null;
+      renderGenreChips();
+      renderRatingChips();
+      renderDecadeChips();
+      const activeFilters = document.getElementById('active-filters');
+      if (activeFilters) activeFilters.classList.add('hidden');
+    }
+
+    function renderRatingChips() {
+      const container = document.getElementById('rating-chips');
+      if (!container) return;
+      container.innerHTML = '';
+
+      RATING_OPTIONS.forEach(val => {
+        const isSelected = minRating === val;
+        const label = val === 0 ? 'Any' : `${val}+`;
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
+          ? 'filter-chip-active' 
+          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+        btn.onclick = () => {
+          minRating = val;
+          renderRatingChips();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderDecadeChips() {
+      const container = document.getElementById('decade-chips');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // Any chip
+      const anyBtn = document.createElement('button');
+      anyBtn.textContent = 'Any';
+      anyBtn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${!selectedDecade 
+        ? 'filter-chip-active' 
+        : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+      anyBtn.onclick = () => {
+        selectedDecade = null;
+        renderDecadeChips();
+      };
+      container.appendChild(anyBtn);
+
+      DECADES.forEach(d => {
+        const isSelected = selectedDecade && selectedDecade.label === d.label;
+        const btn = document.createElement('button');
+        btn.textContent = d.label;
+        btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
+          ? 'filter-chip-active' 
+          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+        btn.onclick = () => {
+          selectedDecade = d;
+          renderDecadeChips();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function setDiscoverType(type) {
+      currentDiscoverType = type;
+      const movieBtn = document.getElementById('type-movie');
+      const tvBtn = document.getElementById('type-tv');
+      if (movieBtn && tvBtn) {
+        if (type === 'movie') {
+          movieBtn.classList.add('bg-white', 'text-black');
+          movieBtn.classList.remove('text-zinc-300');
+          tvBtn.classList.remove('bg-white', 'text-black');
+          tvBtn.classList.add('text-zinc-300');
+        } else {
+          tvBtn.classList.add('bg-white', 'text-black');
+          tvBtn.classList.remove('text-zinc-300');
+          movieBtn.classList.remove('bg-white', 'text-black');
+          movieBtn.classList.add('text-zinc-300');
+        }
+      }
+    }
+
+    function setSearchType(type) {
+      currentSearchType = type;
+      const movieBtn = document.getElementById('search-type-movie');
+      const tvBtn = document.getElementById('search-type-tv');
+      if (movieBtn && tvBtn) {
+        if (type === 'movie') {
+          movieBtn.classList.add('bg-white', 'text-black');
+          movieBtn.classList.remove('text-zinc-300');
+          tvBtn.classList.remove('bg-white', 'text-black');
+          tvBtn.classList.add('text-zinc-300');
+        } else {
+          tvBtn.classList.add('bg-white', 'text-black');
+          tvBtn.classList.remove('text-zinc-300');
+          movieBtn.classList.remove('bg-white', 'text-black');
+          movieBtn.classList.add('text-zinc-300');
+        }
+      }
+    }
+
+    async function performDiscover(reset = true) {
+      const container = document.getElementById('results');
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = 'none';
+
+      if (reset) {
+        currentDiscoverPage = 1;
+        currentDiscoverResults = [];
+        container.innerHTML = `<div class="text-center py-6 text-zinc-400">Finding titles...</div>`;
+      }
+
+      const genreIds = Array.from(selectedGenres);
+
+      const sortValue = document.getElementById('discover-sort')?.value || 'popularity.desc';
+      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&watch_region=US&page=${currentDiscoverPage}`;
+      if (genreIds.length > 0) {
+        url += `&with_genres=${genreIds.join(',')}`;
+      }
+      if (minRating > 0) {
+        url += `&vote_average.gte=${minRating}&vote_count.gte=75`;
+      }
+      if (selectedDecade) {
+        const dateField = currentDiscoverType === 'movie' ? 'primary_release_date' : 'first_air_date';
+        url += `&${dateField}.gte=${selectedDecade.gte}&${dateField}.lte=${selectedDecade.lte}`;
+      }
+
+      try {
+        const data = await apiFetch(url);
+
+        if (!data.results?.length) {
+          if (reset) {
+            container.innerHTML = `<div class="text-center py-10 text-zinc-400">
+              <p>No titles found for those filters.</p>
+              <p class="text-xs mt-2 text-zinc-500">Try removing a genre or lowering the minimum rating.</p>
+            </div>`;
+          }
+          document.getElementById('load-more-container').classList.add('hidden');
+          return;
+        }
+
+        const enriched = await Promise.all(data.results.map(async item => {
+          const isMovie = currentDiscoverType === 'movie';
+          const mediaPath = isMovie ? 'movie' : 'tv';
+          try {
+            const [provData, extData] = await Promise.all([
+              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/watch/providers`),
+              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/external_ids`)
+            ]);
+            const providers = provData.results?.US || null;
+            const external = extData;
+            return { 
+              ...item, 
+              providers, 
+              imdb_id: external.imdb_id || null,
+              _mediaType: currentDiscoverType
+            };
+          } catch {
+            return { ...item, providers: null, imdb_id: null, _mediaType: currentDiscoverType };
+          }
+        }));
+
+        currentDiscoverResults = currentDiscoverResults.concat(enriched);
+
+        renderResults(currentDiscoverResults);
+        renderActiveFilters();
+
+        // Show/hide load more button
+        const loadMoreContainer = document.getElementById('load-more-container');
+        if (data.results.length >= 20 && currentDiscoverPage < (data.total_pages || 5)) {
+          loadMoreContainer.classList.remove('hidden');
+        } else {
+          loadMoreContainer.classList.add('hidden');
+        }
+
+      } catch (e) {
+        if (reset) {
+          console.error('[Horror Roki] Discover failed:', e, 'URL attempted:', url);
+          let hint = 'Check password (🔐 Pass button) or connection.';
+          if (apiBase) hint += ` (Using custom base: ${apiBase})`;
+          let displayMsg;
+          if (e.status === 401 || e.message.includes('Unauthorized') || e.message.includes('password')) {
+            displayMsg = 'Password required or incorrect. Click the 🔐 Pass button above to set it (or use ⚙︎ Settings to set API Endpoint Base if running locally).';
+          } else if (e.details && e.details.error) {
+            displayMsg = e.details.error;
+            if (e.details.availableSecrets) {
+              displayMsg += ' | Available matching secrets: ' + JSON.stringify(e.details.availableSecrets);
+            }
+          } else if (e.message) {
+            displayMsg = e.message;
+          } else {
+            displayMsg = `Error loading results. ${hint} (If using local server: open ⚙︎ Settings and set "API Endpoint Base" to your Worker URL like https://your-worker.workers.dev , then set password. See browser Console for details.)`;
+          }
+          container.innerHTML = `<div class="text-center py-6 text-red-400">${displayMsg}</div>`;
+        }
+        document.getElementById('load-more-container').classList.add('hidden');
+      }
+    }
+
+    function loadMoreDiscover() {
+      currentDiscoverPage++;
+      performDiscover(false);
+    }
+
+    function renderActiveFilters() {
+      const container = document.getElementById('active-filters');
+      if (!container) return;
+
+      const filters = [];
+
+      if (selectedGenres.size > 0) {
+        const genreNames = Array.from(selectedGenres).map(id => {
+          const g = GENRES.find(x => x.id === id);
+          return g ? g.name : '';
+        }).filter(Boolean);
+        filters.push(`Genres: ${genreNames.join(', ')}`);
+      }
+      if (minRating > 0) filters.push(`Rating: ${minRating}+`);
+      if (selectedDecade) filters.push(`Decade: ${selectedDecade.label}`);
+
+      if (filters.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+
+      container.classList.remove('hidden');
+      container.innerHTML = filters.map(f => 
+        `<span class="text-[11px] px-2.5 py-1 bg-zinc-800 border border-zinc-700 rounded-2xl text-zinc-300">${f}</span>`
+      ).join('');
+    }
+
+    // ===================== WATCHLIST =====================
+
+    function saveWatchlist() {
+      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      // keep top counts in sync if legacy path used
+      try { updateLibraryCounts(); } catch(e){}
+    }
+
+    function addToWatchlist(item) {
+      const exists = watchlist.some(w => w.id === item.id && w._mediaType === item._mediaType);
+      if (!exists) {
+        const rec = {
+          id: item.id,
+          title: item.title || item.name,
+          _mediaType: item._mediaType || 'movie',
+          poster_path: item.poster_path,
+          release_date: item.release_date || item.first_air_date,
+          vote_average: item.vote_average,
+          genre_ids: item.genre_ids || []
+        };
+        watchlist.push(rec);
+        const key = `${item.id}:${item._mediaType || 'movie'}`;
+        watchedIds.add(key);
+        saveWatchlist();
+        renderWatchlist();
+
+        // Also feed the full To Watch list
+        addToToWatch(item);
+
+        // Explicit removal from current discover/search results to prevent duplicates
+        removeFromCurrentResults(item.id, item._mediaType || 'movie');
+      }
+    }
+
+    // Dedicated removal function for items that should disappear from discover/search
+    // after being selected as watched. This prevents duplication in the current results view.
+    // Call this (or wire it into your "mark as watched" / add to library flow) whenever a title
+    // is added to the watched library. It cleans both the in-memory cache and the DOM view.
+    function removeFromCurrentResults(id, mediaType = 'movie') {
+      const key = `${id}:${mediaType}`;
+      currentDiscoverResults = currentDiscoverResults.filter(m => {
+        const mKey = `${m.id}:${m._mediaType || 'movie'}`;
+        return mKey !== key;
+      });
+      lastRenderedItems = lastRenderedItems.filter(m => {
+        const mKey = `${m.id}:${m._mediaType || 'movie'}`;
+        return mKey !== key;
+      });
+      currentRecPool = currentRecPool.filter(m => {
+        const mKey = `${m.id}:${m._mediaType || 'movie'}`;
+        return mKey !== key;
+      });
+
+      if (currentDiscoverResults.length > 0) {
+        renderResults(currentDiscoverResults);
+      } else if (lastRenderedItems.length > 0) {
+        renderResults(lastRenderedItems);
+      }
+      // keep recs grid fresh
+      if (document.getElementById('recs-grid')) {
+        recomputeRecommendations();
+      }
+    }
+
+    function removeFromWatchlist(id, mediaType) {
+      watchlist = watchlist.filter(w => !(w.id === id && w._mediaType === mediaType));
+      const keyToDelete = `${id}:${mediaType || 'movie'}`;
+      watchedIds.delete(keyToDelete);
+      // also clean full lists
+      toWatchList = toWatchList.filter(w => !(w.id === id && (w._mediaType||'movie') === (mediaType||'movie')));
+      saveToWatch();
+      saveWatchlist();
+      renderWatchlist();
+    }
+
+    function renderWatchlist() {
+      const container = document.getElementById('my-list-content');
+      if (!container) return;
+
+      if (watchlist.length === 0) {
+        container.innerHTML = `<div class="text-sm text-zinc-400">Your list is empty. Add titles from search or Discover results.</div>`;
+        return;
+      }
+
+      let html = '';
+      watchlist.forEach(item => {
+        const year = (item.release_date || '').slice(0, 4);
+        html += `
+          <div class="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded-2xl p-3">
+            <div class="flex items-center gap-3">
+              ${item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-10 h-14 rounded-lg object-cover">` : ''}
+              <div>
+                <div class="font-medium">${item.title}</div>
+                <div class="text-xs text-zinc-400">${year} · ${item._mediaType === 'tv' ? 'TV' : 'Movie'}</div>
+              </div>
+            </div>
+            <button onclick="removeFromWatchlist(${item.id}, '${item._mediaType}')" 
+                    class="text-red-400 hover:text-red-300 text-sm px-3 py-1">Remove</button>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    // ===================== FULL LIBRARY (To Watch / Watched / Disliked) =====================
+    // Mirrors Streamlit lists + the title-based removal fix (items disappear reliably).
+    // Also syncs a bit with legacy watchlist for the old My List accordion.
+
+    function saveToWatch() {
+      localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+      updateLibraryCounts();
+      renderToWatch();
+      // also refresh legacy quick list if desired
+      try { renderWatchlist(); } catch(e){}
+      pushToServer(); // server sync (debounced)
+    }
+    function saveWatched() {
+      localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+      updateLibraryCounts();
+      renderWatched();
+      // Recompute recs when library changes (taste changed)
+      if (currentRecPool.length) recomputeRecommendations();
+      pushToServer();
+    }
+    function saveDisliked() {
+      localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+      updateLibraryCounts();
+      renderDisliked();
+      if (currentRecPool.length) recomputeRecommendations();
+      pushToServer();
+    }
+
+    function updateLibraryCounts() {
+      // update top tabs counts (personal tabs at top)
+      const ttw = document.getElementById('tab-towatch-count');
+      if (ttw) ttw.textContent = `(${toWatchList.length})`;
+      const twa = document.getElementById('tab-watched-count');
+      if (twa) twa.textContent = `(${watchedList.length})`;
+      const td = document.getElementById('tab-disliked-count');
+      if (td) td.textContent = `(${dislikedList.length})`;
+
+      // Mini stats row
+      renderPersonalStats();
+    }
+
+    function renderPersonalStats() {
+      const el = document.getElementById('personal-stats');
+      if (!el) return;
+      const total = watchedList.length + toWatchList.length + dislikedList.length;
+      if (total === 0) {
+        el.innerHTML = `<span class="opacity-60">Start your collection — search or Discover above.</span>`;
+        return;
+      }
+      // Simple top genre from watched (rough)
+      const genreCounts = {};
+      watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g]||0) + 1; }));
+      const topGenreId = Object.keys(genreCounts).sort((a,b)=>genreCounts[b]-genreCounts[a])[0];
+      const topGenre = topGenreId ? (GENRES.find(g=>g.id==topGenreId)?.name || '') : '';
+      el.innerHTML = `
+        <span>${watchedList.length} watched</span>
+        <span>${toWatchList.length} queued</span>
+        ${topGenre ? `<span class="text-red-400/80">top: ${topGenre}</span>` : ''}
+      `;
+    }
+
+    function posterHtml(item, size = 'w92') {
+      if (!item || !item.poster_path) {
+        return `<div class="w-12 h-[72px] bg-zinc-800 rounded flex-shrink-0"></div>`;
+      }
+      return `<div class="poster-wrap w-12 h-[72px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
+    }
+
+    function addToToWatch(item) {
+      const key = `${item.id}:${item._mediaType || 'movie'}`;
+      const exists = toWatchList.some(w => `${w.id}:${w._mediaType||'movie'}` === key);
+      if (exists) return;
+      const rec = {
+        id: item.id,
+        title: item.title || item.name,
+        _mediaType: item._mediaType || 'movie',
+        poster_path: item.poster_path,
+        release_date: item.release_date || item.first_air_date,
+        vote_average: item.vote_average,
+        genre_ids: item.genre_ids || [],
+        overview: item.overview || ''
+      };
+      toWatchList.unshift(rec); // newest first
+      // also add to legacy quick list for compatibility
+      const legacyExists = watchlist.some(w => w.id === rec.id && w._mediaType === rec._mediaType);
+      if (!legacyExists) {
+        watchlist.unshift({...rec});
+        localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+        watchedIds.add(key);
+      }
+      saveToWatch();
+      showToast('Added to To Watch');
+      // remove from current visible recs/search (like the Streamlit title filter + roki removal)
+      removeFromCurrentResults(item.id, item._mediaType || 'movie');
+    }
+
+    function addToWatched(item, rating = null) {
+      const key = `${item.id}:${item._mediaType || 'movie'}`;
+      // remove from to watch / quick list first (the "disappear" fix)
+      toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
+      watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
+      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      watchedIds.delete(key);
+
+      const existsIdx = watchedList.findIndex(w => `${w.id}:${w._mediaType||'movie'}` === key);
+      const rec = {
+        id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
+        poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
+        vote_average: item.vote_average, genre_ids: item.genre_ids || [],
+        overview: item.overview || '', rating: rating || null
+      };
+      if (existsIdx >= 0) watchedList[existsIdx] = rec; else watchedList.unshift(rec);
+      saveWatched();
+      saveToWatch(); // counts + renders
+      showToast('Marked watched ★' + (rating ? rating : ''));
+      removeFromCurrentResults(item.id, item._mediaType || 'movie');
+    }
+
+    function addToDisliked(item) {
+      const key = `${item.id}:${item._mediaType || 'movie'}`;
+      toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
+      watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
+      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      watchedIds.delete(key);
+
+      const exists = dislikedList.some(d => `${d.id}:${d._mediaType||'movie'}` === key);
+      if (!exists) {
+        dislikedList.unshift({
+          id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
+          poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
+          vote_average: item.vote_average, genre_ids: item.genre_ids || []
+        });
+      }
+      saveDisliked();
+      saveToWatch();
+      showToast('Added to Disliked');
+      removeFromCurrentResults(item.id, item._mediaType || 'movie');
+    }
+
+    function removeFromToWatch(id, mediaType = 'movie') {
+      const key = `${id}:${mediaType}`;
+      toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
+      watchlist = watchlist.filter(w => !(w.id === id && (w._mediaType||'movie') === mediaType));
+      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      watchedIds.delete(key);
+      saveToWatch();
+    }
+
+    function removeFromWatched(id, mediaType = 'movie') {
+      const key = `${id}:${mediaType}`;
+      watchedList = watchedList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
+      saveWatched();
+    }
+
+    function removeFromDisliked(id, mediaType = 'movie') {
+      const key = `${id}:${mediaType}`;
+      dislikedList = dislikedList.filter(d => `${d.id}:${d._mediaType||'movie'}` !== key);
+      saveDisliked();
+    }
+
+    // ===================== SERVER SYNC (for cross-device / phone persistence) =====================
+    // Uses the same Worker + PASSWORD. Requires you to:
+    // 1. Create a KV namespace in Cloudflare (Workers & Pages → KV)
+    // 2. Bind it to your Worker as DATA_KV (Worker → Settings → Variables → KV Namespace Bindings)
+    // 3. Redeploy the Worker.
+    // The frontend falls back gracefully to localStorage if the binding isn't set up yet.
+    // Data shape is the same as the existing backup JSON.
+
+    let _syncTimeout = null;
+
+    async function pushToServer(immediate = false) {
+      if (!apiBase && !location.hostname.includes('pages.dev')) {
+        // No worker configured — only localStorage
+        return;
+      }
+      const payload = {
+        watched: watchedList,
+        to_watch: toWatchList,
+        disliked: dislikedList,
+        chat_history: chatHistory.slice(-30),
+        llm_config: llmConfig,
+        synced_at: new Date().toISOString(),
+        version: 'server-sync-1'
+      };
+
+      const doPush = async () => {
+        try {
+          await apiFetch('/api/data', { method: 'POST', body: payload });
+          console.log('[Horror Roki] Pushed data to server KV');
+        } catch (e) {
+          console.warn('[Horror Roki] Server push failed (will retry on next change):', e.message);
+        }
+      };
+
+      if (immediate) {
+        await doPush();
+      } else {
+        clearTimeout(_syncTimeout);
+        _syncTimeout = setTimeout(doPush, 1200); // debounce writes
+      }
+    }
+
+    async function syncFromServer() {
+      if (!apiBase && !location.hostname.includes('pages.dev')) return null;
+      try {
+        const serverData = await apiFetch('/api/data');
+        if (!serverData || typeof serverData !== 'object') return null;
+
+        let changed = false;
+
+        if (Array.isArray(serverData.watched) && serverData.watched.length > (watchedList?.length || 0)) {
+          watchedList = serverData.watched;
+          localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+          changed = true;
+        }
+        if (Array.isArray(serverData.to_watch)) {
+          toWatchList = serverData.to_watch;
+          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+          changed = true;
+        }
+        if (Array.isArray(serverData.disliked) && serverData.disliked.length > (dislikedList?.length || 0)) {
+          dislikedList = serverData.disliked;
+          localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+          changed = true;
+        }
+        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > (chatHistory?.length || 0)) {
+          chatHistory = serverData.chat_history;
+          localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory));
+          changed = true;
+        }
+
+        if (changed) {
+          updateAllLibraryRenders();
+          try { renderCuratorMessages(); } catch(e){}
+          console.log('[Horror Roki] Pulled fresher data from server KV');
+        }
+        return serverData;
+      } catch (e) {
+        // Server not available or no KV bound yet — silently fall back to localStorage
+        if (!e.message?.includes('DATA_KV')) {
+          console.log('[Horror Roki] No server data (using local only):', e.message);
+        }
+        return null;
+      }
+    }
+
+    function renderToWatch() {
+      const c = document.getElementById('to-watch-content');
+      if (!c) return;
+      if (!toWatchList.length) {
+        c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Your queue is empty.<br><span class="text-[10px] opacity-70">Add from recommendations, search, or ask the Curator for picks.</span></div>`;
+        return;
+      }
+      let html = '';
+      toWatchList.forEach((item, idx) => {
+        const year = (item.release_date || '').slice(0,4);
+        const poster = posterHtml(item, 'w92');
+        html += `<div class="library-item text-sm items-center">
+          ${poster}
+          <div class="flex-1 min-w-0">
+            <div class="font-medium truncate">${item.title} <span class="text-xs text-zinc-500">${year}</span></div>
+          </div>
+          <button onclick="markWatchedFromToWatch(${idx})" class="text-sm px-2 py-0.5 rounded-xl bg-emerald-800 text-emerald-100">⭐ Rate</button>
+          <button onclick="dislikeFromToWatch(${idx})" class="text-[10px] px-1 py-px rounded-xl border border-zinc-700 text-zinc-400">👎</button>
+          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[10px] text-red-400 px-1">×</button>
+        </div>`;
+      });
+      c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const toWatchRows = c.querySelectorAll('.library-item');
+      toWatchList.forEach((item, i) => {
+        if (i >= toWatchRows.length) return;
+        const row = toWatchRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
+
+      // Swipe gestures on mobile
+      setupSwipeActions(c, 'towatch');
+    }
+
+    function markWatchedFromToWatch(idx) {
+      const item = toWatchList[idx];
+      if (!item) return;
+      const container = document.getElementById('to-watch-content');
+      const row = container && container.children[idx] ? container.children[idx] : null;
+      if (!row) {
+        // rare fallback: default to 4 to avoid jarring prompt
+        addToWatched(item, 4);
+        return;
+      }
+      // Completely redesigned rating prompt to guarantee it stays inside the box:
+      // - Remove action buttons
+      // - Force the row to wrap
+      // - Put a full-width contained rating bar below the main content
+      // - Use compact but tappable stars
+      row.querySelectorAll('button').forEach(b => b.remove());
+      row.style.flexWrap = 'wrap';
+      row.style.alignItems = 'flex-start';
+
+      // Super contained rating redesign:
+      // We create a full-width sub-bar that is always inside the .library-item
+      // Stars are readable (text-sm on desktop, decent on mobile) but use tight padding + background so the whole thing fits without ever going outside the bordered box.
+      const rateBar = document.createElement('div');
+      rateBar.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
+      for(let r=1; r<=5; r++) {
+        const b = document.createElement('button');
+        b.textContent = r + '★';
+        b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
+        b.onclick = () => {
+          addToWatched(item, r);
+          row.style.opacity = '0.4';
+          rateBar.remove();
+        };
+        rateBar.appendChild(b);
+      }
+      row.appendChild(rateBar);
+    }
+    function dislikeFromToWatch(idx) {
+      const item = toWatchList[idx];
+      if (!item) return;
+      addToDisliked(item);
+    }
+
+    function renderWatched() {
+      const c = document.getElementById('watched-content');
+      if (!c) return;
+      if (!watchedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">No watched titles yet.<br><span class="text-[10px] opacity-70">Rate movies as you watch — this powers your personal recs.</span></div>`; return; }
+      let html = '';
+      watchedList.slice(0,12).forEach((item, idx) => {
+        const year = (item.release_date || '').slice(0,4);
+        const r = item.rating ? ` · ${item.rating}★` : '';
+        const poster = posterHtml(item, 'w92');
+        html += `<div class="library-item text-sm items-center">
+          ${poster}
+          <div class="flex-1 truncate">${item.title} <span class="text-xs text-zinc-500">${year}${r}</span></div>
+          <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1">×</button>
+        </div>`;
+      });
+      if (watchedList.length > 12) html += `<div class="text-[10px] text-zinc-500 px-1">+${watchedList.length-12} more</div>`;
+      c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const watchedRows = c.querySelectorAll('.library-item');
+      watchedList.slice(0,12).forEach((item, i) => {
+        if (i >= watchedRows.length) return;
+        const row = watchedRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
+
+      // Swipe gestures on mobile
+      setupSwipeActions(c, 'watched');
+    }
+
+    function renderDisliked() {
+      const c = document.getElementById('disliked-content');
+      if (!c) return;
+      if (!dislikedList.length) { c.innerHTML = `<div class="text-center py-4 text-xs text-zinc-500">Nothing disliked yet.<br><span class="text-[10px] opacity-70">Disliked titles are excluded from recommendations.</span></div>`; return; }
+      let html = '';
+      dislikedList.slice(0,8).forEach(item => {
+        const poster = posterHtml(item, 'w92');
+        html += `<div class="library-item text-sm items-center">
+          ${poster}
+          <div class="flex-1 truncate">${item.title}</div>
+          <button onclick="removeFromDisliked(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1">×</button>
+        </div>`;
+      });
+      c.innerHTML = html;
+
+      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      const dislikedRows = c.querySelectorAll('.library-item');
+      dislikedList.slice(0,8).forEach((item, i) => {
+        if (i >= dislikedRows.length) return;
+        const row = dislikedRows[i];
+        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
+        if (poster && item) {
+          poster.style.cursor = 'pointer';
+          poster.title = 'View details';
+          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        }
+      });
+
+      // Swipe gestures on mobile
+      setupSwipeActions(c, 'disliked');
+    }
+
+    // Basic pull-to-refresh for personal lists area (mobile)
+    function setupPullToRefresh() {
+      const content = document.getElementById('personal-content');
+      const bar = document.getElementById('personal-tabs-bar');
+      if (!content || !bar) return;
+      let startY = 0;
+      let pulling = false;
+      bar.addEventListener('touchstart', (e) => {
+        if (content.scrollTop > 5) return;
+        startY = e.touches[0].clientY;
+        pulling = true;
+      }, {passive: true});
+      bar.addEventListener('touchmove', (e) => {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy > 60) {
+          content.style.transition = 'none';
+          content.style.transform = `translateY(${Math.min(dy-60, 40)}px)`;
+        }
+      }, {passive: true});
+      bar.addEventListener('touchend', () => {
+        if (!pulling) return;
+        pulling = false;
+        const wasPulled = content.style.transform && parseFloat(content.style.transform) > 20;
+        content.style.transition = 'transform 0.2s ease';
+        content.style.transform = '';
+        if (wasPulled) {
+          updateAllLibraryRenders();
+          showToast('Lists refreshed');
+          recomputeRecommendations();
+        }
+      });
+    }
+
+    function pickRandomToWatch() {
+      if (!toWatchList.length) { alert('To Watch is empty.'); return; }
+      const pick = toWatchList[Math.floor(Math.random()*toWatchList.length)];
+      // show in modal or just toast + detail if possible
+      openModal(pick).catch(()=>{});
+    }
+
+    function updateAllLibraryRenders() {
+      updateLibraryCounts();
+      renderToWatch();
+      renderWatched();
+      renderDisliked();
+      try { renderWatchlist(); } catch(e){}
+      applyListsCollapse();
+    }
+
+    // Master collapse for all three personal list panes (To Watch / Watched / Disliked).
+    // Persisted so it remembers across reloads. Single toggle for all at once.
+    let listsCollapsed = localStorage.getItem('horror_roki_lists_collapsed') === 'true';
+
+    function toggleAllLists() {
+      listsCollapsed = !listsCollapsed;
+      localStorage.setItem('horror_roki_lists_collapsed', listsCollapsed);
+      applyListsCollapse();
+    }
+
+    function applyListsCollapse() {
+      const wrapper = document.getElementById('personal-content');
+      const btn = document.getElementById('lists-toggle');
+      const bar = document.getElementById('personal-tabs-bar');
+      if (wrapper) {
+        wrapper.style.display = listsCollapsed ? 'none' : '';
+      }
+      if (btn) {
+        btn.textContent = listsCollapsed ? '▸' : '▾';
+        btn.title = listsCollapsed ? 'Show all lists' : 'Hide all lists';
+      }
+      if (bar) {
+        if (listsCollapsed) bar.classList.add('rounded-b-2xl');
+        else bar.classList.remove('rounded-b-2xl');
+      }
+    }
+
+    // Simple tabs for top personal (To Watch etc moved to top)
+    function switchPersonalTab(tab) {
+      document.querySelectorAll('.personal-pane').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.personal-tab').forEach(b => b.classList.remove('active'));
+      const pane = document.getElementById('pane-' + tab);
+      if (pane) pane.classList.remove('hidden');
+      const btn = document.getElementById('tab-' + tab);
+      if (btn) btn.classList.add('active');
+
+      // Re-apply swipes for the newly visible pane
+      setTimeout(() => {
+        const activePane = document.querySelector('.personal-pane:not(.hidden)');
+        if (activePane) {
+          const content = activePane.querySelector('#to-watch-content, #watched-content, #disliked-content');
+          if (content) {
+            const type = activePane.id.includes('towatch') ? 'towatch' : activePane.id.includes('watched') ? 'watched' : 'disliked';
+            setupSwipeActions(content, type);
+          }
+        }
+      }, 50);
+    }
+
+    // ===================== MODAL =====================
+
+    let currentModalItem = null;
+
+    async function openModal(item) {
+      currentModalItem = item;
+      const modal = document.getElementById('detail-modal');
+      const titleEl = document.getElementById('modal-title');
+      const metaEl = document.getElementById('modal-meta');
+      const overviewEl = document.getElementById('modal-overview');
+      const genresEl = document.getElementById('modal-genres');
+      const availEl = document.getElementById('modal-availability');
+      const addBtn = document.getElementById('modal-add-button');
+
+      // Make sure Where to watch + bottom action row are visible for normal movie modals
+      const whereWrap = document.querySelector('#detail-modal .mb-2');
+      if (whereWrap) whereWrap.style.display = '';
+      if (addBtn && addBtn.parentElement) addBtn.parentElement.style.display = '';
+
+      modal.classList.remove('hidden');
+      titleEl.textContent = item.title || item.name || 'Untitled';
+      metaEl.innerHTML = '';
+
+      const isMovie = (item._mediaType || 'movie') === 'movie';
+      const mediaPath = isMovie ? 'movie' : 'tv';
+
+      try {
+        // Fetch richer details
+        const detail = await apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}`);
+
+        metaEl.innerHTML = `
+          ${detail.release_date || detail.first_air_date ? (detail.release_date || detail.first_air_date).slice(0,4) + ' · ' : ''}
+          ${detail.vote_average ? detail.vote_average.toFixed(1) + ' ★ · ' : ''}
+          ${isMovie ? (detail.runtime ? detail.runtime + ' min' : '') : (detail.number_of_seasons ? detail.number_of_seasons + ' seasons' : '')}
+        `;
+
+        overviewEl.textContent = detail.overview || 'No overview available.';
+
+        genresEl.innerHTML = (detail.genres || []).map(g => 
+          `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl">${g.name}</span>`
+        ).join('');
+
+      } catch (e) {
+        overviewEl.textContent = 'Could not load additional details (check password with 🔐 Pass button).';
+      }
+
+      // Availability - now horizontal compact row (scaled down, no vertical stacking)
+      if (item.providers) {
+        const groups = { stream: item.providers.flatrate || [], rent: item.providers.rent || [], buy: item.providers.buy || [] };
+        let allHtml = '';
+        Object.entries(groups).forEach(([type, items]) => {
+          if (!items.length) return;
+          const short = type === 'stream' ? 'S' : type.charAt(0).toUpperCase();
+          items.forEach(p => {
+            const name = getProviderName(p);
+            const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
+            allHtml += `<span class="inline-flex items-center px-1.5 py-px text-[9px] rounded-2xl ${colorClass} border border-white/10 mr-1 mb-0.5" title="${type}">${short}: ${name}</span>`;
+          });
+        });
+        if (allHtml) {
+          availEl.innerHTML = `<div class="flex flex-wrap gap-1">${allHtml}</div>`;
+        } else {
+          availEl.innerHTML = 'No availability data';
+        }
+      } else {
+        availEl.innerHTML = 'No availability data';
+      }
+
+      // Rich actions (full lists support)
+      addBtn.style.display = 'none'; // hide single, use our row
+      let actions = document.getElementById('modal-actions-row');
+      if (!actions) {
+        actions = document.createElement('div');
+        actions.id = 'modal-actions-row';
+        actions.className = 'flex gap-2 mt-2';
+        const footer = addBtn.parentNode;
+        footer.appendChild(actions);
+      }
+      actions.innerHTML = `
+        <button class="flex-1 px-4 py-2 rounded-3xl bg-emerald-700 text-white text-sm" id="ma-towatch">+ To Watch</button>
+        <button class="flex-1 px-4 py-2 rounded-3xl bg-zinc-800 border border-zinc-700 text-sm" id="ma-watched">⭐ Mark Watched</button>
+        <button class="px-4 py-2 rounded-3xl border border-zinc-700 text-red-400 text-sm" id="ma-dislike">👎 Dislike</button>
+      `;
+      document.getElementById('ma-towatch').onclick = () => { addToToWatch(item); closeModal(); };
+      document.getElementById('ma-watched').onclick = () => {
+        // Inline in modal to avoid extra dialog
+        const actions = document.getElementById('modal-actions-row');
+        if (actions) actions.innerHTML = '<span class="text-sm">Rate:</span>';
+        const rateDiv = document.createElement('div');
+        rateDiv.className = 'flex gap-1 mt-1';
+        for(let r=1; r<=5; r++) {
+          const b = document.createElement('button');
+          b.textContent = r + '★';
+          b.className = 'text-base px-2 py-1 rounded bg-zinc-700 hover:bg-emerald-600 font-medium';
+          b.onclick = () => {
+            addToWatched(item, r);
+            closeModal();
+          };
+          rateDiv.appendChild(b);
+        }
+        if (actions) actions.appendChild(rateDiv);
+      };
+      document.getElementById('ma-dislike').onclick = () => { addToDisliked(item); closeModal(); };
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('detail-modal');
+      if (modal) {
+        modal.classList.remove('settings-mode');
+        modal.classList.add('hidden');
+        // cleanup any temp Settings-only hides/styles
+        const st = document.getElementById('settings-modal-hide-style');
+        if (st) st.remove();
+        const whereWrap = document.querySelector('#detail-modal .mb-2');
+        if (whereWrap) {
+          whereWrap.style.display = '';
+          // Restore the "Where to watch" label text for normal movie modals
+          const label = whereWrap.querySelector('div');
+          if (label && label.dataset.originalText !== undefined) {
+            label.textContent = label.dataset.originalText;
+            delete label.dataset.originalText;
+          }
+        }
+      }
+    }
+
+    // Make cards clickable and add watchlist buttons
+    function enhanceCard(card, item) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        openModal(item);
+      });
+    }
+
+
+
+    // My Services UI and filtering removed (user no longer wants to see subscribed services visually).
+    // getUserServices now always returns empty so no provider filtering happens.
+    function getUserServices() { return {}; }
+
+    // TMDB
+    async function performSearch() {
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+
+      const container = document.getElementById('results');
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = 'none';
+      container.innerHTML = `<div class="text-center py-6 text-zinc-400">Searching...</div>`;
+
+      const isMovie = currentSearchType === 'movie';
+      const searchEndpoint = isMovie ? 'movie' : 'tv';
+      const mediaPath = isMovie ? 'movie' : 'tv';
+
+      try {
+        const searchData = await apiFetch(`/api/tmdb/3/search/${searchEndpoint}?query=${encodeURIComponent(query)}`);
+
+        if (searchData.success === false) {
+          container.innerHTML = `<div class="text-center py-6 text-red-400">TMDB error: ${searchData.status_message}</div>`;
+          return;
+        }
+        if (!searchData.results?.length) {
+          container.innerHTML = `
+            <div class="text-center py-10 text-zinc-400">
+              <i class="fa-solid fa-search text-3xl mb-3 opacity-50"></i>
+              <p>No results found for that search.</p>
+              <p class="text-xs mt-1">Try a different title or adjust your filters.</p>
+            </div>`;
+          return;
+        }
+
+        const top = searchData.results.slice(0, 6);
+        const enriched = await Promise.all(top.map(async item => {
+          try {
+            const [provData, extData] = await Promise.all([
+              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/watch/providers`),
+              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/external_ids`)
+            ]);
+            const providers = provData.results?.US || null;
+            const external = extData;
+            return { 
+              ...item, 
+              providers, 
+              imdb_id: external.imdb_id || null,
+              _mediaType: currentSearchType
+            };
+          } catch {
+            return { ...item, providers: null, imdb_id: null, _mediaType: currentSearchType };
+          }
+        }));
+
+        renderResults(enriched);
+        const activeFilters = document.getElementById('active-filters');
+        if (activeFilters) activeFilters.classList.add('hidden');
+      } catch (e) {
+        console.error('[Horror Roki] Search failed:', e);
+        let displayMsg;
+        if (e.status === 401 || e.message.includes('Unauthorized') || e.message.includes('password')) {
+          displayMsg = 'Password required or incorrect. Click the 🔐 Pass button above to set it (or use ⚙︎ Settings to set API Endpoint Base if running locally).';
+        } else if (e.details && e.details.error) {
+          displayMsg = e.details.error;
+          if (e.details.availableSecrets) {
+            displayMsg += ' | Available matching secrets: ' + JSON.stringify(e.details.availableSecrets);
+          }
+        } else if (e.message) {
+          displayMsg = e.message;
+        } else {
+          displayMsg = 'Error fetching data. Check password (🔐 Pass button) or connection. (If using local server: open ⚙︎ Settings and set "API Endpoint Base" to your Worker URL like https://your-worker.workers.dev , then set password. See browser Console for details.)';
+        }
+        container.innerHTML = `<div class="text-center py-6 text-red-400">${displayMsg}</div>`;
+      }
+    }
+
+    function quickSearch(q) {
+      document.getElementById('search-input').value = q;
+      performSearch();
+    }
+
+    function getProviderName(p) {
+      const map = { 8: 'Netflix', 9: 'Prime Video', 15: 'Hulu', 1899: 'Max', 337: 'Disney+', 386: 'Peacock', 350: 'Apple TV', 531: 'Paramount+', 2575: 'Tubi', 207: 'Pluto TV' };
+      return map[p.provider_id] || p.provider_name;
+    }
+
+    function renderResults(items) {
+      const container = document.getElementById('results');
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = 'none';
+      container.innerHTML = '';
+      const services = getUserServices();
+
+      lastRenderedItems = items;
+
+      // Filter out watched / to-watch / disliked using full exclusion (carries the "disappear" fix)
+      const excluded = getExcludedKeys();
+      items = items.filter(m => {
+        const key = `${m.id}:${m._mediaType || 'movie'}`;
+        return !excluded.has(key);
+      });
+
+      items.forEach(m => {
+        const title = m.title || m.name || 'Untitled';
+        const year = (m.release_date || m.first_air_date || '').slice(0, 4);
+        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
+
+        let html = '';
+        if (m.providers) {
+          const groups = { stream: m.providers.flatrate || [], rent: m.providers.rent || [], buy: m.providers.buy || [] };
+          let allProvidersHtml = '';
+          Object.entries(groups).forEach(([type, items]) => {
+            if (!items.length) return;
+            const label = type === 'stream' ? 'S' : type.charAt(0).toUpperCase(); // S/R/B for compact
+            items.forEach(p => {
+              const name = getProviderName(p);
+              const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
+              const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
+              allProvidersHtml += `<span class="inline-flex items-center px-2.5 py-1 rounded-2xl text-xs font-medium leading-none ${colorClass} border border-white/10 flex-shrink-0" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
+            });
+          });
+          if (allProvidersHtml) {
+            // Horizontal row, expanded for larger cards - contained to avoid spill into other cards
+            html = `<div class="mt-2 px-1"><div class="text-xs text-zinc-500 mb-1">Where to watch</div><div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
+          } else {
+            html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
+          }
+        } else {
+          html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
+        }
+
+        const mediaLabel = (m._mediaType || 'movie') === 'tv' ? 'TV' : 'Movie';
+        const mediaColor = (m._mediaType || 'movie') === 'tv' ? 'bg-sky-900 text-sky-400' : 'bg-violet-900 text-violet-400';
+
+        const card = document.createElement('div');
+        card.className = 'movie-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
+            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-52 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            <div class="flex-1 min-w-0 pt-1">
+              <div>
+                <div class="flex items-start justify-between gap-2">
+                  <div class="font-semibold text-lg sm:text-xl leading-tight tracking-[-0.2px] flex-1 min-w-0 line-clamp-3">${title}</div>
+                  <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${mediaColor} self-start">${mediaLabel}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-2 flex-wrap">
+                  ${year ? `<span class="text-zinc-400 text-sm">${year}</span>` : ''}
+                  ${m.vote_average ? `<span class="inline-flex items-center gap-0.5 text-xs sm:text-sm px-1.5 py-px rounded bg-zinc-800 text-amber-400 font-medium"><i class="fa-solid fa-star text-[9px]"></i> ${m.vote_average.toFixed(1)}</span>` : ''}
+                  ${m.imdb_id ? `
+                    <a href="https://www.imdb.com/title/${m.imdb_id}/" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-95">
+                      <i class="fa-brands fa-imdb text-sm"></i>
+                      <span>IMDb</span>
+                    </a>
+                  ` : ''}
+                  <a href="https://www.rottentomatoes.com/search?search=${encodeURIComponent(title + (year ? ' ' + year : ''))}" 
+                     target="_blank" rel="noopener"
+                     class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-95">
+                    <span>RT</span>
+                  </a>
+                </div>
+              </div>
+              <div class="mt-3">${html}</div>
+
+            </div>
+          </div>`;
+        enhanceCard(card, m);
+
+        // Rich list actions (To Watch primary + Watched/Dislike)
+        const addBtnContainer = document.createElement('div');
+        addBtnContainer.className = 'mt-3 flex gap-2 overflow-x-auto flex-nowrap pb-1 snap-x';
+        const b1 = document.createElement('button');
+        b1.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
+        b1.textContent = '+ Watch';
+        b1.onclick = (e) => { e.stopImmediatePropagation(); addToToWatch(m); b1.textContent = '✓'; setTimeout(()=>b1.textContent='+ Watch',900); };
+        const b2 = document.createElement('button');
+        b2.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
+        b2.textContent = 'Watched';
+        b2.onclick = (e) => { 
+          e.stopImmediatePropagation(); 
+          // Inline rating instead of prompt
+          b1.style.display='none'; b2.style.display='none'; b3.style.display='none';
+          const rateDiv = document.createElement('div');
+          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
+          for(let r=1; r<=5; r++) {
+            const bb = document.createElement('button');
+            bb.textContent = r+'★';
+            bb.className = 'px-2.5 py-1 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium flex-shrink-0';
+            bb.onclick = () => { addToWatched(m, r); b2.textContent='✓'; rateDiv.remove(); };
+            rateDiv.appendChild(bb);
+          }
+          addBtnContainer.appendChild(rateDiv);
+        };
+        const b3 = document.createElement('button');
+        b3.className = 'flex-shrink-0 text-sm sm:text-base px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
+        b3.textContent = '👎';
+        b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); b3.textContent='✓'; };
+        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3);
+        card.appendChild(addBtnContainer);
+
+        container.appendChild(card);
+      });
+    }
+
+    // ===================== HORROR ROKI RECS + TASTE (port of boost_by_user_taste + get_user_genre_preferences) =====================
+
+    function getUserGenrePrefs() {
+      // Simple: count genre_ids from watchedList (weight by rating if 5)
+      const counts = {};
+      watchedList.forEach(m => {
+        const w = (m.rating === 5) ? 3 : 1;
+        (m.genre_ids || []).forEach(gid => {
+          counts[gid] = (counts[gid] || 0) + w;
+        });
+      });
+      const total = Object.values(counts).reduce((a,b)=>a+b, 0) || 1;
+      const prefs = {};
+      Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).forEach(([gid, c]) => {
+        const g = GENRES.find(x => x.id == gid);
+        if (g) prefs[g.name] = Math.round((c/total)*1000)/10;
+      });
+      return prefs;
+    }
+
+    function boostScore(item, prefs) {
+      let base = (item.vote_average || 6.5) * 0.7; // base on rating but not dominant
+      const gids = item.genre_ids || [];
+      const top = Object.keys(prefs);
+      const topIds = GENRES.filter(g => top.includes(g.name)).map(g=>g.id);
+      const matchCount = gids.filter(id => topIds.includes(id)).length;
+      base += matchCount * 1.2; // stronger boost for multiple genre matches
+      // slight recency/quality bias
+      if (item.popularity && item.popularity > 50) base += 0.4;
+      return Math.max(1, base);
+    }
+
+    // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
+
+    function getTasteGenreIds() {
+      const counts = {};
+      watchedList.forEach(m => {
+        const w = (m.rating === 5) ? 3 : 1;
+        (m.genre_ids || []).forEach(gid => {
+          counts[gid] = (counts[gid] || 0) + w;
+        });
+      });
+      const tasteIds = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([gid]) => Number(gid))
+        .filter(Boolean);
+      return [...new Set([...tasteIds, 27, 53, 878, 9648, 80, 14])].slice(0, 8);
+    }
+
+    function setRecStatus(message, extra = {}) {
+      const status = document.getElementById('recs-status');
+      if (!status) return;
+      const available = currentRecPool.filter(it => !getExcludedKeys().has(`${it.id}:${it._mediaType || 'movie'}`)).length;
+      const pills = [
+        `<span class="rec-meta-pill"><i class="fa-solid fa-clapperboard text-red-300"></i>${available} unseen in pool</span>`,
+        `<span class="rec-meta-pill"><i class="fa-solid fa-layer-group text-indigo-300"></i>page ${recPageCursor}</span>`
+      ];
+      if (message) pills.push(`<span class="rec-meta-pill">${escapeHtml(message)}</span>`);
+      if (extra.mode) pills.push(`<span class="rec-meta-pill">${escapeHtml(extra.mode)}</span>`);
+      status.innerHTML = pills.join('');
+    }
+
+    function mergeRecPool(items, append = true) {
+      const map = new Map();
+      if (append) {
+        currentRecPool.forEach(item => map.set(`${item.id}:${item._mediaType || 'movie'}`, item));
+      }
+      items.forEach(item => {
+        map.set(`${item.id}:${item._mediaType || 'movie'}`, item);
+      });
+      currentRecPool = [...map.values()];
+    }
+
+    async function fetchRecCandidates({ startPage = 1, pages = 3, deep = false } = {}) {
+      const excluded = getExcludedKeys();
+      const genreIds = getTasteGenreIds();
+      const voteFloor = deep ? 12 : 35;
+      const sortOptions = deep
+        ? ['vote_average.desc', 'popularity.desc', 'primary_release_date.desc']
+        : ['popularity.desc', 'vote_average.desc'];
+      let raw = [];
+      let lastFetchError = null;
+
+      await Promise.all(genreIds.map(async (g, idx) => {
+        for (let offset = 0; offset < pages; offset++) {
+          const page = Math.min(startPage + offset + (idx % 2), 500);
+          const sort = sortOptions[(offset + idx) % sortOptions.length];
+          const url = `/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&watch_region=US&with_genres=${g}&page=${page}&vote_count.gte=${voteFloor}&vote_average.gte=${deep ? 5.2 : 5.8}`;
+          try {
+            const data = await apiFetch(url);
+            raw = raw.concat(data.results || []);
+          } catch (e) {
+            lastFetchError = e;
+            console.warn('[Horror Roki] rec genre fetch failed', g, page, e);
+          }
+        }
+      }));
+
+      if (!raw.length && lastFetchError) {
+        throw lastFetchError;
+      }
+
+      const existing = new Set(currentRecPool.map(r => `${r.id}:movie`));
+      const seen = new Set();
+      return raw
+        .filter(r => r && r.id && r.title)
+        .sort((a, b) => {
+          const ar = (a.vote_average || 0) * 12 + (a.vote_count || 0) * 0.015 + (a.popularity || 0) * 0.08;
+          const br = (b.vote_average || 0) * 12 + (b.vote_count || 0) * 0.015 + (b.popularity || 0) * 0.08;
+          return br - ar;
+        })
+        .filter(r => {
+          const key = `${r.id}:movie`;
+          if (seen.has(key) || excluded.has(key) || existing.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map(r => ({
+          id: r.id, title: r.title, _mediaType: 'movie',
+          poster_path: r.poster_path, release_date: r.release_date,
+          vote_average: r.vote_average, vote_count: r.vote_count || 0,
+          genre_ids: r.genre_ids || [], overview: r.overview || '',
+          popularity: r.popularity || 0
+        }));
+    }
+
+    async function refreshRecPool(options = {}) {
+      const grid = document.getElementById('recs-grid');
+      const empty = document.getElementById('recs-empty');
+      const append = !!options.append;
+      const deep = !!options.deep;
+      if (recLoading) return;
+      recLoading = true;
+      if (!append) {
+        recPageCursor = 1;
+        currentRecPool = [];
+      }
+      recLastMode = deep ? 'deep cuts' : 'fresh';
+      localStorage.setItem('horror_roki_rec_mode', recLastMode);
+      if (grid && !append) grid.innerHTML = `<div class="text-center py-6 text-zinc-400 text-sm col-span-full">Loading a wider recommendation pool...</div>`;
+      setRecStatus(append ? 'Looking deeper...' : 'Refreshing...');
+      if (empty) empty.classList.add('hidden');
+
+      try {
+        const candidates = await fetchRecCandidates({ startPage: recPageCursor, pages: deep ? 5 : 3, deep });
+        mergeRecPool(candidates.slice(0, deep ? 80 : 60), append);
+        recPageCursor = Math.min(recPageCursor + (deep ? 5 : 3), 500);
+        localStorage.setItem('horror_roki_rec_page', String(recPageCursor));
+        recomputeRecommendations();
+        setRecStatus(candidates.length ? `Added ${candidates.length} fresh picks` : 'No new picks on these pages', { mode: recLastMode });
+      } catch (e) {
+        console.error('[Horror Roki] Refresh pool failed:', e, 'base was:', apiBase);
+        let poolMsg = 'Recommendations could not reach TMDB through your Worker.';
+        if (e.details && e.details.error) {
+          poolMsg = e.details.error;
+          if (e.details.availableSecrets) poolMsg += ' | Secrets: ' + JSON.stringify(e.details.availableSecrets);
+        } else if (e.status === 401 || (e.message || '').includes('password')) {
+          poolMsg = 'Worker password rejected. Click 🔐 Pass and enter the same PASSWORD secret from Cloudflare.';
+        } else if (e.isRouteError) {
+          poolMsg = 'The /api route is not reaching your Worker. Check the Worker route for this site.';
+        } else if (e.message && e.message.length < 100) poolMsg = e.message;
+        if (grid) grid.innerHTML = `<div class="text-center py-6 text-red-400 text-sm col-span-full">
+          <div class="font-semibold mb-1">${poolMsg}</div>
+          <div class="text-xs text-zinc-500">Base: ${apiBase || 'relative /api'} • Try 🔐 Pass, or set API Endpoint Base in Settings if running locally.</div>
+        </div>`;
+      } finally {
+        recLoading = false;
+      }
+    }
+
+    async function loadMoreRecommendations() {
+      await refreshRecPool({ append: true, deep: recLastMode === 'deep cuts' });
+    }
+
+    async function refreshDeepRecommendations() {
+      await refreshRecPool({ append: false, deep: true });
+    }
+
+    function recomputeRecommendations() {
+      const grid = document.getElementById('recs-grid');
+      const empty = document.getElementById('recs-empty');
+      if (!grid) return;
+
+      if (!currentRecPool.length) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+      }
+      if (empty) empty.classList.add('hidden');
+
+      const prefs = getUserGenrePrefs();
+      const excluded = getExcludedKeys();
+      // score + sort
+      let scored = currentRecPool.map(it => ({...it, _score: boostScore(it, prefs)}));
+      // Strict filter against all personal lists (watched, to-watch, disliked) - fixes suggesting already seen titles
+      scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
+      setRecStatus('', { mode: recLastMode });
+      if (!scored.length) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        setRecStatus('Pool exhausted', { mode: recLastMode });
+        return;
+      }
+      // light mood filter demo (for real would use more metadata or keywords)
+      if (currentMood !== 'All') {
+        // keep all but sort "moodier" first by slight random + vote for demo
+        scored.sort((a,b) => (b._score + (currentMood.length % 3)) - (a._score));
+      } else {
+        scored.sort((a,b) => b._score - a._score);
+      }
+
+      grid.innerHTML = '';
+      scored.slice(0, 15).forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-5 flex flex-col';
+        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
+        const year = (item.release_date || '').slice(0,4);
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row gap-3">
+            <img src="${poster}" class="w-full sm:w-20 h-40 sm:h-28 rounded-xl object-cover border border-zinc-800" alt="">
+            <div class="min-w-0 flex-1">
+              <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
+              <div class="text-xs text-zinc-500">${year} · ★${(item.vote_average||0).toFixed(1)}</div>
+              <div class="text-[10px] text-emerald-400/80 mt-1">Smart match • based on your taste profile</div>
+            </div>
+          </div>
+          <div class="mt-2 flex gap-1 overflow-x-auto flex-nowrap pb-1 snap-x">
+            <button class="flex-shrink-0 text-xs py-1 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white" data-act="towatch">+ Watch</button>
+            <button class="flex-shrink-0 text-xs py-1 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700" data-act="watched">Watched</button>
+            <button class="flex-shrink-0 text-xs px-1.5 py-1 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
+          </div>
+        `;
+        // wire actions
+        card.querySelector('[data-act="towatch"]').onclick = () => { addToToWatch(item); card.remove(); maybeTopOffRecommendations(); };
+        card.querySelector('[data-act="watched"]').onclick = () => {
+          // Inline rating chooser, no front-and-center prompt
+          const actions = card.querySelector('.mt-2') || card.querySelector('[data-act="watched"]').parentElement;
+          if (actions) actions.innerHTML = '';
+          const rateDiv = document.createElement('div');
+          rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1 flex-nowrap overflow-x-auto snap-x';
+          for(let r=1; r<=5; r++) {
+            const b = document.createElement('button');
+            b.textContent = r + '★';
+            b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium flex-shrink-0';
+            b.onclick = () => {
+              addToWatched(item, r);
+              card.remove();
+              maybeTopOffRecommendations();
+            };
+            rateDiv.appendChild(b);
+          }
+          card.appendChild(rateDiv);
+        };
+        card.querySelector('[data-act="dislike"]').onclick = () => { addToDisliked(item); card.remove(); maybeTopOffRecommendations(); };
+
+        // Make the whole rec card (including thumbnail) clickable for the rich detail bio modal,
+        // just like search/discover results. Buttons are protected by the guard inside enhanceCard.
+        enhanceCard(card, item);
+
+        grid.appendChild(card);
+      });
+    }
+
+    function maybeTopOffRecommendations() {
+      const visible = document.querySelectorAll('#recs-grid .rec-card').length;
+      if (visible <= 5 && !recLoading) {
+        loadMoreRecommendations().catch(() => {});
+      } else {
+        setRecStatus('', { mode: recLastMode });
+      }
+    }
+
+    // ===================== THE CURATOR (full port: history, context, grounding, streaming /api/llm, SUGGESTED + BATCH_RATE) =====================
+
+    function saveChat() {
+      localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory.slice(-20)));
+      // Light push for chat (debounced)
+      pushToServer();
+    }
+
+    function renderCuratorMessages() {
+      const box = document.getElementById('curator-messages');
+      if (!box) return;
+      box.innerHTML = '';
+      const recent = chatHistory.slice(-8);
+      if (recent.length === 0) {
+        const welcome = document.createElement('div');
+        welcome.className = 'curator-msg text-xs text-zinc-400';
+        welcome.innerHTML = `<span class="curator-avatar">👻</span> <span>The reels are waiting. Ask about slow burns, gory classics, or what to queue next.</span>`;
+        box.appendChild(welcome);
+        box.scrollTop = box.scrollHeight;
+        return;
+      }
+      recent.forEach(turn => {
+        const div = document.createElement('div');
+        div.className = `curator-msg ${turn.role === 'user' ? 'user' : ''}`;
+        if (turn.role === 'user') {
+          div.innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+        } else {
+          // Curator replies always get the red ghost avatar inside the bubble
+          div.innerHTML = `<span class="curator-avatar">👻</span><div class="whitespace-pre-wrap">${escapeHtml(turn.content || '')}</div>`;
+        }
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    async function sendToCurator() {
+      const input = document.getElementById('curator-input');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+
+      // push user turn
+      chatHistory.push({role: 'user', content: text});
+      saveChat();
+      renderCuratorMessages();
+      input.value = '';
+
+      const status = document.getElementById('curator-status');
+      if (status) status.textContent = 'Consulting the reels...';
+
+      // Cool horror-themed typing indicator
+      const box = document.getElementById('curator-messages');
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'curator-msg curator-typing';
+      typingDiv.innerHTML = `<span class="curator-avatar">👻</span> <span>whispering from the shadows...</span>`;
+      if (box) {
+        box.appendChild(typingDiv);
+        box.scrollTop = box.scrollHeight;
+      }
+
+      // Build context + grounding (simplified port of build_user_context + extract + live)
+      const prefs = getUserGenrePrefs();
+      const twTitles = toWatchList.slice(0,12).map(x=>x.title);
+      const disTitles = dislikedList.slice(0,8).map(x=>x.title);
+      const recentW = watchedList.slice(0,5).map(x=>x.title);
+      const userCtx = `USER TASTE: ${JSON.stringify(prefs)}\nRECENT WATCHED: ${recentW}\nTO_WATCH: ${twTitles}\nDISLIKED: ${disTitles}\nCOUNTS: watched=${watchedList.length}, to_watch=${toWatchList.length}`;
+
+      // crude extract: titles mentioned in query that we know from lists or pool
+      const knownTitles = [...toWatchList, ...watchedList, ...dislikedList, ...currentRecPool].map(x=>x.title).filter(Boolean);
+      const mentioned = knownTitles.filter(t => text.toLowerCase().includes(t.toLowerCase().slice(0, Math.min(12,t.length))));
+      const grounding = {};
+      mentioned.slice(0,4).forEach(t => {
+        const m = [...toWatchList, ...watchedList].find(x => x.title === t);
+        if (m) grounding[t] = { year: (m.release_date||'').slice(0,4), overview: (m.overview||'').slice(0,180), id: m.id };
+      });
+      lastGrounding = grounding;
+
+      // messages for LLM (SYSTEM + context + user)
+      const sys = `You are The Curator, eternal keeper of dark cinema — horror, thrillers, sci-fi, and suspense. Dry dark wit. Strict: NEVER suggest any title the user has watched, has in To Watch, or has disliked. The provided USER CONTEXT lists exact titles they have seen or queued — do not recommend any of those. Ground ONLY in the provided metadata. Suggest 3-5 fitting UNSEEN titles. End exactly with: SUGGESTED: ["Exact Title One", "Exact Title Two", ...] (up to 5). For batch: BATCH_RATE: [{"title":"..","suggested_rating":4,"reason":".."}]. Keep short and in character.`;
+      const fullUser = `USER CONTEXT:\n${userCtx}\n\nGROUNDING METADATA:\n${JSON.stringify(grounding)}\n\nUSER: ${text}`;
+
+      const payload = {
+        model: llmConfig.model || 'grok-4.3',
+        messages: [
+          {role: 'system', content: sys},
+          {role: 'user', content: fullUser}
+        ],
+        max_tokens: llmConfig.max_response_tokens || 1100,
+        temperature: 0.85,
+        stream: true
+      };
+
+      try {
+        let llmUrl = '/api/llm';
+        if (apiBase) {
+          const base = apiBase.replace(/\/+$/, '');
+          llmUrl = base + '/api/llm';
+        }
+        const res = await fetch(llmUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify(payload)
+        });
+        console.log('[Horror Roki] Curator LLM call to:', llmUrl);
+        if (!res.ok) throw new Error('LLM proxy error ' + res.status + ' (check XAI_TOKEN in Worker + password)');
+
+        // Stream parse (OpenAI SSE style)
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let full = '';
+        // Remove typing indicator
+        if (typingDiv && typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
+
+        const assistantDiv = document.createElement('div');
+        assistantDiv.className = 'curator-msg';
+        assistantDiv.innerHTML = `<span class="curator-avatar">👻</span> <span class="curator-text"></span>`;
+        const textSpan = assistantDiv.querySelector('.curator-text');
+        const box = document.getElementById('curator-messages');
+        if (box) { box.appendChild(assistantDiv); box.scrollTop = box.scrollHeight; }
+
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          const chunk = dec.decode(value, {stream:true});
+          // parse data: lines
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const d = line.slice(6).trim();
+              if (d === '[DONE]') continue;
+              try {
+                const j = JSON.parse(d);
+                const delta = j.choices?.[0]?.delta?.content || '';
+                if (delta) {
+                  full += delta;
+                  textSpan.textContent = full;
+                  if (box) box.scrollTop = box.scrollHeight;
+                }
+              } catch(_) {}
+            }
+          }
+        }
+
+        // done: save assistant turn
+        chatHistory.push({role: 'assistant', content: full});
+        saveChat();
+
+        // parse markers and render special UI (SUGGESTED cards + BATCH)
+        await parseAndRenderCuratorExtras(full, assistantDiv);
+
+        if (status) status.textContent = 'Grounded • streaming via Worker • history kept until explicit clear';
+
+      } catch (err) {
+        const box = document.getElementById('curator-messages');
+        if (box) {
+          const errDiv = document.createElement('div');
+          errDiv.className = 'curator-msg';
+          errDiv.innerHTML = `<span class="text-red-400">The projector bulb flickers... ${escapeHtml(err.message)}</span>`;
+          box.appendChild(errDiv);
+        }
+        if (status) status.textContent = 'Error talking to Curator. Check password + Worker XAI_TOKEN.';
+      }
+    }
+
+    async function parseAndRenderCuratorExtras(fullText, parentDiv) {
+      curatorPicks = [];
+      // SUGGESTED: ["Title One", "Title Two"]
+      const sugMatch = fullText.match(/SUGGESTED:\s*\[([^\]]+)\]/i);
+      if (sugMatch) {
+        try {
+          const titlesStr = sugMatch[1];
+          let titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
+          // Strict filter: never suggest titles already in any list
+          const watchedTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => (x.title || '').toLowerCase()));
+          titles = titles.filter(t => t && !watchedTitles.has(t.toLowerCase()));
+          if (!titles.length) return;
+          // Enrich with posters for visual appeal (local first, then live TMDB search)
+          const enrichedSuggested = await Promise.all(titles.map(async (t) => {
+            if (!t || t.length < 2) return null;
+            let poster_path = null;
+            let id = Date.now();
+            // Try local data first (rec pool, lists)
+            let local = (currentRecPool || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
+                        (toWatchList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
+                        (watchedList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
+                        (dislikedList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase());
+            if (local) {
+              poster_path = local.poster_path || null;
+              id = local.id || id;
+            }
+            if (!poster_path) {
+              // Live search for poster thumbnail
+              try {
+                const search = await apiFetch(`/api/tmdb/3/search/movie?query=${encodeURIComponent(t)}&page=1`);
+                if (search.results && search.results.length > 0) {
+                  const r = search.results[0];
+                  poster_path = r.poster_path;
+                  id = r.id;
+                }
+              } catch (e) {}
+            }
+            return {title: t, type: 'suggested', poster_path, id };
+          }));
+          const excluded = getExcludedKeys();
+          enrichedSuggested.filter(Boolean).forEach(item => {
+            const key = `${item.id}:movie`; // default movie for suggested
+            if (!excluded.has(key) && !curatorPicks.some(p => p.title.toLowerCase() === item.title.toLowerCase())) {
+              curatorPicks.push(item);
+            }
+          });
+        } catch(e){}
+      }
+      // BATCH_RATE: [ {title, suggested_rating, reason} ... ]
+      const batchMatch = fullText.match(/BATCH_RATE:\s*(\[[\s\S]*?\])/i);
+      if (batchMatch) {
+        try {
+          const arr = JSON.parse(batchMatch[1]);
+          if (Array.isArray(arr)) {
+            arr.slice(0,6).forEach(b => {
+              if (b.title) curatorPicks.push({title: b.title, type: 'batch', rating: b.suggested_rating, reason: b.reason || ''});
+            });
+          }
+        } catch(e){}
+      }
+
+      if (!curatorPicks.length) return;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'suggested-card space-y-2';
+      wrap.innerHTML = `<div class="flex items-center justify-between gap-2 px-1">
+        <div class="text-[11px] uppercase tracking-[1px] text-red-300/90 font-semibold">Curator picks</div>
+        <div class="text-[10px] text-zinc-500">Tap a title for details</div>
+      </div>`;
+
+      curatorPicks.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'curator-pick-row text-sm';
+        if (p.type === 'batch') {
+          row.innerHTML = `
+            <label class="flex items-center gap-2 min-w-0">
+              <input type="checkbox" class="accent-red-600 w-4 h-4" checked data-idx="${i}">
+              <span class="truncate font-medium text-zinc-100">${p.title}</span>
+            </label>
+            <div class="curator-pick-actions">
+              <span class="text-[12px] text-amber-300 font-semibold">${p.rating || 4}★</span>
+              <button class="curator-action-btn bg-emerald-700 hover:bg-emerald-600 text-white" data-apply-batch>Apply</button>
+            </div>
+          `;
+        } else {
+          const posterHtml = p.poster_path 
+            ? `<img src="https://image.tmdb.org/t/p/w92${p.poster_path}" class="w-12 h-[72px] rounded-xl object-cover flex-shrink-0 border border-zinc-700" alt="">`
+            : `<div class="w-12 h-[72px] bg-zinc-800 rounded-xl flex-shrink-0 flex items-center justify-center text-[14px] text-zinc-500"><i class="fa-solid fa-film"></i></div>`;
+          row.innerHTML = `
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              ${posterHtml}
+              <div class="min-w-0">
+                <div class="truncate font-semibold text-zinc-100">${p.title}</div>
+                <div class="text-[11px] text-zinc-500">Suggested by The Curator</div>
+              </div>
+            </div>
+            <div class="curator-pick-actions">
+              <button class="curator-action-btn bg-emerald-700 hover:bg-emerald-600 text-white" data-add-towatch>Queue</button>
+              <button class="curator-action-btn border border-zinc-700 hover:bg-zinc-800 text-zinc-100" data-mark-watched>Rate</button>
+              <button class="curator-action-btn border border-zinc-700 hover:bg-zinc-800 text-red-300" data-dislike title="Dislike" aria-label="Dislike"><i class="fa-solid fa-thumbs-down"></i></button>
+            </div>
+          `;
+        }
+        wrap.appendChild(row);
+
+        // wire (note: after append)
+        setTimeout(() => {
+          const addTw = row.querySelector('[data-add-towatch]');
+          if (addTw) addTw.onclick = () => {
+            const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+            addToToWatch(found);
+            row.style.opacity = '0.4';
+          };
+          const markW = row.querySelector('[data-mark-watched]');
+          if (markW) markW.onclick = () => {
+            const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+            // Inline rating chooser – no jarring browser prompt dialog that jumps front-and-center
+            row.querySelectorAll('button').forEach(b => b.style.display = 'none');
+            const rateDiv = document.createElement('div');
+            rateDiv.className = 'w-full mt-1 flex gap-1 justify-end bg-zinc-800/70 rounded-xl p-1';
+            for(let r=1; r<=5; r++) {
+              const b = document.createElement('button');
+              b.textContent = r + '★';
+              b.className = 'px-2 py-0.5 text-sm rounded-lg bg-zinc-700 hover:bg-emerald-600 active:bg-emerald-500 text-white font-medium';
+              b.onclick = (ev) => {
+                ev.stopImmediatePropagation();
+                addToWatched(found, r);
+                row.style.opacity = '0.4';
+                rateDiv.remove();
+              };
+              rateDiv.appendChild(b);
+            }
+            row.appendChild(rateDiv);
+          };
+          const disBtn = row.querySelector('[data-dislike]');
+          if (disBtn) disBtn.onclick = () => {
+            const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+            addToDisliked(found);
+            row.style.opacity = '0.3';
+            // also refresh main recs grid so it disappears from recommendations
+            if (currentRecPool.length) recomputeRecommendations();
+          };
+          const chk = row.querySelector('input[type="checkbox"]');
+          const apply = row.querySelector('[data-apply-batch]');
+          if (apply && chk) {
+            apply.onclick = () => {
+              if (!chk.checked) return;
+              const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+              addToWatched(found, p.rating || 4);
+              row.style.opacity = '0.3';
+            };
+          }
+
+          // Make the thumbnail (poster) + title area clickable for quick bio/detail modal (consistent with recs and search)
+          if (p.type !== 'batch') {
+            const posterEl = row.querySelector('img') || row.querySelector('div.w-10');
+            const titleArea = row.querySelector('.flex.items-center.gap-2.flex-1') || row.querySelector('span.truncate');
+            [posterEl, titleArea].forEach(el => {
+              if (el) {
+                el.style.cursor = 'pointer';
+                el.title = 'View details';
+                el.onclick = (ev) => {
+                  ev.stopPropagation();
+                  const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
+                  openModal(found).catch(()=>{});
+                };
+              }
+            });
+          }
+        }, 10);
+      });
+
+      parentDiv.appendChild(wrap);
+    }
+
+    function clearCuratorChat() {
+      if (!confirm('Clear entire chat history?')) return;
+      chatHistory = [];
+      localStorage.removeItem('horror_roki_chat');
+      const box = document.getElementById('curator-messages');
+      if (box) box.innerHTML = '';
+      refreshCuratorQuickReplies();
+      showToast('Chat history cleared');
+    }
+    function clearCuratorPicks() {
+      curatorPicks = [];
+      // remove any extra suggested cards from DOM
+      document.querySelectorAll('.suggested-card').forEach(el => el.remove());
+      showToast('Curator picks cleared');
+    }
+
+    function copyShareableLink() {
+      const url = new URL(window.location.href);
+      if (apiBase) {
+        url.searchParams.set('apiBase', apiBase);
+      }
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        alert('Shareable link copied! It includes the current API Endpoint Base so the recipient gets it automatically.');
+      }).catch(() => {
+        // fallback
+        prompt('Copy this link (includes API endpoint):', url.toString());
+      });
+    }
+
+// Settings (LLM config + backup + import) - simple modal using existing style
+    function showSettings() {
+      const modal = document.getElementById('detail-modal');
+      if (!modal) {
+        alert('Settings:\n- LLM Model: ' + (llmConfig.model || 'grok-4.3') + '\n- API Base: ' + (apiBase || '(relative)'));
+        return;
+      }
+      modal.classList.remove('hidden');
+      const titleEl = document.getElementById('modal-title');
+      const meta = document.getElementById('modal-meta');
+      const genresEl = document.getElementById('modal-genres');
+      const avail = document.getElementById('modal-availability');
+      if (titleEl) titleEl.textContent = 'Settings & Backup';
+      if (meta) meta.textContent = 'LLM, Backup, Import & Sync';
+      if (genresEl) genresEl.innerHTML = '';
+      const whereWrap = document.querySelector('#detail-modal .mb-2');
+      if (whereWrap) whereWrap.style.display = 'none'; // hide where-to-watch area for settings
+      if (avail) avail.innerHTML = `
+        <div class="text-sm space-y-3">
+          <div>
+            <div class="text-xs text-zinc-500 mb-1">LLM Model</div>
+            <input id="set-model" value="${llmConfig.model || 'grok-4.3'}" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
+          </div>
+          <div>
+            <div class="text-xs text-zinc-500 mb-1">API Endpoint Base (for custom Worker)</div>
+            <input id="set-api-base" value="${apiBase || ''}" placeholder="Leave empty for normal use" class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-sm w-full">
+            <button onclick="copyShareableLink()" class="mt-1 text-[10px] px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700">Copy shareable link</button>
+          </div>
+          <div class="mt-3 pt-2 border-t border-zinc-800">
+            <div class="flex gap-2">
+              <button id="server-pull" class="flex-1 px-3 py-1.5 rounded-2xl bg-emerald-700 text-white text-sm">Pull from Server</button>
+              <button id="server-push" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Push to Server</button>
+            </div>
+            <div id="server-sync-status" class="text-[10px] text-zinc-500 mt-1"></div>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button id="save-llm" class="flex-1 px-3 py-1.5 rounded-2xl bg-indigo-600 text-white text-sm">Save Configs</button>
+            <button id="do-backup" class="flex-1 px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700 text-sm">Download Backup</button>
+          </div>
+          <div class="mt-2">
+            <div class="text-xs text-zinc-500 mb-1">Import backup JSON/CSV</div>
+            <input type="file" id="import-file" accept=".json,.csv" class="text-xs">
+            <button id="do-import" class="ml-2 px-3 py-1 rounded-2xl bg-zinc-700 text-sm">Import</button>
+          </div>
+        </div>
+      `;
+      setTimeout(() => {
+        const sm = document.getElementById('save-llm');
+        if (sm) sm.onclick = () => {
+          const m = document.getElementById('set-model');
+          if (m) llmConfig.model = m.value.trim() || 'grok-4.3';
+          localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig));
+          const baseInput = document.getElementById('set-api-base');
+          if (baseInput) {
+            apiBase = baseInput.value.trim();
+            localStorage.setItem('brous_api_base', apiBase);
+            const newUrl = new URL(window.location.href);
+            if (apiBase) newUrl.searchParams.set('apiBase', apiBase);
+            else newUrl.searchParams.delete('apiBase');
+            window.history.replaceState({}, '', newUrl.toString());
+          }
+          alert('Saved. Reload to apply if needed.');
+        };
+        const db = document.getElementById('do-backup');
+        if (db) db.onclick = downloadFullBackup;
+        const pullBtn = document.getElementById('server-pull');
+        const pushBtn = document.getElementById('server-push');
+        const statusEl = document.getElementById('server-sync-status');
+        if (pullBtn) pullBtn.onclick = async () => {
+          if (statusEl) statusEl.textContent = 'Pulling...';
+          const data = await syncFromServer();
+          if (statusEl) statusEl.textContent = data ? 'Pulled ✓' : 'No server data';
+          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+        };
+        if (pushBtn) pushBtn.onclick = async () => {
+          if (statusEl) statusEl.textContent = 'Pushing...';
+          await pushToServer(true);
+          if (statusEl) statusEl.textContent = 'Pushed ✓';
+          setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+        };
+        const impBtn = document.getElementById('do-import');
+        const f = document.getElementById('import-file');
+        if (impBtn && f) impBtn.onclick = () => {
+          if (!f.files.length) return;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const txt = ev.target.result || '';
+            try {
+              const data = JSON.parse(txt);
+              if (data.watched) { watchedList = data.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
+              if (data.to_watch) { toWatchList = data.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); }
+              if (data.disliked) { dislikedList = data.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
+              if (data.chat_history) { chatHistory = data.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); }
+              if (data.llm_config) { llmConfig = data.llm_config; localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
+              updateAllLibraryRenders();
+              renderCuratorMessages();
+              alert('Import loaded.');
+              closeModal();
+            } catch(e) { alert('Import failed: ' + e.message); }
+          };
+          reader.readAsText(f.files[0]);
+        };
+      }, 30);
+    }
+    function downloadFullBackup() {
+      const backup = {
+        watched: watchedList,
+        to_watch: toWatchList,
+        disliked: dislikedList,
+        chat_history: chatHistory.slice(-30),
+        llm_config: llmConfig,
+        chat_version: '1.0',
+        exported_at: new Date().toISOString(),
+        version: '3.0'
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `horror_roki_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    // Boot (extended for new library + recs + curator)
+    function boot() {
+      try {
+        // Wire quick-reply chips for the Curator (cool, fast UX)
+        const quickReplies = document.getElementById('curator-quick-replies');
+        if (quickReplies) {
+          quickReplies.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-q]');
+            if (!btn) return;
+            const q = btn.dataset.q;
+            const inp = document.getElementById('curator-input');
+            if (inp) {
+              inp.value = q;
+              sendToCurator();
+            }
+          });
+        }
+
+        // Click outside the modal content (on the dark backdrop) closes it
+        const modalEl = document.getElementById('detail-modal');
+        if (modalEl) {
+          modalEl.addEventListener('click', (e) => {
+            if (e.target === modalEl) {
+              closeModal();
+            }
+          });
+        }
+
+        // Pressing Escape also closes the modal (nice companion to outside click)
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            const m = document.getElementById('detail-modal');
+            if (m && !m.classList.contains('hidden')) {
+              closeModal();
+            }
+          }
+        });
+
+        // Initialize Discover UI
+        if (typeof renderGenreChips === 'function') renderGenreChips();
+        if (typeof renderRatingChips === 'function') renderRatingChips();
+        if (typeof renderDecadeChips === 'function') renderDecadeChips();
+        if (typeof setDiscoverType === 'function') setDiscoverType('movie'); // default to Movies
+
+        // Initialize Search type
+        if (typeof setSearchType === 'function') setSearchType('movie');
+
+        // Watchlist (legacy)
+        if (typeof renderWatchlist === 'function') renderWatchlist();
+
+        // New Horror Roki inits
+        // One-time seed: if new lists empty but legacy watchlist has data, treat legacy as To Watch
+        if ((!toWatchList || toWatchList.length === 0) && watchlist && watchlist.length > 0) {
+          toWatchList = watchlist.map(x => ({...x}));
+          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+        }
+        // Re-sync legacy exclusion set from all lists (watched disappear fix)
+        watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
+        if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
+        if (typeof renderCuratorMessages === 'function') renderCuratorMessages();
+        if (typeof refreshCuratorQuickReplies === 'function') refreshCuratorQuickReplies();
+        if (typeof setCuratorMood === 'function') setCuratorMood();
+        if (typeof setupPullToRefresh === 'function') setupPullToRefresh();
+        if (typeof renderPersonalStats === 'function') renderPersonalStats();
+
+        // init top personal tabs (default to To Watch)
+        if (typeof switchPersonalTab === 'function') switchPersonalTab('towatch');
+        if (typeof applyListsCollapse === 'function') applyListsCollapse();
+
+        // Pull latest from server KV (if configured). This is what makes phone + desktop share the same watched/disliked lists.
+        // Non-blocking. Falls back silently to whatever is in localStorage on this device.
+        setTimeout(() => {
+          if (typeof syncFromServer === 'function') syncFromServer().catch(() => {});
+        }, 650);
+
+        // Hide the beginner help note once password is set
+        const helpNote = document.getElementById('first-time-help');
+        if (helpNote && localStorage.getItem('brous_password')) {
+          helpNote.style.display = 'none';
+        }
+
+        // Show current apiBase in the help note for debugging
+        const baseNote = document.getElementById('current-base-note');
+        if (baseNote) {
+          const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
+          baseNote.textContent = 'Current API base: ' + currentBase + '  |  After fixing secrets in Cloudflare, you MUST redeploy the Worker code (Save and Deploy) for the secret to become visible to the running code.';
+        }
+        // Optional: auto-seed a small rec pool for "Recommended for you" on first boot (user can Refresh)
+        if (!currentRecPool.length && watchedList.length > 0) {
+          // fire and forget; non blocking
+          setTimeout(() => { if (typeof refreshRecPool === 'function') refreshRecPool().catch(()=>{}); }, 1200);
+        }
+
+        // Helpful console note for first-time setup (password is required for the Worker)
+        if (!localStorage.getItem('brous_password')) {
+          console.log('%c[Horror Roki] No API password set yet. Click the 🔐 Pass button or ⚙︎ Settings. (On live site with routes, leave API Endpoint Base empty.)', 'color:#f59e0b');
+        }
+
+        // Visible confirmation that JS booted successfully
+        console.log('%c[Brous Movie Engine] Boot completed successfully. UI should be interactive.', 'color:#4ade80');
+      } catch(e) {
+        console.error('Error in boot():', e);
+        var banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:#fff;padding:12px;z-index:999999;font-size:13px;';
+        banner.innerHTML = 'Error during app initialization: ' + e.message + '<br>Check Console (F12) for full stack. Try hard refresh (Ctrl/Cmd+Shift+R) or clear site data.';
+        if (document.body) document.body.insertBefore(banner, document.body.firstChild);
+      }
+    }
+
+    // Re-render watchlist when adding from anywhere
+    const originalAddToWatchlist = addToWatchlist;
+    window.addToWatchlist = function(item) {
+      originalAddToWatchlist(item);
+      renderWatchlist();
+    };
+
+    function managePassword() {
+      const current = localStorage.getItem('brous_password');
+      if (current) {
+        if (confirm('Password is currently set. Clear it and enter a new one?')) {
+          localStorage.removeItem('brous_password');
+          apiPassword = '';
+        } else {
+          return;
+        }
+      }
+      apiPassword = prompt('Enter the shared password (matches your Worker PASSWORD secret):') || '';
+      if (apiPassword) {
+        localStorage.setItem('brous_password', apiPassword);
+        const btn = document.getElementById('pass-btn');
+        if (btn) {
+          btn.textContent = '🔐 OK';
+          btn.title = 'Password saved for this browser. Click to change or clear.';
+        }
+        alert('Password saved for this browser. Try loading Discover, Refresh Pool, or Curator again.');
+        const helpNote = document.getElementById('first-time-help');
+        if (helpNote) helpNote.style.display = 'none';
+      }
+    }
+
+    // PWA Install support (especially useful on Android)
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) installBtn.classList.remove('hidden');
+    });
+
+    function installPWA() {
+      if (installBtn) installBtn.classList.add('hidden');
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+        });
+      }
+    }
+
+    // Also show install button on Android Chrome if available
+    if (installBtn && /android/i.test(navigator.userAgent)) {
+      setTimeout(() => {
+        if (deferredPrompt) installBtn.classList.remove('hidden');
+      }, 3000);
+    }
+
+    // Password button hint
+    const passBtn = document.getElementById('pass-btn');
+    if (passBtn && localStorage.getItem('brous_password')) {
+      passBtn.textContent = '🔐 OK';
+      passBtn.title = 'Password saved for this browser. Click to change or clear.';
+    }
+
+    // Defensive wiring for header buttons in case inline onclick has issues
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.onclick = showSettings;
+
+    if (passBtn) passBtn.onclick = managePassword;
+
+    window.onload = function() {
+      try {
+        boot();
+      } catch(e) {
+        console.error('Boot error:', e);
+        const err = document.createElement('div');
+        err.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b91c1c;color:white;padding:10px;z-index:99999;font-size:12px;';
+        err.innerHTML = 'JS Error during boot: ' + e.message + '<br>Buttons may not work. Check browser console (long press page > Inspect). Data may need re-import via Settings once working. Try hard refresh or re-add PWA icon.';
+        document.body.appendChild(err);
+      }
+    };
+  </script>
+
+  <div class="max-w-7xl mx-auto px-5 pb-8 text-center text-[11px] text-zinc-500">
+    Movies &amp; TV data powered by <a href="https://www.themoviedb.org" target="_blank" class="underline hover:text-zinc-300">TMDB</a>. Curator uses xAI (via your Worker). Not affiliated with any service. All your data stays in this browser.
+    <span style="margin-left:8px;opacity:0.6">v2024-06-fixed</span>
+  </div>
+</body>
+</html>
