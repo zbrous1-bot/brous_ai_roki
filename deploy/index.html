@@ -1526,6 +1526,57 @@
       background: rgba(147,51,234,0.2) !important;
       border-color: rgba(147,51,234,0.4) !important;
     }
+    .curator-prompt-deck {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px 14px 0;
+      background: linear-gradient(180deg, #0e0c10 0%, #120e18 100%);
+      border-top: 1px solid rgba(185,28,28,0.12);
+    }
+    .curator-prompt-card {
+      text-align: left;
+      min-height: 74px;
+      border-radius: 14px;
+      border: 1px solid rgba(147,51,234,0.22);
+      background:
+        radial-gradient(circle at top right, rgba(185,28,28,0.14), transparent 42%),
+        linear-gradient(145deg, rgba(24,18,32,0.92), rgba(12,10,16,0.98));
+      padding: 10px 11px;
+      color: #e9d5ff;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+    .curator-prompt-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(248,113,113,0.48);
+      background:
+        radial-gradient(circle at top right, rgba(185,28,28,0.2), transparent 42%),
+        linear-gradient(145deg, rgba(30,22,40,0.98), rgba(15,12,20,1));
+    }
+    .curator-prompt-card .prompt-title {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #fca5a5;
+      margin-bottom: 4px;
+    }
+    .curator-prompt-card .prompt-copy {
+      display: block;
+      font-size: 11px;
+      line-height: 1.25;
+      color: rgba(221,214,254,0.78);
+    }
+    @media (max-width: 720px) {
+      .curator-prompt-deck {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 10px 10px 0;
+      }
+      .curator-prompt-card {
+        min-height: 66px;
+        padding: 9px 10px;
+      }
+    }
 
     /* Status line */
     #curator-status { color: rgba(167,139,250,0.65) !important; }
@@ -1895,6 +1946,25 @@
 
         <div id="curator-messages" class="px-3 py-2 overflow-auto text-sm space-y-2" style="min-height:300px;max-height:calc(100vh - 320px);background:var(--curator-bg);"></div>
 
+        <div class="curator-prompt-deck">
+          <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me a double feature for tonight with one classic and one hidden gem')">
+            <span class="prompt-title">Double feature</span>
+            <span class="prompt-copy">Classic plus hidden gem for one night.</span>
+          </button>
+          <button class="curator-prompt-card" onclick="setCuratorPrompt('Find me five underseen horror movies from the last ten years')">
+            <span class="prompt-title">Underseen</span>
+            <span class="prompt-copy">Modern picks beyond the obvious list.</span>
+          </button>
+          <button class="curator-prompt-card" onclick="setCuratorPrompt('What should I watch next from my taste profile? Keep it short and decisive')">
+            <span class="prompt-title">Decide for me</span>
+            <span class="prompt-copy">One sharp answer from your library.</span>
+          </button>
+          <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me something bleak, tense, and atmospheric, but not too slow')">
+            <span class="prompt-title">Set a mood</span>
+            <span class="prompt-copy">Bleak, tense, atmospheric, watchable.</span>
+          </button>
+        </div>
+
         <div class="p-2 border-t border-zinc-800 bg-zinc-900/80">
           <div class="flex gap-2">
             <input id="curator-input" type="text" placeholder="Ask The Curator anything about horror, thrillers, sci-fi..."
@@ -2248,9 +2318,9 @@
       container.innerHTML = '';
       const base = [
         {q: 'Something slow burn and psychological', label: 'Slow burn'},
-        {q: 'Recommend something really gory', label: 'Gory'},
-        {q: 'What should I watch next', label: 'What next?'},
-        {q: 'Folk horror or supernatural', label: 'Folk / Supernatural'}
+        {q: 'Recommend something really gory but actually good', label: 'Gory but good'},
+        {q: 'What should I watch next? Pick one title and explain why', label: 'Pick one'},
+        {q: 'Folk horror or supernatural, preferably underseen', label: 'Folk shadows'}
       ];
       // Add one contextual from recent watched genres if possible
       let contextual = null;
@@ -3707,6 +3777,13 @@
     function quickSearch(q) {
       document.getElementById('search-input').value = q;
       performSearch();
+    }
+
+    function setCuratorPrompt(q) {
+      const input = document.getElementById('curator-input');
+      if (!input) return;
+      input.value = q;
+      input.focus();
     }
 
     function getProviderName(p) {
