@@ -3296,6 +3296,7 @@
         if (changed) {
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           updateAllLibraryRenders(); renderPersonalStats();
+          if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
           try { renderCuratorMessages(); } catch(e){}
           setSyncLabel('✓ Synced', '#4ade80');
           console.log('[Brous] Cloud load OK ✓');
@@ -3318,6 +3319,12 @@
     }
 
     async function navSync() {
+      if (!cloudPin) {
+        setSyncLabel('Set PIN', '#fbbf24');
+        if (typeof showSettings === 'function') showSettings();
+        setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
+        return;
+      }
       const icon = document.getElementById('nav-sync-icon');
       if (icon) { icon.style.animation = 'spin 1s linear infinite'; }
       setSyncLabel('Syncing...', '#fbbf24');
@@ -4778,7 +4785,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           pinStatus.textContent = '\u2713 PIN active \u2014 library auto-saves on every change';
           pinStatus.style.color = '#818cf8';
         } else {
-          pinStatus.textContent = 'No PIN set yet.';
+          pinStatus.textContent = 'No PIN set yet. This browser is local only until you enter the same PIN.';
           pinStatus.style.color = '#71717a';
         }
       }
@@ -5138,6 +5145,8 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         // Safe render calls — each wrapped so one failure doesn’t block the rest
         try { updateAllLibraryRenders(); } catch(e) { console.warn('[Transfer] render error:', e); }
         try { renderPersonalStats(); } catch(e) { console.warn('[Transfer] stats error:', e); }
+        try { if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot(); } catch(e) { console.warn('[Transfer] home snapshot error:', e); }
+        try { if (cloudPin) await pushToServer(true); } catch(e) { console.warn('[Transfer] cloud save error:', e); }
 
         setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
 
@@ -5199,6 +5208,8 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
           if (typeof renderPersonalStats === 'function') renderPersonalStats();
+          if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
+          if (cloudPin) await pushToServer(true);
           setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
           // Clean URL
           const clean = new URL(window.location.href);
