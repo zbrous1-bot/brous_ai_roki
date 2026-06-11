@@ -2109,18 +2109,10 @@
               <span class="text-xl">&#9729;&#65039;</span>
               <div>
                 <div class="font-semibold text-indigo-200 text-sm">Cloud Sync</div>
-                <div class="text-[11px] text-indigo-400">Pick a PIN &mdash; your library syncs across every device</div>
+                <div class="text-[11px] text-indigo-400">Shared library syncs across every device</div>
               </div>
             </div>
-            <div class="flex gap-2 mb-3">
-              <input id="settings-cloud-pin" type="text" maxlength="16" placeholder="Choose a PIN (e.g. brous42)"
-                class="flex-1 bg-zinc-800 border border-zinc-600 focus:border-indigo-400 rounded-xl px-3 py-2.5 text-sm font-mono outline-none text-white placeholder-zinc-500">
-              <button id="settings-save-pin-btn"
-                class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-400 text-white text-sm font-semibold">
-                Save PIN
-              </button>
-            </div>
-            <div id="settings-pin-status" class="text-[11px] text-zinc-500 mb-3">No PIN set yet.</div>
+            <div id="settings-sync-status" class="text-[11px] text-zinc-500 mb-3">Cloud sync is ready.</div>
             <div class="flex gap-2">
               <button id="settings-cloud-save"
                 class="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-500 text-white text-sm font-semibold">
@@ -2358,7 +2350,7 @@
     localStorage.removeItem('brous_api_base');
     localStorage.removeItem('brous_password');
     let apiBase = DEFAULT_WORKER_URL;
-    let cloudPin = localStorage.getItem('brous_cloud_pin') || '';
+    localStorage.removeItem('brous_cloud_pin');
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
     const urlParams = new URLSearchParams(window.location.search);
@@ -2632,7 +2624,7 @@
       const res = await fetch(url, fetchOptions);
       console.log('[Horror Roki] apiFetch to:', url, 'status will be checked next');
       if (res.status === 401) {
-        // Only wipe password for non-data routes (data routes use PIN auth, not password)
+        // Only wipe password for non-data routes.
         if (!isDataPath) {
           localStorage.removeItem('brous_password');
           apiPassword = '';
@@ -3243,7 +3235,6 @@
     }
 
     async function pushToServer(immediate = false) {
-      if (!cloudPin) return;
       const payload = {
         watched: watchedList,
         to_watch: toWatchList,
@@ -3254,7 +3245,7 @@
       };
       const doPush = async () => {
         try {
-          const r = await _dataFetch('/api/data?pin=' + encodeURIComponent(cloudPin), { method: 'POST', body: payload });
+          const r = await _dataFetch('/api/data', { method: 'POST', body: payload });
           console.log('[Brous] Cloud save OK:', r);
           setSyncLabel('✓ Saved', '#4ade80');
         } catch (e) {
@@ -3267,11 +3258,9 @@
     }
 
     async function syncFromServer() {
-      if (!cloudPin) return null;
       try {
-        const resp = await _dataFetch('/api/data?pin=' + encodeURIComponent(cloudPin));
-        if (!resp || !resp.success || !resp.data) return null;
-        const serverData = resp.data;
+        const serverData = await _dataFetch('/api/data');
+        if (!serverData || typeof serverData !== 'object') return null;
         let changed = false;
         if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
         if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
@@ -3303,12 +3292,6 @@
     }
 
     async function navSync() {
-      if (!cloudPin) {
-        setSyncLabel('Set PIN', '#fbbf24');
-        if (typeof showSettings === 'function') showSettings();
-        setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
-        return;
-      }
       const icon = document.getElementById('nav-sync-icon');
       if (icon) { icon.style.animation = 'spin 1s linear infinite'; }
       setSyncLabel('Syncing...', '#fbbf24');
@@ -4743,19 +4726,12 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       if (!modal) return;
 
       // Populate fields with current values
-      const pinInput = document.getElementById('settings-cloud-pin');
-      const pinStatus = document.getElementById('settings-pin-status');
+      const syncStatus = document.getElementById('settings-sync-status');
       const modelInput = document.getElementById('settings-model');
 
-      if (pinInput) pinInput.value = cloudPin || '';
-      if (pinStatus) {
-        if (cloudPin) {
-          pinStatus.textContent = '\u2713 PIN active \u2014 library auto-saves on every change';
-          pinStatus.style.color = '#818cf8';
-        } else {
-          pinStatus.textContent = 'No PIN set yet. This browser is local only until you enter the same PIN.';
-          pinStatus.style.color = '#71717a';
-        }
+      if (syncStatus) {
+        syncStatus.textContent = '\u2713 Cloud sync active. Library auto-saves on every change.';
+        syncStatus.style.color = '#818cf8';
       }
       if (modelInput) modelInput.value = llmConfig.model || 'grok-4.3';
 
@@ -4767,22 +4743,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         if (cloudStatus) { cloudStatus.textContent = msg; cloudStatus.style.color = color || '#71717a'; }
       };
 
-      // Save PIN
-      const savePinBtn = document.getElementById('settings-save-pin-btn');
-      if (savePinBtn) savePinBtn.onclick = () => {
-        const val = (pinInput?.value || '').trim().replace(/[^a-zA-Z0-9]/g, '');
-        if (!val || val.length < 4) { setCloudStatus('PIN must be at least 4 characters (letters/numbers only)', '#f87171'); return; }
-        cloudPin = val;
-        localStorage.setItem('brous_cloud_pin', cloudPin);
-        if (pinStatus) { pinStatus.textContent = '\u2713 PIN active \u2014 library auto-saves on every change'; pinStatus.style.color = '#818cf8'; }
-        setCloudStatus('\u2713 PIN saved! Pushing library to cloud...', '#4ade80');
-        pushToServer(true).then(() => setCloudStatus('\u2713 Library saved to cloud under PIN: ' + cloudPin, '#4ade80'));
-      };
-
       // Save to Cloud
       const cloudSaveBtn = document.getElementById('settings-cloud-save');
       if (cloudSaveBtn) cloudSaveBtn.onclick = async () => {
-        if (!cloudPin) { setCloudStatus('Set a PIN first', '#f87171'); return; }
         setCloudStatus('Saving...', '#fbbf24');
         await pushToServer(true);
         setCloudStatus('\u2713 Saved (' + watchedList.length + ' watched, ' + toWatchList.length + ' queued)', '#4ade80');
@@ -4791,13 +4754,12 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       // Load from Cloud
       const cloudLoadBtn = document.getElementById('settings-cloud-load');
       if (cloudLoadBtn) cloudLoadBtn.onclick = async () => {
-        if (!cloudPin) { setCloudStatus('Set a PIN first', '#f87171'); return; }
         setCloudStatus('Loading from cloud...', '#fbbf24');
         const data = await syncFromServer();
         if (data) {
           setCloudStatus('\u2713 Loaded! ' + watchedList.length + ' watched, ' + toWatchList.length + ' queued', '#4ade80');
         } else {
-          setCloudStatus('No data found for PIN: ' + cloudPin + ' \u2014 save from another device first', '#f87171');
+          setCloudStatus('No cloud data found yet. Save from one device first.', '#f87171');
         }
       };
 
@@ -5114,7 +5076,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         try { updateAllLibraryRenders(); } catch(e) { console.warn('[Transfer] render error:', e); }
         try { renderPersonalStats(); } catch(e) { console.warn('[Transfer] stats error:', e); }
         try { if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot(); } catch(e) { console.warn('[Transfer] home snapshot error:', e); }
-        try { if (cloudPin) await pushToServer(true); } catch(e) { console.warn('[Transfer] cloud save error:', e); }
+        try { await pushToServer(true); } catch(e) { console.warn('[Transfer] cloud save error:', e); }
 
         setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
 
@@ -5177,7 +5139,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
           if (typeof renderPersonalStats === 'function') renderPersonalStats();
           if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
-          if (cloudPin) await pushToServer(true);
+          await pushToServer(true);
           setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
           // Clean URL
           const clean = new URL(window.location.href);

@@ -29,7 +29,7 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // No password auth — TMDB token is protected server-side, /api/data uses PIN auth.
+    // No password auth. TMDB token is protected server side.
 
     // === 2. Generic TMDB Proxy ===
     if (pathname.startsWith('/api/tmdb/')) {
@@ -137,10 +137,10 @@ export default {
       });
     }
 
-    // === 4. Server-side Data Sync (per-PIN cloud storage) ===
-    // GET  /api/data?pin=XXXX        — load library for that PIN
-    // POST /api/data?pin=XXXX        — save library for that PIN
-    // GET  /api/data/check?pin=XXXX  — check if a PIN has saved data (returns {exists, saved_at})
+    // === 4. Server side Data Sync ===
+    // GET  /api/data        load the shared library
+    // POST /api/data        save the shared library
+    // GET  /api/data/check  check whether shared data exists
     if (pathname === '/api/data' || pathname === '/api/data/check') {
       if (!env.DATA_KV) {
         return jsonResponse({
@@ -149,22 +149,8 @@ export default {
         }, 501);
       }
 
-      // PIN from query param or JSON body
-      let pin = url.searchParams.get('pin');
-      if (!pin && request.method === 'POST') {
-        // Try to get pin from body for POST requests
-        const cloned = request.clone();
-        try { const b = await cloned.json(); pin = b.pin || pin; } catch(_) {}
-      }
+      const DATA_KEY = 'roki_data_v1';
 
-      // Sanitize PIN — alphanumeric only, 4-16 chars
-      if (!pin || !/^[a-zA-Z0-9]{4,16}$/.test(pin)) {
-        return jsonError('Invalid or missing PIN. Must be 4-16 alphanumeric characters.', 400);
-      }
-
-      const DATA_KEY = `brous_v2_${pin.toLowerCase()}`;
-
-      // Check endpoint — just returns metadata, not the full payload
       if (pathname === '/api/data/check') {
         const meta = await env.DATA_KV.get(DATA_KEY + '_meta', { type: 'json' });
         if (!meta) return jsonResponse({ exists: false });
@@ -172,9 +158,8 @@ export default {
       }
 
       if (request.method === 'GET') {
-        const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' });
-        if (!data) return jsonResponse({ error: 'No data found for that PIN', exists: false }, 404);
-        return jsonResponse({ success: true, data });
+        const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' }) || {};
+        return jsonResponse(data);
       }
 
       if (request.method === 'POST') {
@@ -182,7 +167,6 @@ export default {
         try { payload = await request.json(); } catch (e) {
           return jsonError('Invalid JSON payload', 400);
         }
-        delete payload.pin; // Don't store the PIN inside the data
         const count = (payload.watched||[]).length + (payload.to_watch||[]).length;
         const saved_at = new Date().toISOString();
         await env.DATA_KV.put(DATA_KEY, JSON.stringify(payload));
