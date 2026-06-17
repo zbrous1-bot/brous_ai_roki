@@ -509,6 +509,8 @@
         border: none !important;
         -webkit-overflow-scrolling: touch;
         overflow-y: scroll;
+        max-height: calc(100vh - 155px);
+        max-height: calc(100dvh - 155px);
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -2077,15 +2079,15 @@
             <div class="font-medium text-zinc-400">Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
-          <div id="watched-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="watched-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
-          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
         </div>
       </div>
 
