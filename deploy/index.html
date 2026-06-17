@@ -507,6 +507,8 @@
         padding: 1px !important;
         margin-top: 0 !important;
         border: none !important;
+        -webkit-overflow-scrolling: touch;
+        overflow-y: scroll;
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -2501,19 +2503,31 @@
       const items = container.querySelectorAll('.library-item');
       items.forEach((item, index) => {
         let startX = 0;
+        let startY = 0;
         let currentX = 0;
         let isDragging = false;
+        let isScrolling = null;
 
         const onStart = (e) => {
           if (e.touches) {
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             isDragging = true;
+            isScrolling = null;
             item.classList.add('swiping');
           }
         };
         const onMove = (e) => {
           if (!isDragging || !e.touches) return;
-          currentX = e.touches[0].clientX - startX;
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          // Determine scroll vs swipe on first significant move
+          if (isScrolling === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+            isScrolling = Math.abs(dy) > Math.abs(dx);
+          }
+          // Let browser handle vertical scroll — don't apply transform
+          if (isScrolling) return;
+          currentX = dx;
           // limit drag
           const limited = Math.max(Math.min(currentX, 120), -120);
           item.style.transform = `translateX(${limited}px)`;
@@ -2525,6 +2539,7 @@
         const onEnd = () => {
           if (!isDragging) return;
           isDragging = false;
+          isScrolling = null;
           item.classList.remove('swiping');
           const threshold = 60;
 
