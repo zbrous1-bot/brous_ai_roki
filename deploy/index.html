@@ -509,8 +509,6 @@
         border: none !important;
         -webkit-overflow-scrolling: touch;
         overflow-y: scroll;
-        max-height: calc(100vh - 155px);
-        max-height: calc(100dvh - 155px);
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -3678,10 +3676,11 @@
       if (tab === 'foryou') updateHomeSnapshot();
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // When switching to Library, refresh lists
+      // When switching to Library, refresh lists and recalculate height
       if (tab === 'watched') {
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
+        setTimeout(fitLibraryToScreen, 50);
       }
       // When switching to Curator, focus input
       if (tab === 'curator') {
@@ -5405,9 +5404,26 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       }
     });
 
+    function fitLibraryToScreen() {
+      const content = document.getElementById('personal-content');
+      if (!content) return;
+      const top = content.getBoundingClientRect().top;
+      const available = window.innerHeight - top - 20;
+      if (available < 200) return;
+      ['to-watch-content', 'watched-content', 'disliked-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.maxHeight = Math.max(available - 40, 200) + 'px';
+      });
+    }
+
+    window.addEventListener('resize', fitLibraryToScreen);
+    window.addEventListener('orientationchange', () => setTimeout(fitLibraryToScreen, 200));
+    document.addEventListener('DOMContentLoaded', fitLibraryToScreen);
+
     window.onload = function() {
       try {
         boot();
+        setTimeout(fitLibraryToScreen, 100);
       } catch(e) {
         console.error('Boot error:', e);
         const err = document.createElement('div');
