@@ -481,6 +481,23 @@
       /* Hide redundant nav tab links on mobile — tab bar below handles navigation */
       #nav-foryou, #nav-curator, #nav-browse, #nav-watched { display: none !important; }
 
+      /* Browse filter: stack rating + decade vertically */
+      #rating-decade-row { grid-template-columns: 1fr !important; }
+
+      /* Browse results: single column, horizontal card layout */
+      #results { grid-template-columns: 1fr !important; gap: 12px !important; }
+      .movie-card-v2 { padding: 12px !important; }
+      .movie-card-v2 > div { flex-direction: row !important; gap: 12px !important; align-items: flex-start !important; }
+      .movie-card-v2 img { width: 84px !important; height: 124px !important; flex-shrink: 0 !important; }
+      .movie-card-v2 .font-semibold { font-size: 14px !important; }
+      .movie-card-v2 .flex-1 { padding-top: 0 !important; }
+      /* Compact action buttons so all 4 fit on one row beside the poster */
+      .movie-card-v2 .mt-2.flex button {
+        font-size: 11px !important;
+        padding: 5px 9px !important;
+        border-radius: 10px !important;
+      }
+
       /* Tab bar: shrink font so "My Library" fits without clipping */
       .main-tab-btn { font-size: 11px !important; padding: 8px 6px !important; gap: 3px !important; }
       .tab-icon { font-size: 13px !important; }
@@ -2120,7 +2137,7 @@
         </div>
 
         <!-- Rating + Decade side-by-side -->
-        <div class="grid grid-cols-2 gap-3 mb-3">
+        <div id="rating-decade-row" class="grid grid-cols-2 gap-3 mb-3">
           <div>
             <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Min Rating</div>
             <div id="rating-chips" class="flex flex-wrap gap-1.5"></div>
@@ -4271,7 +4288,7 @@
 
         // Rich list actions (To Watch primary + Watched/Dislike)
         const addBtnContainer = document.createElement('div');
-        addBtnContainer.className = 'mt-3 flex gap-1.5 flex-wrap';
+        addBtnContainer.className = 'mt-2 flex gap-1.5 flex-wrap';
         const b1 = document.createElement('button');
         b1.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
         b1.textContent = '+ Watch';
@@ -4302,7 +4319,9 @@
           if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
         };
         addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3); addBtnContainer.appendChild(b4);
-        card.appendChild(addBtnContainer);
+        // Append inside content div so buttons stay beside the poster on mobile
+        const contentDiv = card.querySelector('.flex-1.min-w-0');
+        (contentDiv || card).appendChild(addBtnContainer);
 
         // Async: show trailer button if a YouTube video exists
         const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
@@ -5732,5 +5751,18 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
     Movies &amp; TV data by <a href="https://www.themoviedb.org" target="_blank" style="color:#52525b;text-decoration:underline;">TMDB</a> · Curator via xAI · Not affiliated with any service · Data stays local
     <span style="margin-left:6px;opacity:0.5">v2024-06</span>
   </div>
+  <!-- Mobile overrides appended after Tailwind CDN so they win the cascade -->
+  <style>
+    @media (max-width: 640px) {
+      .movie-card-v2 .mt-2.flex {
+        gap: 4px !important;
+      }
+      .movie-card-v2 .mt-2.flex button {
+        font-size: 11px !important;
+        padding: 5px 8px !important;
+        border-radius: 10px !important;
+      }
+    }
+  </style>
 </body>
 </html>
