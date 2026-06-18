@@ -1926,14 +1926,19 @@
     <!-- ═══ TAB: BROWSE ═══ -->
     <div id="panel-browse" class="main-panel">
 
+    <!-- Page header -->
+    <div class="mb-4 px-1">
+      <h2 class="text-xl font-bold text-zinc-100 tracking-tight" style="letter-spacing:-0.02em;">Search & Discover</h2>
+      <p class="text-xs text-zinc-500 mt-0.5">Find by title · filter by genre, decade, or rating</p>
+    </div>
+
     <!-- Search -->
-    <div id="section-search"></div>
-    <div class="mb-3">
+    <div id="section-search" class="mb-4">
       <div class="search-panel" style="border-radius:20px;padding:14px 16px;border:1px solid rgba(185,28,28,0.18);">
         <div class="flex gap-2 items-center">
           <div class="relative flex-1">
             <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" style="font-size:13px;"></i>
-            <input id="search-input" type="text" placeholder="Search movies, shows, directors..."
+            <input id="search-input" type="text" placeholder="Title, director, actor, vibe..."
                    class="search-input w-full bg-zinc-950 border border-zinc-700 pl-9 pr-3 py-2.5 rounded-2xl text-base outline-none placeholder:text-zinc-500"
                    onkeypress="if (event.key === 'Enter') performSearch()">
           </div>
@@ -1951,14 +1956,20 @@
       </div>
     </div>
 
+    <!-- Divider -->
+    <div class="flex items-center gap-3 mb-4 px-1">
+      <div class="flex-1 h-px bg-zinc-800"></div>
+      <span class="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">or filter</span>
+      <div class="flex-1 h-px bg-zinc-800"></div>
+    </div>
+
     <!-- Discover -->
-    <div id="section-discover"></div>
-    <div class="mb-3">
+    <div id="section-discover" class="mb-4">
       <div class="discover-panel" style="border-radius:18px;padding:14px 16px;">
         <!-- Header -->
         <div class="flex items-center justify-between mb-3">
           <div class="discover-panel-header">
-            <span class="text-[13px] font-bold text-red-400 uppercase" style="letter-spacing:0.1em;">Discover</span>
+            <span class="text-[13px] font-bold text-red-400 uppercase" style="letter-spacing:0.1em;">Filter</span>
           </div>
           <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-red-400 transition-colors font-medium">Clear all</button>
         </div>
@@ -1972,7 +1983,7 @@
         <!-- Rating + Decade side-by-side -->
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Rating</div>
+            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Min Rating</div>
             <div id="rating-chips" class="flex flex-wrap gap-1.5"></div>
           </div>
           <div>
@@ -1991,17 +2002,17 @@
             <option value="release_date.asc">Oldest</option>
           </select>
 
-          <div class="inline-flex rounded-xl bg-zinc-950 border border-zinc-700 p-0.5 flex-shrink-0">
+          <div class="inline-flex rounded-xl bg-zinc-800/80 border border-zinc-700 p-0.5 flex-shrink-0">
             <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-3 py-1 rounded-lg text-sm font-medium bg-white text-black">Movies</button>
+                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all bg-zinc-100 text-zinc-900">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-3 py-1 rounded-lg text-sm font-medium text-zinc-300">TV</button>
+                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all text-zinc-400 hover:text-zinc-200">TV</button>
           </div>
 
           <button onclick="performDiscover()"
                   class="ml-auto px-5 py-1.5 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-[0.985] browse-btn"
                   style="letter-spacing:0.04em;">
-            Browse
+            Find
           </button>
         </div>
       </div>
@@ -2025,12 +2036,8 @@
 
 
 
-    <!-- Initial state / welcome message -->
-    <div id="initial-state" class="empty-state" style="margin-top:1rem;">
-      <span class="empty-state-icon">🔍</span>
-      <p class="text-base text-zinc-300 font-semibold">Search or Discover your next nightmare</p>
-      <p class="text-sm mt-1 text-zinc-500">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
-    </div>
+    <!-- Hidden initial-state (auto-load replaces this) -->
+    <div id="initial-state" style="display:none;"></div>
 
     </div><!-- /panel-browse -->
 
@@ -3723,8 +3730,12 @@
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
       }
-      // When switching to Browse, focus search input
+      // When switching to Browse, auto-load popular results once and focus search
       if (tab === 'browse') {
+        if (!window._browseLoaded) {
+          window._browseLoaded = true;
+          performDiscover();
+        }
         setTimeout(() => {
           const inp = document.getElementById('search-input');
           if (inp) inp.focus();
