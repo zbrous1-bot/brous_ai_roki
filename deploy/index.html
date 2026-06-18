@@ -507,9 +507,8 @@
         padding: 1px !important;
         margin-top: 0 !important;
         border: none !important;
-        -webkit-overflow-scrolling: touch;
-        overflow-y: scroll;
-        max-height: calc(100vh - 200px);
+        max-height: none !important;
+        overflow-y: visible !important;
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -3681,11 +3680,9 @@
       if (tab === 'foryou') updateHomeSnapshot();
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // When switching to Library, refresh lists and recalculate height
       if (tab === 'watched') {
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
-        setTimeout(fitLibraryToScreen, 150);
       }
       // When switching to Curator, focus input
       if (tab === 'curator') {
@@ -5409,27 +5406,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       }
     });
 
-    function fitLibraryToScreen() {
-      const panel = document.getElementById('panel-watched');
-      if (!panel || !panel.classList.contains('active')) return;
-      const el = document.getElementById('to-watch-content');
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.top <= 10) return; // panel not laid out yet
-      const h = Math.max(window.innerHeight - rect.top - 8, 200);
-      ['to-watch-content', 'watched-content', 'disliked-content'].forEach(id => {
-        const listEl = document.getElementById(id);
-        if (listEl) listEl.style.maxHeight = h + 'px';
-      });
-    }
-
-    window.addEventListener('resize', fitLibraryToScreen);
-    window.addEventListener('orientationchange', () => setTimeout(fitLibraryToScreen, 300));
-
     window.onload = function() {
       try {
         boot();
-        setTimeout(fitLibraryToScreen, 100);
       } catch(e) {
         console.error('Boot error:', e);
         const err = document.createElement('div');
