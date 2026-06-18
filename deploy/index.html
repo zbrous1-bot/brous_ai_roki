@@ -3050,12 +3050,24 @@
 
         currentDiscoverResults = currentDiscoverResults.concat(enriched);
 
-        renderResults(currentDiscoverResults);
         renderActiveFilters();
+        renderResults(currentDiscoverResults);
+
+        // Keep fetching more pages silently until we have enough visible results
+        const excluded = getExcludedKeys();
+        const visibleCount = currentDiscoverResults.filter(m => !excluded.has(`${m.id}:${m._mediaType || 'movie'}`)).length;
+        const maxPage = Math.min(data.total_pages || 20, 20);
+        const hasMorePages = data.results.length >= 20 && currentDiscoverPage < maxPage;
+
+        if (visibleCount < 10 && hasMorePages) {
+          currentDiscoverPage++;
+          performDiscover(false);
+          return;
+        }
 
         // Show/hide load more button
         const loadMoreContainer = document.getElementById('load-more-container');
-        if (data.results.length >= 20 && currentDiscoverPage < (data.total_pages || 5)) {
+        if (hasMorePages) {
           loadMoreContainer.classList.remove('hidden');
         } else {
           loadMoreContainer.classList.add('hidden');
