@@ -1311,8 +1311,8 @@
       transform: translateX(2px) !important;
     }
     .library-card .lib-poster {
-      width: 80px;
-      height: 118px;
+      width: 92px;
+      height: 136px;
       overflow: hidden;
       flex-shrink: 0;
       border-radius: 8px;
@@ -1475,6 +1475,7 @@
       animation: pane-fade-in 0.2s ease both;
     }
     .main-panel.active { display: block; }
+    #panel-curator.active { display: flex; flex-direction: column; }
     .home-command-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2090,7 +2091,7 @@
     </div>
 
     <!-- Discover -->
-    <div id="section-discover" class="mb-4">
+    <div id="section-discover" class="mb-4" onkeydown="if(event.key==='Enter'){event.preventDefault();performDiscover();}">
       <div class="discover-panel" style="border-radius:18px;padding:14px 16px;">
         <!-- Header -->
         <div class="flex items-center justify-between mb-3">
@@ -2169,22 +2170,23 @@
 
     <!-- ═══ TAB: CURATOR ═══ -->
     <div id="panel-curator" class="main-panel">
-      <!-- Page header -->
-      <div class="mb-4 px-1 flex items-center gap-3">
-        <span style="width:40px;height:40px;border-radius:14px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 16px rgba(185,28,28,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👻</span>
-        <div>
-          <h2 class="text-xl font-bold text-zinc-100 tracking-tight leading-none">The Curator</h2>
-          <p class="text-xs text-zinc-500 mt-0.5">Powered by your taste profile · picks stay until cleared</p>
-        </div>
-        <div class="ml-auto flex gap-1.5">
-          <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear picks">🧹 Picks</button>
-          <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear chat">🪦 Chat</button>
-        </div>
-      </div>
 
-      <div class="rounded-3xl overflow-hidden" id="curator-chat-full" style="background:var(--curator-bg);border:1px solid rgba(185,28,28,0.18);box-shadow:0 0 0 1px rgba(255,255,255,0.03),0 8px 32px rgba(0,0,0,0.4);">
+      <div class="rounded-3xl overflow-hidden" id="curator-chat-full" style="background:var(--curator-bg);border:1px solid rgba(185,28,28,0.18);box-shadow:0 0 0 1px rgba(255,255,255,0.03),0 8px 32px rgba(0,0,0,0.4);display:flex;flex-direction:column;flex:1;min-height:0;max-height:calc(100vh - 160px);">
 
-        <div id="curator-messages" class="px-4 py-3 overflow-auto space-y-3" style="min-height:260px;max-height:calc(100vh - 380px);background:var(--curator-bg);"></div>
+        <!-- Header pinned inside the container -->
+        <div style="flex-shrink:0;padding:12px 16px 11px;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);border-bottom:1px solid rgba(185,28,28,0.18);">
+          <span style="width:36px;height:36px;border-radius:12px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 12px rgba(185,28,28,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👻</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:700;color:#f4f4f5;letter-spacing:-0.01em;line-height:1.1;">The Curator</div>
+            <div id="curator-mood" style="font-size:10px;color:rgba(248,113,113,0.7);letter-spacing:0.12em;text-transform:uppercase;margin-top:1px;">THE REELS ARE RESTLESS</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear picks">🧹 Picks</button>
+            <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear chat">🪦 Chat</button>
+          </div>
+        </div>
+
+        <div id="curator-messages" class="px-4 py-3 overflow-auto space-y-3" style="flex:1;min-height:0;background:var(--curator-bg);"></div>
 
         <div class="curator-prompt-deck">
           <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me a double feature for tonight with one classic and one hidden gem')">
@@ -5505,12 +5507,25 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           });
         }
 
-        // Pressing Escape also closes the modal (nice companion to outside click)
+        // Global keyboard shortcuts
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape') {
             const m = document.getElementById('detail-modal');
-            if (m && !m.classList.contains('hidden')) {
-              closeModal();
+            if (m && !m.classList.contains('hidden')) closeModal();
+          }
+          // Enter on Browse panel: run search or discover based on which input is active
+          if (e.key === 'Enter') {
+            const browsePanel = document.getElementById('panel-browse');
+            if (!browsePanel || !browsePanel.classList.contains('active')) return;
+            const active = document.activeElement;
+            const searchInput = document.getElementById('search-input');
+            // If focused on search input, performSearch() already handles it via onkeypress
+            if (active === searchInput) return;
+            // If focused inside the discover filter panel, or nothing specific focused → run discover
+            const discoverPanel = document.getElementById('section-discover');
+            if (discoverPanel && (discoverPanel.contains(active) || active === document.body || active === browsePanel)) {
+              e.preventDefault();
+              performDiscover();
             }
           }
         });
