@@ -5517,13 +5517,14 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             const m = document.getElementById('detail-modal');
             if (m && !m.classList.contains('hidden')) closeModal();
           }
-          // Enter on Browse panel: always run discover (unless typing in search input)
+          // Enter on Browse panel: run search if input has text, otherwise discover
           if (e.key === 'Enter') {
             const browsePanel = document.getElementById('panel-browse');
             if (!browsePanel || !browsePanel.classList.contains('active')) return;
-            const active = document.activeElement;
             const searchInput = document.getElementById('search-input');
-            if (active === searchInput) return; // search input handles its own Enter
+            const hasQuery = searchInput && searchInput.value.trim().length > 0;
+            // If search input has text, let its own onkeypress handle it
+            if (hasQuery && document.activeElement === searchInput) return;
             e.preventDefault();
             performDiscover();
           }
