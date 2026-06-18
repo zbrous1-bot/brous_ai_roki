@@ -2163,8 +2163,12 @@
 
 
 
-    <!-- Hidden initial-state (auto-load replaces this) -->
-    <div id="initial-state" style="display:none;"></div>
+    <!-- Empty/invite state shown before any search -->
+    <div id="initial-state" class="flex flex-col items-center justify-center py-16 text-center px-4">
+      <div style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;">🔍</div>
+      <div class="text-zinc-400 font-medium text-sm">Search a title, director, or vibe above</div>
+      <div class="text-zinc-600 text-xs mt-1">or pick a genre and hit Find</div>
+    </div>
 
     </div><!-- /panel-browse -->
 
@@ -2885,6 +2889,11 @@
       renderDecadeChips();
       const activeFilters = document.getElementById('active-filters');
       if (activeFilters) activeFilters.classList.add('hidden');
+      // Clear results and restore the empty state
+      const results = document.getElementById('results');
+      if (results) results.innerHTML = '';
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = '';
     }
 
     function renderRatingChips() {
@@ -3886,12 +3895,7 @@
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
       }
-      // When switching to Browse, auto-load popular results once and focus search
       if (tab === 'browse') {
-        if (!window._browseLoaded) {
-          window._browseLoaded = true;
-          performDiscover();
-        }
         setTimeout(() => {
           const inp = document.getElementById('search-input');
           if (inp) inp.focus();
