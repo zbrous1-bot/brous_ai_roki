@@ -276,23 +276,26 @@
     }
 
     .curator-msg {
-      background: #18181b;
-      border: 1px solid #3f3f46;
-      padding: 9px 12px;
-      border-radius: 16px;
+      background: linear-gradient(135deg, #18181b, #141218);
+      border: 1px solid rgba(147,51,234,0.18);
+      padding: 11px 14px;
+      border-radius: 18px;
       margin-bottom: 5px;
-      max-width: 82%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      max-width: 84%;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
       opacity: 0;
       transform: translateY(6px);
-      animation: curator-msg-in 0.2s ease forwards;
+      animation: curator-msg-in 0.22s ease forwards;
       position: relative;
+      font-size: 14px;
+      line-height: 1.55;
     }
     .curator-msg.user {
-      background: #27272a;
+      background: linear-gradient(135deg, #1f1b2e, #1a1525);
       margin-left: auto;
-      border-color: #52525b;
-      max-width: 72%;
+      border-color: rgba(147,51,234,0.32);
+      max-width: 75%;
+      font-size: 14px;
     }
     .curator-msg .curator-avatar {
       vertical-align: middle;
@@ -1308,8 +1311,8 @@
       transform: translateX(2px) !important;
     }
     .library-card .lib-poster {
-      width: 60px;
-      height: 90px;
+      width: 80px;
+      height: 118px;
       overflow: hidden;
       flex-shrink: 0;
       border-radius: 8px;
@@ -1360,9 +1363,10 @@
     }
     .library-card .lib-actions button {
       font-size: 10px !important;
-      padding: 3px 7px !important;
+      padding: 3px 6px !important;
       border-radius: 7px !important;
       flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .library-genre-tag {
@@ -1742,52 +1746,51 @@
     }
     .curator-prompt-deck {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
-      padding: 12px 14px 0;
-      background: linear-gradient(180deg, #0e0c10 0%, #120e18 100%);
-      border-top: 1px solid rgba(185,28,28,0.12);
+      padding: 12px 14px;
+      background: linear-gradient(180deg, rgba(10,8,14,0.7) 0%, rgba(14,10,20,0.85) 100%);
+      border-top: 1px solid rgba(185,28,28,0.1);
     }
     .curator-prompt-card {
       text-align: left;
-      min-height: 74px;
-      border-radius: 14px;
-      border: 1px solid rgba(147,51,234,0.22);
+      min-height: 66px;
+      border-radius: 16px;
+      border: 1px solid rgba(147,51,234,0.2);
       background:
-        radial-gradient(circle at top right, rgba(185,28,28,0.14), transparent 42%),
-        linear-gradient(145deg, rgba(24,18,32,0.92), rgba(12,10,16,0.98));
-      padding: 10px 11px;
+        radial-gradient(circle at top right, rgba(185,28,28,0.12), transparent 50%),
+        linear-gradient(145deg, rgba(22,16,30,0.95), rgba(12,10,16,1));
+      padding: 11px 13px;
       color: #e9d5ff;
-      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .curator-prompt-card:hover {
-      transform: translateY(-1px);
-      border-color: rgba(248,113,113,0.48);
-      background:
-        radial-gradient(circle at top right, rgba(185,28,28,0.2), transparent 42%),
-        linear-gradient(145deg, rgba(30,22,40,0.98), rgba(15,12,20,1));
+      transform: translateY(-2px);
+      border-color: rgba(248,113,113,0.4);
+      box-shadow: 0 6px 20px rgba(185,28,28,0.15);
     }
     .curator-prompt-card .prompt-title {
       display: block;
       font-size: 12px;
       font-weight: 800;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
       color: #fca5a5;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .curator-prompt-card .prompt-copy {
       display: block;
       font-size: 11px;
-      line-height: 1.25;
-      color: rgba(221,214,254,0.78);
+      line-height: 1.3;
+      color: rgba(221,214,254,0.72);
     }
-    @media (max-width: 720px) {
+    @media (max-width: 480px) {
       .curator-prompt-deck {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        padding: 10px 10px 0;
+        padding: 10px 10px;
+        gap: 6px;
       }
       .curator-prompt-card {
-        min-height: 66px;
+        min-height: 58px;
         padding: 9px 10px;
       }
     }
@@ -2166,22 +2169,22 @@
 
     <!-- ═══ TAB: CURATOR ═══ -->
     <div id="panel-curator" class="main-panel">
-      <div class="border border-zinc-800 rounded-2xl overflow-hidden shadow-inner" id="curator-chat-full" style="background:var(--curator-bg);">
-        <div class="flex items-center justify-between px-3 py-2 border-b border-red-900/40" style="background:linear-gradient(135deg,#18181b 0%,#1c0a0a 100%);">
-          <div class="flex items-center gap-2">
-            <span class="curator-avatar" style="width:28px;height:28px;font-size:15px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 10px rgba(185,28,28,0.25);">👻</span>
-            <div class="leading-none">
-              <div class="text-[14px] text-zinc-100 tracking-tight font-semibold">The Curator</div>
-              <div id="curator-mood" class="text-[11px] text-red-400/75 tracking-widest mt-0.5 uppercase">THE REELS ARE RESTLESS</div>
-            </div>
-          </div>
-          <div class="flex gap-1.5">
-            <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear picks">🧹 Picks</button>
-            <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear chat">🪦 Chat</button>
-          </div>
+      <!-- Page header -->
+      <div class="mb-4 px-1 flex items-center gap-3">
+        <span style="width:40px;height:40px;border-radius:14px;background:linear-gradient(145deg,#7f1d1d,#450a0a);box-shadow:0 0 0 1px #b91c1c,0 0 16px rgba(185,28,28,0.3);display:inline-flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👻</span>
+        <div>
+          <h2 class="text-xl font-bold text-zinc-100 tracking-tight leading-none">The Curator</h2>
+          <p class="text-xs text-zinc-500 mt-0.5">Powered by your taste profile · picks stay until cleared</p>
         </div>
+        <div class="ml-auto flex gap-1.5">
+          <button onclick="clearCuratorPicks()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear picks">🧹 Picks</button>
+          <button onclick="clearCuratorChat()" class="text-[11px] px-2.5 py-1 border border-zinc-700 rounded-xl text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors" title="Clear chat">🪦 Chat</button>
+        </div>
+      </div>
 
-        <div id="curator-messages" class="px-3 py-2 overflow-auto text-sm space-y-2" style="min-height:300px;max-height:calc(100vh - 320px);background:var(--curator-bg);"></div>
+      <div class="rounded-3xl overflow-hidden" id="curator-chat-full" style="background:var(--curator-bg);border:1px solid rgba(185,28,28,0.18);box-shadow:0 0 0 1px rgba(255,255,255,0.03),0 8px 32px rgba(0,0,0,0.4);">
+
+        <div id="curator-messages" class="px-4 py-3 overflow-auto space-y-3" style="min-height:260px;max-height:calc(100vh - 380px);background:var(--curator-bg);"></div>
 
         <div class="curator-prompt-deck">
           <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me a double feature for tonight with one classic and one hidden gem')">
@@ -2202,15 +2205,17 @@
           </button>
         </div>
 
-        <div class="p-2 border-t border-zinc-800 bg-zinc-900/80">
-          <div class="flex gap-2">
-            <input id="curator-input" type="text" placeholder="Ask The Curator anything about horror, thrillers, sci-fi..."
-                   class="flex-1 bg-zinc-950 border border-zinc-700 focus:border-red-800/60 text-base rounded-2xl px-3 py-2 outline-none placeholder:text-zinc-600"
+        <div class="px-3 pb-3 pt-2" style="background:rgba(10,8,14,0.6);border-top:1px solid rgba(185,28,28,0.12);">
+          <div class="flex gap-2 items-center">
+            <input id="curator-input" type="text" placeholder="Ask about horror, thrillers, sci-fi, or your taste…"
+                   class="flex-1 border focus:border-red-700/70 text-sm rounded-2xl px-4 py-2.5 outline-none placeholder:text-zinc-600"
+                   style="background:#0d0b12;border-color:#3f3f46;color:#f4f4f5;"
                    onkeypress="if (event.key === 'Enter') sendToCurator()">
-            <button onclick="sendToCurator()" class="px-4 py-2 bg-red-900 hover:bg-red-800 active:bg-red-950 text-white text-sm font-semibold rounded-2xl transition-colors flex-shrink-0">Send</button>
+            <button onclick="sendToCurator()" class="px-5 py-2.5 text-sm font-semibold rounded-2xl flex-shrink-0 transition-all active:scale-95"
+                    style="background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff;box-shadow:0 2px 12px rgba(185,28,28,0.35);">Send</button>
           </div>
           <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies"></div>
-          <div id="curator-status" class="text-[11px] text-zinc-600 mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
+          <div id="curator-status" class="text-[11px] mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
     </div><!-- /panel-curator -->
@@ -3498,19 +3503,19 @@
         const posterImg = item.poster_path
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
-        html += `<div class="library-item library-item-v2 library-card">
+        html += `<div class="library-item library-item-v2 library-card" style="position:relative;">
+          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
-            <div class="lib-title">${item.title}</div>
+            <div class="lib-title" style="padding-right:18px;">${item.title}</div>
             <div class="lib-meta">
               ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
             <div class="lib-actions">
-              <button onclick="markWatchedFromToWatch(${idx})" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">⭐ Rate</button>
+              <button onclick="markWatchedFromToWatch(${idx})" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">Rate</button>
               <button id="tw-trailer-${item.id}" class="border border-zinc-700 text-zinc-600 hidden">▶</button>
               <button onclick="dislikeFromToWatch(${idx})" class="border border-zinc-700 text-zinc-400">👎</button>
-              <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">×</button>
             </div>
           </div>
         </div>`;
@@ -3654,7 +3659,7 @@
               ${stars}
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">× Remove</button>
+              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">×</button>
             </div>
           </div>
         </div>`;
@@ -3697,10 +3702,9 @@
             <div class="lib-meta">
               ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
-              <span class="text-[9px] text-red-400/70">👎</span>
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked">× Remove</button>
+              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked">×</button>
             </div>
           </div>
         </div>`;
