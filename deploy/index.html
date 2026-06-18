@@ -905,6 +905,57 @@
     ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
 
+    /* Where to watch popup */
+    .wtw-popup {
+      position: fixed;
+      z-index: 500;
+      background: #1c1c1f;
+      border: 1px solid #3f3f46;
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(185,28,28,0.12);
+      min-width: 190px;
+      max-width: 260px;
+      animation: wtw-in 0.14s ease;
+    }
+    @keyframes wtw-in {
+      from { opacity:0; transform:translateY(4px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .wtw-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #a1a1aa;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 2px 0;
+      transition: color 0.15s;
+    }
+    .wtw-trigger:hover { color: #f87171; }
+    .wtw-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #71717a;
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    .wtw-section-label:first-child { margin-top: 0; }
+    .wtw-provider-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px 3px 2px 0;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
     /* Modal backdrop blur */
     #detail-modal {
       backdrop-filter: blur(8px) !important;
@@ -3383,7 +3434,7 @@
             </div>
           </div>
           <button onclick="markWatchedFromToWatch(${idx})" class="text-[11px] px-2.5 py-1 rounded-xl bg-emerald-900 border border-emerald-700/50 text-emerald-300 flex-shrink-0">⭐ Rate</button>
-          <button id="tw-trailer-${item.id}" class="text-[11px] px-2.5 py-1 rounded-xl border border-zinc-700 text-zinc-600 flex-shrink-0 hidden">▶</button>
+          <button id="tw-trailer-${item.id}" class="text-[10px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-600 flex-shrink-0 hidden leading-none">▶</button>
           <button onclick="dislikeFromToWatch(${idx})" class="text-[11px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-400 flex-shrink-0">👎</button>
           <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 flex-shrink-0 hover:text-red-300">×</button>
         </div>`;
@@ -3990,6 +4041,40 @@
       return map[p.provider_id] || p.provider_name;
     }
 
+    function showWatchPopup(anchorEl, providers) {
+      document.querySelectorAll('.wtw-popup').forEach(p => p.remove());
+      const popup = document.createElement('div');
+      popup.className = 'wtw-popup';
+      const groups = [
+        { label: 'Stream', items: providers?.flatrate || [] },
+        { label: 'Rent',   items: providers?.rent    || [] },
+        { label: 'Buy',    items: providers?.buy     || [] },
+      ].filter(g => g.items.length);
+      if (!groups.length) {
+        popup.innerHTML = `<div style="font-size:12px;color:#71717a;">No streaming data available</div>`;
+      } else {
+        popup.innerHTML = groups.map(g => `
+          <div class="wtw-section-label">${g.label}</div>
+          <div>${g.items.map(p => {
+            const name = getProviderName(p);
+            const cc = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
+            return `<span class="wtw-provider-pill ${cc}">${name}</span>`;
+          }).join('')}</div>
+        `).join('');
+      }
+      document.body.appendChild(popup);
+      const rect = anchorEl.getBoundingClientRect();
+      const pw = popup.offsetWidth || 220;
+      let left = rect.left;
+      let top = rect.bottom + 6;
+      if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+      if (top + popup.offsetHeight > window.innerHeight - 8) top = rect.top - popup.offsetHeight - 6;
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
+      const close = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl) { popup.remove(); document.removeEventListener('pointerdown', close, true); } };
+      setTimeout(() => document.addEventListener('pointerdown', close, true), 10);
+    }
+
     function renderResults(items) {
       const container = document.getElementById('results');
       const initial = document.getElementById('initial-state');
@@ -4021,29 +4106,12 @@
         const year = (m.release_date || m.first_air_date || '').slice(0, 4);
         const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
 
-        let html = '';
-        if (m.providers) {
-          const groups = { stream: m.providers.flatrate || [], rent: m.providers.rent || [], buy: m.providers.buy || [] };
-          let allProvidersHtml = '';
-          Object.entries(groups).forEach(([type, items]) => {
-            if (!items.length) return;
-            const label = type === 'stream' ? 'S' : type.charAt(0).toUpperCase(); // S/R/B for compact
-            items.forEach(p => {
-              const name = getProviderName(p);
-              const isMine = Object.keys(services).some(k => services[k] && name.toLowerCase().includes(k));
-              const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-              allProvidersHtml += `<span class="inline-flex items-center px-2.5 py-1 rounded-2xl text-xs font-medium leading-none ${colorClass} border border-white/10 flex-shrink-0" title="${type}">${label}: ${name}${isMine ? '✓' : ''}</span>`;
-            });
-          });
-          if (allProvidersHtml) {
-            // Horizontal row, expanded for larger cards - contained to avoid spill into other cards
-            html = `<div class="mt-2 px-1"><div class="text-xs text-zinc-500 mb-1">Where to watch</div><div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 snap-x">${allProvidersHtml}</div></div>`;
-          } else {
-            html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
-          }
-        } else {
-          html = `<div class="text-[9px] text-zinc-500 py-0.5">No availability data</div>`;
-        }
+        const hasProviders = m.providers && (
+          (m.providers.flatrate||[]).length || (m.providers.rent||[]).length || (m.providers.buy||[]).length
+        );
+        const html = hasProviders
+          ? `<button class="wtw-trigger" data-wtw-id="${m.id}">📍 Where to watch</button>`
+          : `<span style="font-size:10px;color:#52525b;">No streaming data</span>`;
 
         const mediaLabel = (m._mediaType || 'movie') === 'tv' ? 'TV' : 'Movie';
         const mediaColor = (m._mediaType || 'movie') === 'tv' ? 'bg-sky-900 text-sky-400' : 'bg-violet-900 text-violet-400';
@@ -4082,29 +4150,33 @@
           </div>`;
         enhanceCard(card, m);
 
+        // Wire up "Where to watch" popup trigger
+        const wtwBtn = card.querySelector('.wtw-trigger');
+        if (wtwBtn) wtwBtn.addEventListener('click', (e) => { e.stopPropagation(); showWatchPopup(wtwBtn, m.providers); });
+
         // Rich list actions (To Watch primary + Watched/Dislike)
         const addBtnContainer = document.createElement('div');
-        addBtnContainer.className = 'mt-3 flex gap-2 overflow-x-auto flex-nowrap pb-1 snap-x';
+        addBtnContainer.className = 'mt-3 flex gap-1.5 flex-wrap';
         const b1 = document.createElement('button');
-        b1.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
+        b1.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
         b1.textContent = '+ Watch';
         b1.onclick = (e) => { e.stopImmediatePropagation(); addToToWatch(m); b1.textContent = '✓'; setTimeout(()=>b1.textContent='+ Watch',900); };
         const b2 = document.createElement('button');
-        b2.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
+        b2.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
         b2.textContent = 'Watched';
-        b2.onclick = (e) => { 
-          e.stopImmediatePropagation(); 
+        b2.onclick = (e) => {
+          e.stopImmediatePropagation();
           openInlineRatingPrompt(addBtnContainer, m, r => {
             addToWatched(m, r);
             b2.textContent='✓';
           }, { hideButtons: [b1, b2, b3] });
         };
         const b3 = document.createElement('button');
-        b3.className = 'flex-shrink-0 text-sm sm:text-base px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
+        b3.className = 'flex-shrink-0 text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
         b3.textContent = '👎';
         b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); b3.textContent='✓'; };
         const b4 = document.createElement('button');
-        b4.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden';
+        b4.className = 'flex-shrink-0 text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden';
         b4.textContent = '▶ Trailer';
         b4.onclick = async (e) => {
           e.stopImmediatePropagation();
@@ -4338,7 +4410,7 @@
             <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
             <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
             <button class="flex-shrink-0 text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
-            <button id="trailer-btn-${item.id}" class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer">▶ Trailer</button>
+            <button id="trailer-btn-${item.id}" class="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer">▶ Trailer</button>
           </div>
         `;
         // Async: upgrade IMDB link + fetch trailer
