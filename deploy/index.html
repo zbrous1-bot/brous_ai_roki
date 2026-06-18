@@ -2137,9 +2137,9 @@
           </div>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-5 py-1.5 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-[0.985] browse-btn"
-                  style="letter-spacing:0.04em;">
-            Find
+                  class="ml-auto px-7 py-2 text-white font-bold rounded-xl shadow-md transition-all active:scale-[0.97] browse-btn"
+                  style="letter-spacing:0.06em;font-size:14px;">
+            🔍 Find
           </button>
         </div>
       </div>
@@ -5517,20 +5517,15 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             const m = document.getElementById('detail-modal');
             if (m && !m.classList.contains('hidden')) closeModal();
           }
-          // Enter on Browse panel: run search or discover based on which input is active
+          // Enter on Browse panel: always run discover (unless typing in search input)
           if (e.key === 'Enter') {
             const browsePanel = document.getElementById('panel-browse');
             if (!browsePanel || !browsePanel.classList.contains('active')) return;
             const active = document.activeElement;
             const searchInput = document.getElementById('search-input');
-            // If focused on search input, performSearch() already handles it via onkeypress
-            if (active === searchInput) return;
-            // If focused inside the discover filter panel, or nothing specific focused → run discover
-            const discoverPanel = document.getElementById('section-discover');
-            if (discoverPanel && (discoverPanel.contains(active) || active === document.body || active === browsePanel)) {
-              e.preventDefault();
-              performDiscover();
-            }
+            if (active === searchInput) return; // search input handles its own Enter
+            e.preventDefault();
+            performDiscover();
           }
         });
 
