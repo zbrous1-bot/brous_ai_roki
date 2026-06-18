@@ -1236,6 +1236,7 @@
       transition: opacity 0.2s ease;
     }
     .library-item-v2:hover::after { opacity: 1; }
+    .library-item-v2:has(.inline-rating-bar) { overflow: visible !important; }
     .library-item-v2:hover {
       border-color: rgba(185,28,28,0.25);
       background: linear-gradient(135deg, #1a1012, #111113);
