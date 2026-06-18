@@ -510,6 +510,13 @@
         -webkit-overflow-scrolling: touch;
         overflow-y: scroll;
       }
+      /* Compact posters on mobile — 120px→78px lets ~5 items show vs ~3 */
+      #to-watch-content .poster-wrap,
+      #watched-content .poster-wrap,
+      #disliked-content .poster-wrap {
+        width: 52px !important;
+        height: 78px !important;
+      }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
         padding-top: 2px !important;
@@ -2077,15 +2084,15 @@
             <div class="font-medium text-zinc-400">Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
+          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
-          <div id="watched-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
+          <div id="watched-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
-          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[80vh] overflow-auto"></div>
+          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
         </div>
       </div>
 
@@ -3680,7 +3687,7 @@
       if (tab === 'watched') {
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
-        setTimeout(fitLibraryToScreen, 50);
+        setTimeout(fitLibraryToScreen, 150);
       }
       // When switching to Curator, focus input
       if (tab === 'curator') {
@@ -5405,20 +5412,21 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
     });
 
     function fitLibraryToScreen() {
-      const content = document.getElementById('personal-content');
-      if (!content) return;
-      const top = content.getBoundingClientRect().top;
-      const available = window.innerHeight - top - 20;
-      if (available < 200) return;
+      const panel = document.getElementById('panel-watched');
+      if (!panel || !panel.classList.contains('active')) return;
+      const el = document.getElementById('to-watch-content');
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top <= 10) return; // panel not laid out yet
+      const h = Math.max(window.innerHeight - rect.top - 8, 200);
       ['to-watch-content', 'watched-content', 'disliked-content'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.maxHeight = Math.max(available - 40, 200) + 'px';
+        const listEl = document.getElementById(id);
+        if (listEl) listEl.style.maxHeight = h + 'px';
       });
     }
 
     window.addEventListener('resize', fitLibraryToScreen);
-    window.addEventListener('orientationchange', () => setTimeout(fitLibraryToScreen, 200));
-    document.addEventListener('DOMContentLoaded', fitLibraryToScreen);
+    window.addEventListener('orientationchange', () => setTimeout(fitLibraryToScreen, 300));
 
     window.onload = function() {
       try {
