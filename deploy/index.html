@@ -1296,28 +1296,28 @@
     /* Grid card variant for My Library */
     .library-card {
       display: flex !important;
-      flex-direction: column !important;
-      align-items: stretch !important;
-      padding: 0 !important;
-      gap: 0 !important;
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      padding: 10px 12px !important;
+      gap: 10px !important;
       overflow: hidden !important;
       border-radius: 16px !important;
       transform: none !important;
     }
     .library-card:hover {
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 24px rgba(185,28,28,0.15), 0 2px 8px rgba(0,0,0,0.4) !important;
+      transform: translateX(2px) !important;
     }
     .library-card .lib-poster {
-      width: 100%;
-      aspect-ratio: 2 / 3;
+      width: 60px;
+      height: 90px;
       overflow: hidden;
       flex-shrink: 0;
+      border-radius: 8px;
       background: #27272a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.5rem;
+      font-size: 1.5rem;
       color: #52525b;
     }
     .library-card .lib-poster img {
@@ -1325,19 +1325,21 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      border-radius: 8px;
     }
     .library-card .lib-body {
-      padding: 9px 10px 10px;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       flex: 1;
+      min-width: 0;
     }
     .library-card .lib-title {
       font-size: 12px;
       font-weight: 600;
       color: #f4f4f5;
-      line-height: 1.35;
+      line-height: 1.3;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -1346,20 +1348,20 @@
     .library-card .lib-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 3px;
       align-items: center;
     }
     .library-card .lib-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 3px;
       margin-top: auto;
-      padding-top: 6px;
+      padding-top: 5px;
     }
     .library-card .lib-actions button {
       font-size: 10px !important;
-      padding: 3px 8px !important;
-      border-radius: 8px !important;
+      padding: 3px 7px !important;
+      border-radius: 7px !important;
       flex-shrink: 0;
     }
 
