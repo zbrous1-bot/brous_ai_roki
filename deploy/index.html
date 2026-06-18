@@ -3404,7 +3404,7 @@
       hiddenButtons.forEach(b => { if (b) b.style.display = 'none'; });
 
       const rateBar = document.createElement('div');
-      rateBar.className = 'inline-rating-bar mt-2 flex w-full gap-1 bg-amber-950/30 border border-amber-500/15 rounded-xl p-1.5 justify-around items-center';
+      rateBar.className = 'inline-rating-bar mt-2 flex w-full gap-1 justify-around items-center';
       rateBar.addEventListener('pointerdown', ev => ev.stopPropagation());
       rateBar.addEventListener('click', ev => ev.stopPropagation());
 
