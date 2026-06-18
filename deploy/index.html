@@ -507,6 +507,8 @@
         padding: 1px !important;
         margin-top: 0 !important;
         border: none !important;
+        max-height: none !important;
+        overflow-y: visible !important;
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -2501,19 +2503,31 @@
       const items = container.querySelectorAll('.library-item');
       items.forEach((item, index) => {
         let startX = 0;
+        let startY = 0;
         let currentX = 0;
         let isDragging = false;
+        let isScrolling = null;
 
         const onStart = (e) => {
           if (e.touches) {
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             isDragging = true;
+            isScrolling = null;
             item.classList.add('swiping');
           }
         };
         const onMove = (e) => {
           if (!isDragging || !e.touches) return;
-          currentX = e.touches[0].clientX - startX;
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          // Determine scroll vs swipe on first significant move
+          if (isScrolling === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+            isScrolling = Math.abs(dy) > Math.abs(dx);
+          }
+          // Let browser handle vertical scroll — don't apply transform
+          if (isScrolling) return;
+          currentX = dx;
           // limit drag
           const limited = Math.max(Math.min(currentX, 120), -120);
           item.style.transform = `translateX(${limited}px)`;
@@ -2525,6 +2539,7 @@
         const onEnd = () => {
           if (!isDragging) return;
           isDragging = false;
+          isScrolling = null;
           item.classList.remove('swiping');
           const threshold = 60;
 
@@ -3115,10 +3130,14 @@
     }
 
     function posterHtml(item, size = 'w92') {
+      const mob = window.innerWidth < 640;
+      const pw = mob ? '52px' : '80px';
+      const ph = mob ? '78px' : '120px';
+      const baseStyle = `width:${pw};height:${ph};flex-shrink:0`;
       if (!item || !item.poster_path) {
-        return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
+        return `<div style="${baseStyle};background:#27272a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#52525b">🎬</div>`;
       }
-      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
+      return `<div class="poster-wrap loading" style="${baseStyle}"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
     }
 
     function addToToWatch(item) {
@@ -3661,7 +3680,6 @@
       if (tab === 'foryou') updateHomeSnapshot();
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // When switching to Library, refresh lists
       if (tab === 'watched') {
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
