@@ -478,6 +478,18 @@
     @media (max-width: 640px) {
       .max-w-screen-2xl { max-width: 100%; }
 
+      /* Hide redundant nav tab links on mobile — tab bar below handles navigation */
+      #nav-foryou, #nav-curator, #nav-browse, #nav-watched { display: none !important; }
+
+      /* Tab bar: shrink font so "My Library" fits without clipping */
+      .main-tab-btn { font-size: 11px !important; padding: 8px 6px !important; gap: 3px !important; }
+      .tab-icon { font-size: 13px !important; }
+
+      /* Library grid: single column on mobile so cards have full width */
+      #to-watch-content, #watched-content, #disliked-content {
+        grid-template-columns: 1fr !important;
+      }
+
       /* Shrink gap between main tab bar and content so library fills more screen */
       .main-tab-bar { margin-bottom: 8px !important; }
 
