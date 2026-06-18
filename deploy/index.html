@@ -1236,7 +1236,6 @@
       transition: opacity 0.2s ease;
     }
     .library-item-v2:hover::after { opacity: 1; }
-    .library-item-v2:has(.inline-rating-bar) { overflow: visible !important; }
     .library-item-v2:hover {
       border-color: rgba(185,28,28,0.25);
       background: linear-gradient(135deg, #1a1012, #111113);
@@ -3409,11 +3408,14 @@
       rateBar.addEventListener('pointerdown', ev => ev.stopPropagation());
       rateBar.addEventListener('click', ev => ev.stopPropagation());
 
+      const libraryRow = anchor.closest('.library-item');
+
       const cleanup = () => {
         rateBar.remove();
         hiddenButtons.forEach(b => { if (b) b.style.display = ''; });
         document.removeEventListener('pointerdown', outsideHandler, true);
         if (activeRatingPromptCleanup === cleanup) activeRatingPromptCleanup = null;
+        if (libraryRow) { libraryRow.style.overflow = ''; libraryRow.style.minHeight = ''; }
       };
 
       const outsideHandler = ev => {
@@ -3424,7 +3426,7 @@
         const b = document.createElement('button');
         b.textContent = r + '★';
         b.className = 'px-3 py-1 text-sm rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold flex-shrink-0 transition-colors';
-        b.style.cssText = 'min-height:0 !important; font-size:14px !important; line-height:1.4;';
+        b.style.cssText = 'min-height:0 !important; font-size:14px !important; line-height:1.4; padding:3px 10px !important;';
         b.onclick = ev => {
           ev.stopImmediatePropagation();
           cleanup();
@@ -3435,6 +3437,15 @@
 
       anchor.appendChild(rateBar);
       activeRatingPromptCleanup = cleanup;
+
+      // Force the library row to grow to show the rating bar fully
+      if (libraryRow) {
+        libraryRow.style.overflow = 'visible';
+        requestAnimationFrame(() => {
+          libraryRow.style.minHeight = libraryRow.scrollHeight + 'px';
+        });
+      }
+
       setTimeout(() => document.addEventListener('pointerdown', outsideHandler, true), 0);
     }
 
