@@ -478,6 +478,9 @@
       /* Shrink gap between main tab bar and content so library fills more screen */
       .main-tab-bar { margin-bottom: 8px !important; }
 
+      /* When Library tab is active, hide the main tab bar entirely — nav is in the sticky header */
+      body.library-open .main-tab-bar { display: none !important; }
+
       /* Hide stats bar in library — count info is already on the tab labels */
       #personal-stats { display: none !important; }
 
@@ -3688,6 +3691,8 @@
       const homeGrid = document.getElementById('home-command-grid');
       if (homeGrid) homeGrid.style.display = tab === 'foryou' ? '' : 'none';
       if (tab === 'foryou') updateHomeSnapshot();
+      // On mobile, hide the main tab bar when Library is open to free up screen space
+      document.body.classList.toggle('library-open', tab === 'watched');
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
       if (tab === 'watched') {
