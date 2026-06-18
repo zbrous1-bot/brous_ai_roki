@@ -433,7 +433,7 @@
       background: #111113;
       border: 1px solid #3f3f46;
       border-radius: 0 8px 8px 8px;
-      padding: 8px;
+      padding: 12px;
       margin-top: -1px; /* seamless with tab bar */
     }
 
@@ -1918,23 +1918,22 @@
     </div>
 
     <!-- Search -->
-<!-- Search -->
     <div id="section-search"></div>
-    <div class="mb-1">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-2.5 shadow-sm search-panel">
-        <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+    <div class="mb-3">
+      <div class="search-panel" style="border-radius:20px;padding:14px 16px;border:1px solid rgba(185,28,28,0.18);">
+        <div class="flex gap-2 items-center">
           <div class="relative flex-1">
-            <i class="fa-solid fa-search absolute left-3 top-2.5 text-zinc-500"></i>
-            <input id="search-input" type="text" placeholder="Search for a movie or show..."
-                   class="search-input w-full bg-zinc-950 border border-zinc-700 focus:border-zinc-400 pl-9 pr-3 py-2 rounded-3xl text-base outline-none placeholder:text-zinc-500"
+            <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" style="font-size:13px;"></i>
+            <input id="search-input" type="text" placeholder="Search movies, shows, directors..."
+                   class="search-input w-full bg-zinc-950 border border-zinc-700 pl-9 pr-3 py-2.5 rounded-2xl text-base outline-none placeholder:text-zinc-500"
                    onkeypress="if (event.key === 'Enter') performSearch()">
           </div>
-          <button onclick="performSearch()" class="search-action-btn inline-flex items-center justify-center gap-2">
-            <i class="fa-solid fa-arrow-right text-xs"></i>
+          <button onclick="performSearch()" class="search-action-btn inline-flex items-center justify-center gap-2 flex-shrink-0" style="padding:10px 18px;">
+            <i class="fa-solid fa-arrow-right" style="font-size:12px;"></i>
             <span>Search</span>
           </button>
         </div>
-        <div class="search-chip-row" aria-label="Quick searches">
+        <div class="search-chip-row" aria-label="Quick searches" style="margin-top:10px;">
           <button class="search-chip" onclick="quickSearch('folk horror')">Folk horror</button>
           <button class="search-chip" onclick="quickSearch('psychological thriller')">Psychological</button>
           <button class="search-chip" onclick="quickSearch('creature feature')">Creature feature</button>
@@ -1945,44 +1944,45 @@
 
     <!-- Discover -->
     <div id="section-discover"></div>
-    <div class="mb-0.5">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 shadow-sm discover-panel">
-        <div class="flex items-center justify-between mb-2">
+    <div class="mb-3">
+      <div class="discover-panel" style="border-radius:18px;padding:14px 16px;">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-3">
           <div class="discover-panel-header">
-            <div class="text-[13px] font-semibold text-red-400 tracking-tight uppercase" style="letter-spacing:0.08em;">Discover</div>
+            <span class="text-[13px] font-bold text-red-400 uppercase" style="letter-spacing:0.1em;">Discover</span>
           </div>
-          <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">Clear all</button>
+          <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-red-400 transition-colors font-medium">Clear all</button>
         </div>
 
         <!-- Genre chips -->
-        <div class="mb-2">
-          <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Genre</div>
-          <div id="genre-chips" class="flex flex-wrap gap-1"></div>
+        <div class="mb-3">
+          <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Genre</div>
+          <div id="genre-chips" class="flex flex-wrap gap-1.5"></div>
         </div>
 
         <!-- Rating + Decade side-by-side -->
-        <div class="flex gap-4 mb-2">
+        <div class="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Rating</div>
-            <div id="rating-chips" class="flex flex-wrap gap-1"></div>
+            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Rating</div>
+            <div id="rating-chips" class="flex flex-wrap gap-1.5"></div>
           </div>
           <div>
-            <div class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Decade</div>
-            <div id="decade-chips" class="flex flex-wrap gap-1"></div>
+            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Decade</div>
+            <div id="decade-chips" class="flex flex-wrap gap-1.5"></div>
           </div>
         </div>
 
         <!-- Bottom controls -->
-        <div class="flex items-center gap-2 pt-2 border-t border-zinc-800">
+        <div class="flex items-center gap-2 pt-2.5 border-t border-zinc-800/70">
           <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-1 text-sm text-zinc-200 outline-none">
+                  class="bg-zinc-950 border border-zinc-700 rounded-xl px-2.5 py-1.5 text-sm text-zinc-200 outline-none flex-shrink-0">
             <option value="popularity.desc">Popular</option>
             <option value="vote_average.desc">Top Rated</option>
             <option value="release_date.desc">Newest</option>
             <option value="release_date.asc">Oldest</option>
           </select>
 
-          <div class="inline-flex rounded-xl bg-zinc-950 border border-zinc-700 p-0.5">
+          <div class="inline-flex rounded-xl bg-zinc-950 border border-zinc-700 p-0.5 flex-shrink-0">
             <button onclick="setDiscoverType('movie')" id="type-movie"
                     class="px-3 py-1 rounded-lg text-sm font-medium bg-white text-black">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
@@ -1990,7 +1990,8 @@
           </div>
 
           <button onclick="performDiscover()"
-                  class="ml-auto px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.985] browse-btn">
+                  class="ml-auto px-5 py-1.5 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-[0.985] browse-btn"
+                  style="letter-spacing:0.04em;">
             Browse
           </button>
         </div>
@@ -2097,15 +2098,15 @@
             <div class="font-medium text-zinc-400">Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="to-watch-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
-          <div id="watched-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="watched-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
-          <div id="disliked-content" class="space-y-1.5 text-sm max-h-[600px] overflow-auto"></div>
+          <div id="disliked-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
       </div>
 
