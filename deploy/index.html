@@ -3448,9 +3448,8 @@
         return;
       }
       const actionButtons = Array.from(row.querySelectorAll('button'));
-      row.style.flexWrap = 'wrap';
-      row.style.alignItems = 'flex-start';
-      openInlineRatingPrompt(row, item, r => {
+      const contentDiv = row.querySelector('.flex-1') || row;
+      openInlineRatingPrompt(contentDiv, item, r => {
         addToWatched(item, r);
         row.style.opacity = '0.4';
       }, { hideButtons: actionButtons });
