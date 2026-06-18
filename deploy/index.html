@@ -484,6 +484,10 @@
       /* Hide stats bar in library — count info is already on the tab labels */
       #personal-stats { display: none !important; }
 
+      /* Recs header — hide subtitle blurb, tighten padding */
+      .recs-section-header + div { display: none !important; }
+      #panel-foryou .mb-4 > .flex.items-center.justify-between { margin-bottom: 6px !important; padding: 0 2px !important; }
+
       /* Remove the card-box look from the library container — edge to edge feel */
       #personal-content {
         border-left: none !important;
@@ -3400,7 +3404,7 @@
       hiddenButtons.forEach(b => { if (b) b.style.display = 'none'; });
 
       const rateBar = document.createElement('div');
-      rateBar.className = 'inline-rating-bar mt-1 ml-auto flex w-fit max-w-full gap-1 bg-amber-950/30 border border-amber-500/15 rounded-xl p-1 flex-nowrap overflow-x-auto';
+      rateBar.className = 'inline-rating-bar mt-2 flex w-full gap-1 bg-amber-950/30 border border-amber-500/15 rounded-xl p-1 flex-wrap justify-center';
       rateBar.addEventListener('pointerdown', ev => ev.stopPropagation());
       rateBar.addEventListener('click', ev => ev.stopPropagation());
 
