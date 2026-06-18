@@ -3383,11 +3383,29 @@
             </div>
           </div>
           <button onclick="markWatchedFromToWatch(${idx})" class="text-[11px] px-2.5 py-1 rounded-xl bg-emerald-900 border border-emerald-700/50 text-emerald-300 flex-shrink-0">⭐ Rate</button>
+          <button id="tw-trailer-${item.id}" class="text-[11px] px-2.5 py-1 rounded-xl border border-zinc-700 text-zinc-600 flex-shrink-0 hidden">▶</button>
           <button onclick="dislikeFromToWatch(${idx})" class="text-[11px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-400 flex-shrink-0">👎</button>
           <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 flex-shrink-0 hover:text-red-300">×</button>
         </div>`;
       });
       c.innerHTML = html;
+
+      // Async: fetch trailers for each To Watch item and show button if found
+      toWatchList.forEach(item => {
+        const mediaPath = (item._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
+        apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/videos`).then(vdata => {
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                          (vdata?.results || []).find(v => v.site === 'YouTube');
+          if (trailer) {
+            const btn = document.getElementById(`tw-trailer-${item.id}`);
+            if (btn) {
+              btn.classList.remove('hidden', 'text-zinc-600');
+              btn.classList.add('text-red-400');
+              btn.onclick = (e) => { e.stopPropagation(); window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener'); };
+            }
+          }
+        }).catch(() => {});
+      });
 
       // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
       const toWatchRows = c.querySelectorAll('.library-item');
@@ -4085,8 +4103,27 @@
         b3.className = 'flex-shrink-0 text-sm sm:text-base px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
         b3.textContent = '👎';
         b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); b3.textContent='✓'; };
-        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3);
+        const b4 = document.createElement('button');
+        b4.className = 'flex-shrink-0 text-sm sm:text-base px-3 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden';
+        b4.textContent = '▶ Trailer';
+        b4.onclick = async (e) => {
+          e.stopImmediatePropagation();
+          const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
+          const vdata = await apiFetch(`/api/tmdb/3/${mediaPath}/${m.id}/videos`).catch(() => null);
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                          (vdata?.results || []).find(v => v.site === 'YouTube');
+          if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
+        };
+        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3); addBtnContainer.appendChild(b4);
         card.appendChild(addBtnContainer);
+
+        // Async: show trailer button if a YouTube video exists
+        const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
+        apiFetch(`/api/tmdb/3/${mediaPath}/${m.id}/videos`).then(vdata => {
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                          (vdata?.results || []).find(v => v.site === 'YouTube');
+          if (trailer) { b4.classList.remove('hidden', 'text-zinc-500'); b4.classList.add('text-red-400'); }
+        }).catch(() => {});
 
         container.appendChild(card);
       });
