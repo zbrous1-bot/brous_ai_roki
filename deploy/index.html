@@ -602,10 +602,10 @@
       /* #recs-grid .movie-card img { width: 72px !important; height: 108px !important; } */
       #recs-grid .mt-2.flex.gap-1 > button { font-size: 11px !important; padding: 5px 8px !important; }
       
-      /* Personal lists - bigger for scrolling readability */
-      .library-item { padding: 8px 10px !important; gap: 10px; font-size: 15px !important; }
-      .library-item button { font-size: 12px !important; padding: 3px 8px !important; }
-      .library-item img, .library-item div[class*="w-"] { width: 64px !important; height: 96px !important; }
+      /* Personal lists - grid cards handle their own sizing */
+      .library-item:not(.library-card) { padding: 8px 10px !important; gap: 10px; font-size: 15px !important; }
+      .library-item:not(.library-card) button { font-size: 12px !important; padding: 3px 8px !important; }
+      .library-item:not(.library-card) img, .library-item:not(.library-card) div[class*="w-"] { width: 64px !important; height: 96px !important; }
       
       /* Modal */
       #detail-modal .p-4 { padding: 14px; }
@@ -1293,6 +1293,76 @@
       transform: translateX(2px);
       box-shadow: 0 4px 20px rgba(185,28,28,0.1), 0 1px 0 rgba(185,28,28,0.15) inset;
     }
+    /* Grid card variant for My Library */
+    .library-card {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      padding: 0 !important;
+      gap: 0 !important;
+      overflow: hidden !important;
+      border-radius: 16px !important;
+      transform: none !important;
+    }
+    .library-card:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 24px rgba(185,28,28,0.15), 0 2px 8px rgba(0,0,0,0.4) !important;
+    }
+    .library-card .lib-poster {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #27272a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: #52525b;
+    }
+    .library-card .lib-poster img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .library-card .lib-body {
+      padding: 9px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    .library-card .lib-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f4f4f5;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .library-card .lib-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    .library-card .lib-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: auto;
+      padding-top: 6px;
+    }
+    .library-card .lib-actions button {
+      font-size: 10px !important;
+      padding: 3px 8px !important;
+      border-radius: 8px !important;
+      flex-shrink: 0;
+    }
+
     .library-genre-tag {
       font-size: 9px;
       font-weight: 500;
@@ -2164,15 +2234,15 @@
             <div class="font-medium text-zinc-400">Upcoming nightmares</div>
             <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
           </div>
-          <div id="to-watch-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
+          <div id="to-watch-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
-          <div id="watched-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
+          <div id="watched-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
           <div class="text-xs font-medium text-zinc-400 mb-1.5">Disliked <span class="text-zinc-600 font-normal">(excluded from recs)</span></div>
-          <div id="disliked-content" class="space-y-1.5 text-sm overflow-auto" style="max-height:calc(100vh - 300px);"></div>
+          <div id="disliked-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
       </div>
 
@@ -3422,21 +3492,25 @@
       let html = '';
       toWatchList.forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = posterHtml(item, 'w185');
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
-        html += `<div class="library-item library-item-v2 text-sm items-center">
-          ${poster}
-          <div class="flex-1 min-w-0">
-            <div class="font-medium truncate text-zinc-100">${item.title}</div>
-            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+        const posterImg = item.poster_path
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          : `🎬`;
+        html += `<div class="library-item library-item-v2 library-card">
+          <div class="lib-poster">${posterImg}</div>
+          <div class="lib-body flex-1">
+            <div class="lib-title">${item.title}</div>
+            <div class="lib-meta">
+              ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
+            <div class="lib-actions">
+              <button onclick="markWatchedFromToWatch(${idx})" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">⭐ Rate</button>
+              <button id="tw-trailer-${item.id}" class="border border-zinc-700 text-zinc-600 hidden">▶</button>
+              <button onclick="dislikeFromToWatch(${idx})" class="border border-zinc-700 text-zinc-400">👎</button>
+              <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">×</button>
+            </div>
           </div>
-          <button onclick="markWatchedFromToWatch(${idx})" class="text-[11px] px-2.5 py-1 rounded-xl bg-emerald-900 border border-emerald-700/50 text-emerald-300 flex-shrink-0">⭐ Rate</button>
-          <button id="tw-trailer-${item.id}" class="text-[10px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-600 flex-shrink-0 hidden leading-none">▶</button>
-          <button onclick="dislikeFromToWatch(${idx})" class="text-[11px] px-2 py-1 rounded-xl border border-zinc-700 text-zinc-400 flex-shrink-0">👎</button>
-          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 flex-shrink-0 hover:text-red-300">×</button>
         </div>`;
       });
       c.innerHTML = html;
@@ -3458,16 +3532,15 @@
         }).catch(() => {});
       });
 
-      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      // Make poster area clickable to open detail modal
       const toWatchRows = c.querySelectorAll('.library-item');
       toWatchList.forEach((item, i) => {
         if (i >= toWatchRows.length) return;
-        const row = toWatchRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
-        if (poster && item) {
-          poster.style.cursor = 'pointer';
-          poster.title = 'View details';
-          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        const posterEl = toWatchRows[i].querySelector('.lib-poster');
+        if (posterEl && item) {
+          posterEl.style.cursor = 'pointer';
+          posterEl.title = 'View details';
+          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
         }
       });
 
@@ -3545,7 +3618,7 @@
         return;
       }
       const actionButtons = Array.from(row.querySelectorAll('button'));
-      const contentDiv = row.querySelector('.flex-1') || row;
+      const contentDiv = row.querySelector('.lib-body') || row.querySelector('.flex-1') || row;
       openInlineRatingPrompt(contentDiv, item, r => {
         addToWatched(item, r);
         row.style.opacity = '0.4';
@@ -3562,36 +3635,40 @@
       if (!c) return;
       if (!watchedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👁️</span><div class="text-sm font-medium text-zinc-400">No watched titles yet</div><div class="text-xs text-zinc-600 mt-1">Rate movies as you watch — this powers your personal recs.</div></div>`; return; }
       let html = '';
-      watchedList.slice(0,12).forEach((item, idx) => {
+      watchedList.slice(0,24).forEach((item, idx) => {
         const year = (item.release_date || '').slice(0,4);
-        const poster = posterHtml(item, 'w185');
         const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
-        html += `<div class="library-item library-item-v2 text-sm items-center">
-          ${poster}
-          <div class="flex-1 min-w-0">
-            <div class="font-medium truncate text-zinc-100">${item.title}</div>
-            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+        const posterImg = item.poster_path
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          : `🎬`;
+        const stars = item.rating ? `<span class="library-rating text-[10px]">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : '';
+        html += `<div class="library-item library-item-v2 library-card">
+          <div class="lib-poster">${posterImg}</div>
+          <div class="lib-body flex-1">
+            <div class="lib-title">${item.title}</div>
+            <div class="lib-meta">
+              ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${wGenre ? `<span class="library-genre-tag">${wGenre}</span>` : ''}
-              ${item.rating ? `<span class="library-rating">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : ''}
+              ${stars}
+            </div>
+            <div class="lib-actions">
+              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">× Remove</button>
             </div>
           </div>
-          <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-[11px] text-red-400 px-1.5 hover:text-red-300 flex-shrink-0">×</button>
         </div>`;
       });
-      if (watchedList.length > 12) html += `<div class="text-[10px] text-zinc-500 px-1">+${watchedList.length-12} more</div>`;
+      if (watchedList.length > 24) html += `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">+${watchedList.length-24} more</div>`;
       c.innerHTML = html;
 
-      // Make thumbnails (posters) clickable to open the full detail bio modal (same as search results)
+      // Make poster area clickable to open detail modal
       const watchedRows = c.querySelectorAll('.library-item');
-      watchedList.slice(0,12).forEach((item, i) => {
+      watchedList.slice(0,24).forEach((item, i) => {
         if (i >= watchedRows.length) return;
-        const row = watchedRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
-        if (poster && item) {
-          poster.style.cursor = 'pointer';
-          poster.title = 'View details';
-          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        const posterEl = watchedRows[i].querySelector('.lib-poster');
+        if (posterEl && item) {
+          posterEl.style.cursor = 'pointer';
+          posterEl.title = 'View details';
+          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
         }
       });
 
@@ -3604,38 +3681,40 @@
       if (!c) return;
       if (!dislikedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👎</span><div class="text-sm font-medium text-zinc-400">Nothing disliked yet</div><div class="text-xs text-zinc-600 mt-1">Disliked titles are excluded from recommendations.</div></div>`; return; }
       let html = '';
-      dislikedList.slice(0,8).forEach((item, idx) => {
-        // Defensive: title may be undefined in old saved data — fallback chain
+      dislikedList.slice(0,12).forEach((item, idx) => {
         const displayTitle = item.title || item.name || item.original_title || item.original_name || 'Unknown Title';
         const year = (item.release_date || item.first_air_date || '').slice(0,4);
-        const poster = posterHtml(item, 'w185');
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
-        html += `<div class="library-item library-item-v2 text-sm items-center" data-disliked-idx="${idx}">
-          ${poster}
-          <div class="flex-1 min-w-0">
-            <div class="font-medium truncate text-zinc-100">${displayTitle}</div>
-            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+        const posterImg = item.poster_path
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          : `🎬`;
+        html += `<div class="library-item library-item-v2 library-card" data-disliked-idx="${idx}">
+          <div class="lib-poster">${posterImg}</div>
+          <div class="lib-body flex-1">
+            <div class="lib-title">${displayTitle}</div>
+            <div class="lib-meta">
+              ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
-              <span class="text-[10px] text-red-400/70">👎 disliked</span>
+              <span class="text-[9px] text-red-400/70">👎</span>
+            </div>
+            <div class="lib-actions">
+              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked">× Remove</button>
             </div>
           </div>
-          <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-[11px] text-red-400 px-1.5 hover:text-red-300 flex-shrink-0" title="Remove from disliked">×</button>
         </div>`;
       });
-      if (dislikedList.length > 8) html += `<div class="text-[10px] text-zinc-500 px-1">+${dislikedList.length-8} more</div>`;
+      if (dislikedList.length > 12) html += `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">+${dislikedList.length-12} more</div>`;
       c.innerHTML = html;
 
-      // Make thumbnails (posters) clickable to open the full detail bio modal
+      // Make poster area clickable to open detail modal
       const dislikedRows = c.querySelectorAll('.library-item');
-      dislikedList.slice(0,8).forEach((item, i) => {
+      dislikedList.slice(0,12).forEach((item, i) => {
         if (i >= dislikedRows.length) return;
-        const row = dislikedRows[i];
-        const poster = row.querySelector('img') || row.querySelector('div[class*="w-1"]');
-        if (poster && item) {
-          poster.style.cursor = 'pointer';
-          poster.title = 'View details';
-          poster.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+        const posterEl = dislikedRows[i].querySelector('.lib-poster');
+        if (posterEl && item) {
+          posterEl.style.cursor = 'pointer';
+          posterEl.title = 'View details';
+          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
         }
       });
 
