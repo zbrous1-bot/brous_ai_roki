@@ -474,7 +474,21 @@
     /* Mobile friendliness: tighten for phones (iPhone SE, Android small screens) - but keep fonts larger for eyes */
     @media (max-width: 640px) {
       .max-w-screen-2xl { max-width: 100%; }
-      
+
+      /* Shrink gap between main tab bar and content so library fills more screen */
+      .main-tab-bar { margin-bottom: 8px !important; }
+
+      /* Hide stats bar in library — count info is already on the tab labels */
+      #personal-stats { display: none !important; }
+
+      /* Remove the card-box look from the library container — edge to edge feel */
+      #personal-content {
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        border-radius: 0 !important;
+      }
+
       /* Header */
       .top-header h1 { font-size: 2.5rem !important; letter-spacing: -1.5px; }
       .top-header p { font-size: 14px !important; }
@@ -3130,10 +3144,7 @@
     }
 
     function posterHtml(item, size = 'w92') {
-      const mob = window.innerWidth < 640;
-      const pw = mob ? '52px' : '80px';
-      const ph = mob ? '78px' : '120px';
-      const baseStyle = `width:${pw};height:${ph};flex-shrink:0`;
+      const baseStyle = `width:80px;height:120px;flex-shrink:0`;
       if (!item || !item.poster_path) {
         return `<div style="${baseStyle};background:#27272a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#52525b">🎬</div>`;
       }
