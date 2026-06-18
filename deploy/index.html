@@ -1810,10 +1810,11 @@
 
   <!-- Sticky navigation bar -->
   <nav id="sticky-nav">
-    <div class="nav-brand">BROUS <span>●</span> MOVIE ENGINE</div>
+    <button class="nav-brand" onclick="switchMainTab('foryou')" style="background:none;border:none;cursor:pointer;padding:0;">BROUS <span>●</span> MOVIE ENGINE</button>
     <div class="nav-links">
       <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
       <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
+      <a class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
       <!-- Share button: combines Sync + Transfer -->
       <div style="position:relative;display:inline-flex;" id="share-menu-wrap">
@@ -1856,6 +1857,9 @@
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('curator')" id="mtab-curator">
         <span class="tab-icon">👻</span> Curator
+      </button>
+      <button class="main-tab-btn" onclick="switchMainTab('browse')" id="mtab-browse">
+        <span class="tab-icon">🔍</span> Browse
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched">
         <span class="tab-icon">👁</span> My Library
@@ -1916,6 +1920,11 @@
         <div class="text-zinc-500 text-xs mt-1">Add titles to your Watched list to unlock personalized recs.</div>
       </div>
     </div>
+
+    </div><!-- /panel-foryou -->
+
+    <!-- ═══ TAB: BROWSE ═══ -->
+    <div id="panel-browse" class="main-panel">
 
     <!-- Search -->
     <div id="section-search"></div>
@@ -2016,15 +2025,14 @@
 
 
 
-      <!-- Results / Initial state -->
-<!-- Initial state / welcome message -->
+    <!-- Initial state / welcome message -->
     <div id="initial-state" class="empty-state" style="margin-top:1rem;">
       <span class="empty-state-icon">🔍</span>
       <p class="text-base text-zinc-300 font-semibold">Search or Discover your next nightmare</p>
       <p class="text-sm mt-1 text-zinc-500">Horror, thrillers, sci-fi &amp; suspense — powered by your library + The Curator.</p>
     </div>
 
-    </div><!-- /panel-foryou -->
+    </div><!-- /panel-browse -->
 
     <!-- ═══ TAB: CURATOR ═══ -->
     <div id="panel-curator" class="main-panel">
@@ -3696,7 +3704,7 @@
     // ===================== MAIN PAGE TABS =====================
     function switchMainTab(tab) {
       // Update panels
-      ['foryou','curator','watched'].forEach(t => {
+      ['foryou','curator','browse','watched'].forEach(t => {
         const panel = document.getElementById('panel-' + t);
         const btn = document.getElementById('mtab-' + t);
         const navLink = document.getElementById('nav-' + t);
@@ -3714,6 +3722,13 @@
       if (tab === 'watched') {
         renderToWatch(); renderWatched(); renderDisliked();
         renderPersonalStats();
+      }
+      // When switching to Browse, focus search input
+      if (tab === 'browse') {
+        setTimeout(() => {
+          const inp = document.getElementById('search-input');
+          if (inp) inp.focus();
+        }, 200);
       }
       // When switching to Curator, focus input
       if (tab === 'curator') {
@@ -4275,15 +4290,28 @@
             <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
             <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
             <button class="flex-shrink-0 text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
+            <button id="trailer-btn-${item.id}" class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer">▶ Trailer</button>
           </div>
         `;
-        // Async: upgrade IMDB link from search → direct title page once we have the real ID
+        // Async: upgrade IMDB link + fetch trailer
         apiFetch(`/api/tmdb/3/movie/${item.id}/external_ids`).then(ext => {
           if (ext && ext.imdb_id) {
             const lnk = card.querySelector(`#imdb-link-${item.id}`);
             if (lnk) {
               lnk.href = `https://www.imdb.com/title/${ext.imdb_id}/`;
               lnk.title = ext.imdb_id;
+            }
+          }
+        }).catch(() => {});
+        apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).then(vdata => {
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                          (vdata?.results || []).find(v => v.site === 'YouTube');
+          if (trailer) {
+            const btn = card.querySelector(`#trailer-btn-${item.id}`);
+            if (btn) {
+              btn.classList.remove('hidden');
+              btn.classList.add('text-red-400');
+              btn.classList.remove('text-zinc-500');
             }
           }
         }).catch(() => {});
@@ -4297,6 +4325,12 @@
           }, { hideButtons: actions ? Array.from(actions.querySelectorAll('button')) : [] });
         };
         card.querySelector('[data-act="dislike"]').onclick = () => { addToDisliked(item); card.remove(); };
+        card.querySelector('[data-act="trailer"]').onclick = async () => {
+          const vdata = await apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).catch(() => null);
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
+                          (vdata?.results || []).find(v => v.site === 'YouTube');
+          if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
+        };
 
         // Make the whole rec card (including thumbnail) clickable for the rich detail bio modal,
         // just like search/discover results. Buttons are protected by the guard inside enhanceCard.
