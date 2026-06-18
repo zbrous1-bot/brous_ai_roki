@@ -509,13 +509,7 @@
         border: none !important;
         -webkit-overflow-scrolling: touch;
         overflow-y: scroll;
-      }
-      /* Compact posters on mobile — 120px→78px lets ~5 items show vs ~3 */
-      #to-watch-content .poster-wrap,
-      #watched-content .poster-wrap,
-      #disliked-content .poster-wrap {
-        width: 52px !important;
-        height: 78px !important;
+        max-height: calc(100vh - 200px) !important;
       }
       /* Keep items readable but kill top-of-list deadspace */
       .library-item {
@@ -3138,9 +3132,9 @@
 
     function posterHtml(item, size = 'w92') {
       if (!item || !item.poster_path) {
-        return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
+        return `<div class="w-14 h-[84px] sm:w-20 sm:h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
       }
-      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
+      return `<div class="poster-wrap w-14 h-[84px] sm:w-20 sm:h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
     }
 
     function addToToWatch(item) {
