@@ -3061,7 +3061,7 @@
       const genreIds = Array.from(selectedGenres);
 
       const sortValue = document.getElementById('discover-sort')?.value || 'popularity.desc';
-      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&watch_region=US&page=${currentDiscoverPage}`;
+      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&watch_region=US&page=${currentDiscoverPage}`;
       if (genreIds.length > 0) {
         url += `&with_genres=${genreIds.join(',')}`;
       }
@@ -4251,7 +4251,7 @@
       const excluded = getExcludedKeys();
       items = items.filter(m => {
         const key = `${m.id}:${m._mediaType || 'movie'}`;
-        return !excluded.has(key);
+        return !excluded.has(key) && m.original_language === 'en' && !m.adult;
       });
 
       if (!items.length) {
@@ -4436,14 +4436,14 @@
         for (const g of genreIds) {
           for (const page of pages) {
             for (const sort of sorts) {
-              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=10&vote_average.gte=4.8`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_original_language=en&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=10&vote_average.gte=4.8`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
             }
           }
         }
         // Also pull trending this week for freshness
         fetchJobs.push(apiFetch(`/api/tmdb/3/trending/movie/week`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&vote_count.gte=80&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.asc&include_adult=false&vote_count.gte=25&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&with_original_language=en&vote_count.gte=80&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.asc&include_adult=false&with_original_language=en&vote_count.gte=25&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
 
         await Promise.all(fetchJobs);
 
@@ -4464,7 +4464,8 @@
         // Filter out already seen/queued, and low quality
         results = results.filter(r => {
           const key = `${r.id}:movie`;
-          return !excluded.has(key) && (r.vote_average || 0) >= 4.8 && r.poster_path;
+          return !excluded.has(key) && (r.vote_average || 0) >= 4.8 && r.poster_path
+            && r.original_language === 'en' && !r.adult;
         });
 
         const mapped = results.slice(0, append ? 90 : 120).map(r => ({
