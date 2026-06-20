@@ -501,6 +501,30 @@
       #recs-filter-wrap.recs-filter-collapsed #recs-genre-chips { display: none !important; }
       #recs-filter-wrap.recs-filter-collapsed .recs-filter-chevron { transform: rotate(-90deg); }
 
+      /* Curator: use more screen height for the chat on mobile */
+      #curator-chat-full { max-height: calc(100vh - 130px) !important; }
+      #curator-chat-full > div:first-child { padding: 10px 12px !important; }
+
+      /* Curator: collapse the 2x2 prompt deck into a single horizontal-scroll
+         row of compact pill chips so the conversation gets most of the screen. */
+      .curator-prompt-deck {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        gap: 6px !important;
+        padding: 8px 10px !important;
+        scrollbar-width: none;
+      }
+      .curator-prompt-deck::-webkit-scrollbar { display: none; }
+      .curator-prompt-card {
+        flex: 0 0 auto !important;
+        min-height: 0 !important;
+        padding: 7px 13px !important;
+        border-radius: 9999px !important;
+      }
+      .curator-prompt-card .prompt-copy { display: none !important; }
+      .curator-prompt-card .prompt-title { margin-bottom: 0 !important; font-size: 12px !important; }
+
       /* Browse results: single column, horizontal card layout */
       #results { grid-template-columns: 1fr !important; gap: 12px !important; }
       .movie-card-v2 { padding: 12px !important; }
@@ -4763,6 +4787,7 @@ function setCuratorPrompt(q) {
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
               <div class="flex items-center gap-1.5 flex-wrap mt-1">
                 ${year ? `<span class="text-xs text-zinc-500">${year}</span>` : ''}
+                ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 6px;"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span>` : ''}
                 <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener"
                    class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none">
                   <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
@@ -4773,7 +4798,6 @@ function setCuratorPrompt(q) {
                 </a>
               </div>
               <div class="text-[10px] text-emerald-400/80 mt-1.5">✨ Smart match • based on your taste profile</div>
-              ${tmdbRating ? `<div class="mt-1.5"><span class="rating-badge ${ratingBadgeClass}" style="font-size:11px;padding:2px 7px;"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span></div>` : ''}
             </div>
           </div>
           <div class="mt-2 flex gap-1.5 flex-wrap">
