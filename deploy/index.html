@@ -730,16 +730,6 @@
         font-size: 12px !important;
         padding: 3px 10px !important;
       }
-      /* Search quick-chip shrink — override global min-height:38px */
-      .search-chip {
-        min-height: 0 !important;
-        font-size: 11px !important;
-        padding: 3px 10px !important;
-        line-height: 1.4 !important;
-      }
-      #search-chips-toggle {
-        min-height: 0 !important;
-      }
     }
 
     /* Toast notifications - clean, contained, horror themed */
@@ -2184,17 +2174,11 @@
             <span>Search</span>
           </button>
         </div>
-        <div style="margin-top:8px;">
-          <button id="search-chips-toggle" onclick="toggleSearchChips()"
-            style="font-size:10px;padding:1px 8px;min-height:0;color:#71717a;background:transparent;border:1px solid #3f3f46;border-radius:9999px;line-height:1.5;cursor:pointer;">
-            Quick searches ▾
-          </button>
-          <div class="search-chip-row" id="search-chips-row" aria-label="Quick searches" style="display:none;margin-top:6px;">
-            <button class="search-chip" onclick="quickSearch('folk horror')">Folk horror</button>
-            <button class="search-chip" onclick="quickSearch('psychological thriller')">Psychological</button>
-            <button class="search-chip" onclick="quickSearch('creature feature')">Creature feature</button>
-            <button class="search-chip" onclick="quickSearch('hidden gem horror')">Hidden gems</button>
-          </div>
+        <div class="search-chip-row" aria-label="Quick searches" style="margin-top:10px;">
+          <button class="search-chip" onclick="quickSearch('folk horror')">Folk horror</button>
+          <button class="search-chip" onclick="quickSearch('psychological thriller')">Psychological</button>
+          <button class="search-chip" onclick="quickSearch('creature feature')">Creature feature</button>
+          <button class="search-chip" onclick="quickSearch('hidden gem horror')">Hidden gems</button>
         </div>
       </div>
     </div>
@@ -2340,7 +2324,13 @@
             <button onclick="sendToCurator()" class="px-5 py-2.5 text-sm font-semibold rounded-2xl flex-shrink-0 transition-all active:scale-95"
                     style="background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff;box-shadow:0 2px 12px rgba(185,28,28,0.35);">Send</button>
           </div>
-          <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies"></div>
+          <div class="mt-1.5">
+            <button id="curator-chips-toggle" onclick="toggleCuratorChips()"
+              style="font-size:10px;padding:1px 8px;min-height:0;color:#71717a;background:transparent;border:1px solid #3f3f46;border-radius:9999px;line-height:1.5;cursor:pointer;">
+              Suggestions ▾
+            </button>
+            <div class="flex flex-wrap gap-1 mt-1" id="curator-quick-replies" style="display:none;"></div>
+          </div>
           <div id="curator-status" class="text-[11px] mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
@@ -2703,6 +2693,15 @@
         b.dataset.q = p.q;
         container.appendChild(b);
       });
+    }
+
+    function toggleCuratorChips() {
+      const chips = document.getElementById('curator-quick-replies');
+      const toggle = document.getElementById('curator-chips-toggle');
+      if (!chips) return;
+      const opening = chips.style.display === 'none' || chips.style.display === '';
+      chips.style.display = opening ? 'flex' : 'none';
+      if (toggle) toggle.textContent = opening ? 'Suggestions ▴' : 'Suggestions ▾';
     }
 
     // Simple toast system for action feedback (used by lists, curator, etc.)
@@ -4293,16 +4292,7 @@
       performSearch();
     }
 
-    function toggleSearchChips() {
-      const row = document.getElementById('search-chips-row');
-      const toggle = document.getElementById('search-chips-toggle');
-      if (!row) return;
-      const opening = row.style.display === 'none' || row.style.display === '';
-      row.style.display = opening ? 'flex' : 'none';
-      if (toggle) toggle.textContent = opening ? 'Quick searches ▴' : 'Quick searches ▾';
-    }
-
-    function setCuratorPrompt(q) {
+function setCuratorPrompt(q) {
       const input = document.getElementById('curator-input');
       if (!input) return;
       input.value = q;
