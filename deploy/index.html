@@ -3740,8 +3740,8 @@
       for(let r=1; r<=5; r++) {
         const b = document.createElement('button');
         b.textContent = r + '★';
-        b.className = 'px-3 py-1 text-sm rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold flex-shrink-0 transition-colors';
-        b.style.cssText = 'min-height:0 !important; font-size:14px !important; line-height:1.4; padding:3px 10px !important;';
+        b.className = 'flex-1 py-1 text-sm rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold transition-colors';
+        b.style.cssText = 'min-height:0 !important; font-size:13px !important; line-height:1.4; padding:4px 2px !important; min-width:0;';
         b.onclick = ev => {
           ev.stopImmediatePropagation();
           cleanup();
@@ -4722,11 +4722,11 @@
               ${tmdbRating ? `<div class="mt-1.5"><span class="rating-badge ${ratingBadgeClass}" style="font-size:11px;padding:2px 7px;"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span></div>` : ''}
             </div>
           </div>
-          <div class="mt-2 flex gap-1.5 overflow-x-auto flex-nowrap pb-1 snap-x">
-            <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
-            <button class="flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
-            <button class="flex-shrink-0 text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
-            <button id="trailer-btn-${item.id}" class="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer">▶ Trailer</button>
+          <div class="mt-2 flex gap-1.5 flex-wrap">
+            <button class="flex-1 min-w-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
+            <button class="flex-1 min-w-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
+            <button class="text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike">👎</button>
+            <button id="trailer-btn-${item.id}" class="text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer">▶ Trailer</button>
           </div>
         `;
         // Async: upgrade IMDB link + fetch trailer
