@@ -501,13 +501,17 @@
       #recs-filter-wrap.recs-filter-collapsed #recs-genre-chips { display: none !important; }
       #recs-filter-wrap.recs-filter-collapsed .recs-filter-chevron { transform: rotate(-90deg); }
 
-      /* Curator: use more screen height for the chat on mobile */
-      #curator-chat-full { max-height: calc(100vh - 130px) !important; }
-      #curator-chat-full > div:first-child { padding: 10px 12px !important; }
+      /* Curator: use more of the screen for the chat on mobile */
+      #curator-chat-full { max-height: calc(100vh - 110px) !important; }
+      /* Slimmer header so the chat starts higher; keep the mood tag on one line */
+      #curator-chat-full > div:first-child { padding: 9px 12px !important; gap: 9px !important; }
+      #curator-chat-full > div:first-child > span:first-child { width: 30px !important; height: 30px !important; font-size: 15px !important; }
+      #curator-mood { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42vw; }
 
-      /* Curator: collapse the 2x2 prompt deck into a single horizontal-scroll
-         row of compact pill chips so the conversation gets most of the screen. */
-      .curator-prompt-deck {
+      /* QUICK PROMPTS deck stays collapsed by default (toggle controls it). When
+         opened (JS sets display:grid) render it as a horizontal-scroll pill row
+         so it stays a single compact line instead of a tall 2x2 block. */
+      .curator-prompt-deck[style*="grid"] {
         display: flex !important;
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
@@ -667,15 +671,22 @@
       /* Curator input */
       #curator-input { font-size: 16px !important; }
       .curator-msg { padding: 6px 9px; font-size: 13px; max-width: 85%; }
+      /* Quick replies: single horizontal-scroll row so they don't wrap to 2 lines */
       #curator-quick-replies {
-        gap: 4px !important;
-        margin-top: 4px !important;
+        gap: 5px !important;
+        margin-top: 6px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        scrollbar-width: none;
       }
+      #curator-quick-replies::-webkit-scrollbar { display: none; }
       #curator-quick-replies button {
-        padding: 2px 8px !important;
-        font-size: 10px !important;
+        padding: 4px 11px !important;
+        font-size: 11px !important;
         min-height: 0 !important;
         line-height: 1.3 !important;
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
       }
       #curator-status {
         font-size: 8px !important;
@@ -4124,11 +4135,16 @@
           if (inp) inp.focus();
         }, 200);
       }
-      // When switching to Curator, focus input
+      // When switching to Curator, jump the chat to the latest message so the
+      // newest reply and the input bar are immediately in view (no scrolling).
       if (tab === 'curator') {
         setTimeout(() => {
+          const msgs = document.getElementById('curator-messages');
+          if (msgs) msgs.scrollTop = msgs.scrollHeight;
+          // Focus the input on desktop only; on mobile this can pop the keyboard
+          // and cover the chat, so we just make sure it's visible instead.
           const inp = document.getElementById('curator-input');
-          if (inp) inp.focus();
+          if (inp && window.innerWidth > 640) inp.focus();
         }, 200);
       }
     }
