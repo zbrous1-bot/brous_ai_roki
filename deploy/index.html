@@ -2324,7 +2324,13 @@
             <button onclick="sendToCurator()" class="px-5 py-2.5 text-sm font-semibold rounded-2xl flex-shrink-0 transition-all active:scale-95"
                     style="background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff;box-shadow:0 2px 12px rgba(185,28,28,0.35);">Send</button>
           </div>
-          <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies"></div>
+          <div class="mt-1.5">
+            <button id="curator-chips-toggle" onclick="toggleCuratorChips()"
+              style="font-size:10px;padding:1px 8px;min-height:0;color:#71717a;background:transparent;border:1px solid #3f3f46;border-radius:9999px;line-height:1.5;cursor:pointer;">
+              Suggestions ▾
+            </button>
+            <div class="flex flex-wrap gap-1 mt-1" id="curator-quick-replies" style="display:none;"></div>
+          </div>
           <div id="curator-status" class="text-[11px] mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
@@ -2687,6 +2693,15 @@
         b.dataset.q = p.q;
         container.appendChild(b);
       });
+    }
+
+    function toggleCuratorChips() {
+      const chips = document.getElementById('curator-quick-replies');
+      const toggle = document.getElementById('curator-chips-toggle');
+      if (!chips) return;
+      const opening = chips.style.display === 'none' || chips.style.display === '';
+      chips.style.display = opening ? 'flex' : 'none';
+      if (toggle) toggle.textContent = opening ? 'Suggestions ▴' : 'Suggestions ▾';
     }
 
     // Simple toast system for action feedback (used by lists, curator, etc.)
@@ -3731,29 +3746,35 @@
       const hiddenButtons = options.hideButtons || [];
       hiddenButtons.forEach(b => { if (b) b.style.display = 'none'; });
 
+      const libraryRow = anchor.closest('.library-item');
+
       const rateBar = document.createElement('div');
-      rateBar.className = 'inline-rating-bar mt-2 flex w-full gap-1 justify-around items-center';
+      rateBar.className = 'inline-rating-bar';
+      if (libraryRow) {
+        // Absolute overlay at bottom of row — does not push poster or expand height
+        rateBar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;gap:4px;align-items:center;padding:4px 6px;background:rgba(10,8,14,0.93);border-top:1px solid rgba(245,158,11,0.25);border-radius:0 0 8px 8px;';
+      } else {
+        rateBar.style.cssText = 'display:flex;gap:4px;align-items:center;width:100%;margin-top:6px;flex-wrap:nowrap;';
+      }
       rateBar.addEventListener('pointerdown', ev => ev.stopPropagation());
       rateBar.addEventListener('click', ev => ev.stopPropagation());
-
-      const libraryRow = anchor.closest('.library-item');
 
       const cleanup = () => {
         rateBar.remove();
         hiddenButtons.forEach(b => { if (b) b.style.display = ''; });
         document.removeEventListener('pointerdown', outsideHandler, true);
         if (activeRatingPromptCleanup === cleanup) activeRatingPromptCleanup = null;
-        if (libraryRow) { libraryRow.style.overflow = ''; libraryRow.style.minHeight = ''; }
+        if (libraryRow) { libraryRow.style.position = ''; libraryRow.style.overflow = ''; }
       };
 
       const outsideHandler = ev => {
         if (!rateBar.contains(ev.target)) cleanup();
       };
 
-      for(let r=1; r<=5; r++) {
+      for (let r = 1; r <= 5; r++) {
         const b = document.createElement('button');
         b.textContent = r + '★';
-        b.className = 'flex-1 py-1 text-sm rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold transition-colors';
+        b.className = 'flex-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 active:bg-amber-400 text-amber-300 hover:text-white border border-amber-500/30 font-semibold transition-colors';
         b.style.cssText = 'min-height:0 !important; font-size:13px !important; line-height:1.4; padding:4px 2px !important; min-width:0;';
         b.onclick = ev => {
           ev.stopImmediatePropagation();
@@ -3763,16 +3784,15 @@
         rateBar.appendChild(b);
       }
 
-      anchor.appendChild(rateBar);
-      activeRatingPromptCleanup = cleanup;
-
-      // Force the library row to grow to show the rating bar fully
       if (libraryRow) {
+        // Mount on the row itself so absolute positioning works correctly
+        libraryRow.style.position = 'relative';
         libraryRow.style.overflow = 'visible';
-        requestAnimationFrame(() => {
-          libraryRow.style.minHeight = libraryRow.scrollHeight + 'px';
-        });
+        libraryRow.appendChild(rateBar);
+      } else {
+        anchor.appendChild(rateBar);
       }
+      activeRatingPromptCleanup = cleanup;
 
       setTimeout(() => document.addEventListener('pointerdown', outsideHandler, true), 0);
     }
