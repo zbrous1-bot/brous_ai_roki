@@ -3792,10 +3792,16 @@
       hiddenButtons.forEach(b => { if (b) b.style.display = 'none'; });
 
       const libraryRow = anchor.closest('.library-item');
+      const curatorRow = anchor.closest('.curator-pick-row');
+      const overlayHost = libraryRow || curatorRow;
 
       const rateBar = document.createElement('div');
       rateBar.className = 'inline-rating-bar';
-      if (libraryRow) {
+      if (curatorRow) {
+        // Full-cover overlay over the compact Curator pick card — replaces the
+        // row content with a clean row of 5 even star buttons (matches To Watch).
+        rateBar.style.cssText = 'position:absolute;inset:0;z-index:20;display:flex;gap:4px;align-items:center;padding:6px 8px;background:rgba(10,8,14,0.96);border:1px solid rgba(245,158,11,0.3);border-radius:14px;';
+      } else if (libraryRow) {
         // Absolute overlay at bottom of row — does not push poster or expand height
         rateBar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;gap:4px;align-items:center;padding:4px 6px;background:rgba(10,8,14,0.93);border-top:1px solid rgba(245,158,11,0.25);border-radius:0 0 8px 8px;';
       } else {
@@ -3809,7 +3815,7 @@
         hiddenButtons.forEach(b => { if (b) b.style.display = ''; });
         document.removeEventListener('pointerdown', outsideHandler, true);
         if (activeRatingPromptCleanup === cleanup) activeRatingPromptCleanup = null;
-        if (libraryRow) { libraryRow.style.position = ''; libraryRow.style.overflow = ''; }
+        if (overlayHost) { overlayHost.style.position = ''; overlayHost.style.overflow = ''; }
       };
 
       const outsideHandler = ev => {
@@ -3829,11 +3835,11 @@
         rateBar.appendChild(b);
       }
 
-      if (libraryRow) {
+      if (overlayHost) {
         // Mount on the row itself so absolute positioning works correctly
-        libraryRow.style.position = 'relative';
-        libraryRow.style.overflow = 'visible';
-        libraryRow.appendChild(rateBar);
+        overlayHost.style.position = 'relative';
+        overlayHost.style.overflow = 'visible';
+        overlayHost.appendChild(rateBar);
       } else {
         anchor.appendChild(rateBar);
       }
@@ -5200,7 +5206,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
       curatorPicks.forEach((p, i) => {
         const row = document.createElement('div');
-        row.className = 'flex items-center gap-2 text-sm bg-zinc-950 border border-zinc-800 rounded-2xl px-2 py-1';
+        row.className = 'curator-pick-row flex items-center gap-2 text-sm bg-zinc-950 border border-zinc-800 rounded-2xl px-2 py-1';
         if (p.type === 'batch') {
           row.innerHTML = `
             <input type="checkbox" class="accent-red-600" checked data-idx="${i}">
