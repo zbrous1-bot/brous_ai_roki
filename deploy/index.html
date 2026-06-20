@@ -4485,6 +4485,15 @@
           urls.push(`${base}&sort_by=vote_average.desc&page=${page}`);
         }
         urls.push(`/api/tmdb/3/trending/movie/week`);
+        // Resilient fallback sources: the curated list endpoints stay up even when
+        // TMDB's /discover engine has a transient outage. Their results pass through
+        // the same client-side English / year / genre filter below, so the pool is
+        // never empty just because /discover is flaky.
+        for (let i = 0; i < 5; i++) {
+          const page = Math.min(startPage + i, 480);
+          urls.push(`/api/tmdb/3/movie/popular?language=en-US&page=${page}`);
+          urls.push(`/api/tmdb/3/movie/top_rated?language=en-US&page=${page}`);
+        }
 
         // Concurrency-limited runner: at most CONCURRENCY requests in flight so we
         // never burst the Worker / trip TMDB rate limits (which caused stuck skeletons).
