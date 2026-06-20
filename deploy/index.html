@@ -1877,12 +1877,19 @@
     @media (max-width: 480px) {
       .curator-prompt-deck {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        padding: 10px 10px;
-        gap: 6px;
+        padding: 8px 10px;
+        gap: 5px;
       }
       .curator-prompt-card {
-        min-height: 58px;
-        padding: 9px 10px;
+        min-height: 0 !important;
+        padding: 7px 9px;
+      }
+      .curator-prompt-card .prompt-title {
+        font-size: 11px;
+        margin-bottom: 1px;
+      }
+      .curator-prompt-card .prompt-copy {
+        font-size: 10px;
       }
     }
 
@@ -2296,23 +2303,30 @@
 
         <div id="curator-messages" class="px-4 py-3 overflow-auto space-y-3" style="flex:1;min-height:0;background:var(--curator-bg);"></div>
 
-        <div class="curator-prompt-deck">
-          <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me a double feature for tonight with one classic and one hidden gem')">
-            <span class="prompt-title">Double feature</span>
-            <span class="prompt-copy">Classic plus hidden gem for one night.</span>
+        <div id="curator-deck-wrap" style="flex-shrink:0;">
+          <button id="curator-deck-toggle" onclick="toggleCuratorDeck()"
+            style="width:100%;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 14px;font-size:10px;color:#a1a1aa;background:transparent;border:none;border-top:1px solid rgba(185,28,28,0.1);cursor:pointer;min-height:0;letter-spacing:0.05em;">
+            <span id="curator-deck-label">QUICK PROMPTS</span>
+            <span id="curator-deck-arrow">▾</span>
           </button>
-          <button class="curator-prompt-card" onclick="setCuratorPrompt('Find me five underseen horror movies from the last ten years')">
-            <span class="prompt-title">Underseen</span>
-            <span class="prompt-copy">Modern picks beyond the obvious list.</span>
-          </button>
-          <button class="curator-prompt-card" onclick="setCuratorPrompt('What should I watch next from my taste profile? Keep it short and decisive')">
-            <span class="prompt-title">Decide for me</span>
-            <span class="prompt-copy">One sharp answer from your library.</span>
-          </button>
-          <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me something bleak, tense, and atmospheric, but not too slow')">
-            <span class="prompt-title">Set a mood</span>
-            <span class="prompt-copy">Bleak, tense, atmospheric, watchable.</span>
-          </button>
+          <div class="curator-prompt-deck" id="curator-prompt-deck" style="display:none;">
+            <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me a double feature for tonight with one classic and one hidden gem')">
+              <span class="prompt-title">Double feature</span>
+              <span class="prompt-copy">Classic plus hidden gem for one night.</span>
+            </button>
+            <button class="curator-prompt-card" onclick="setCuratorPrompt('Find me five underseen horror movies from the last ten years')">
+              <span class="prompt-title">Underseen</span>
+              <span class="prompt-copy">Modern picks beyond the obvious list.</span>
+            </button>
+            <button class="curator-prompt-card" onclick="setCuratorPrompt('What should I watch next from my taste profile? Keep it short and decisive')">
+              <span class="prompt-title">Decide for me</span>
+              <span class="prompt-copy">One sharp answer from your library.</span>
+            </button>
+            <button class="curator-prompt-card" onclick="setCuratorPrompt('Give me something bleak, tense, and atmospheric, but not too slow')">
+              <span class="prompt-title">Set a mood</span>
+              <span class="prompt-copy">Bleak, tense, atmospheric, watchable.</span>
+            </button>
+          </div>
         </div>
 
         <div class="px-3 pb-3 pt-2" style="background:rgba(10,8,14,0.6);border-top:1px solid rgba(185,28,28,0.12);">
@@ -2324,13 +2338,7 @@
             <button onclick="sendToCurator()" class="px-5 py-2.5 text-sm font-semibold rounded-2xl flex-shrink-0 transition-all active:scale-95"
                     style="background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff;box-shadow:0 2px 12px rgba(185,28,28,0.35);">Send</button>
           </div>
-          <div class="mt-1.5">
-            <button id="curator-chips-toggle" onclick="toggleCuratorChips()"
-              style="font-size:11px;padding:2px 10px;min-height:0;color:#a1a1aa;background:rgba(39,39,42,0.6);border:1px solid #52525b;border-radius:9999px;line-height:1.5;cursor:pointer;">
-              Suggestions ▾
-            </button>
-            <div class="flex flex-wrap gap-1 mt-1" id="curator-quick-replies" style="display:none;"></div>
-          </div>
+          <div class="flex flex-wrap gap-1 mt-2" id="curator-quick-replies"></div>
           <div id="curator-status" class="text-[11px] mt-1.5 px-0.5">Grounded in your watched library • history kept until cleared</div>
         </div>
       </div>
@@ -2706,6 +2714,15 @@
       const opening = chips.style.display === 'none' || chips.style.display === '';
       chips.style.display = opening ? 'flex' : 'none';
       if (toggle) toggle.textContent = opening ? 'Suggestions ▴' : 'Suggestions ▾';
+    }
+
+    function toggleCuratorDeck() {
+      const deck = document.getElementById('curator-prompt-deck');
+      const arrow = document.getElementById('curator-deck-arrow');
+      if (!deck) return;
+      const opening = deck.style.display === 'none' || deck.style.display === '';
+      deck.style.display = opening ? 'grid' : 'none';
+      if (arrow) arrow.textContent = opening ? '▴' : '▾';
     }
 
     // Simple toast system for action feedback (used by lists, curator, etc.)
@@ -4300,7 +4317,7 @@ function setCuratorPrompt(q) {
       const input = document.getElementById('curator-input');
       if (!input) return;
       input.value = q;
-      input.focus();
+      sendToCurator();
     }
 
     function getProviderName(p) {
