@@ -4459,7 +4459,7 @@
         // Fetch a broad pool across all major genres — filtered to popular/well-rated English films
         const genreIds = [28, 12, 35, 80, 18, 14, 27, 9648, 10749, 878, 53, 10751, 99];
         const startPage = append ? recPageCursor : 1;
-        const pages = [startPage, startPage + 1, startPage + 2];
+        const pages = [startPage, startPage + 1, startPage + 2, startPage + 3, startPage + 4];
         const sorts = ['popularity.desc', 'vote_average.desc'];
         let raw = [];
 
@@ -4501,7 +4501,7 @@
             && (!year || year >= 1960);
         });
 
-        const mapped = results.slice(0, append ? 90 : 120).map(r => ({
+        const mapped = results.slice(0, append ? 200 : 300).map(r => ({
           id: r.id, title: r.title, _mediaType: 'movie',
           poster_path: r.poster_path, release_date: r.release_date,
           vote_average: r.vote_average, genre_ids: r.genre_ids || [],
@@ -4580,7 +4580,7 @@
       }
 
       grid.innerHTML = '';
-      scored.slice(0, 20).forEach(item => {
+      scored.slice(0, 40).forEach(item => {
         const card = document.createElement('div');
         card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
