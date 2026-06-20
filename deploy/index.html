@@ -2869,7 +2869,17 @@
       if (options.body) {
         fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
       }
-      const res = await fetch(url, fetchOptions);
+      // Abort hung requests so Promise.all batches can never stall forever
+      const timeoutMs = options.timeoutMs || 15000;
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), timeoutMs);
+      fetchOptions.signal = ac.signal;
+      let res;
+      try {
+        res = await fetch(url, fetchOptions);
+      } finally {
+        clearTimeout(timer);
+      }
       console.log('[Horror Roki] apiFetch to:', url, 'status will be checked next');
       if (res.status === 401) {
         // Only wipe password for non-data routes.
@@ -4456,27 +4466,47 @@
 
       try {
         const excluded = getExcludedKeys();
-        // Fetch a broad pool across all major genres — filtered to popular/well-rated English films
-        const genreIds = [28, 12, 35, 80, 18, 14, 27, 9648, 10749, 878, 53, 10751, 99];
-        const startPage = append ? recPageCursor : 1;
-        const pages = [startPage, startPage + 1, startPage + 2, startPage + 3, startPage + 4];
-        const sorts = ['popularity.desc', 'vote_average.desc'];
         let raw = [];
 
-        const fetchJobs = [];
-        for (const g of genreIds) {
-          for (const page of pages) {
-            for (const sort of sorts) {
-              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=100&vote_average.gte=5.5`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        // Fetch the broad catalog across MANY pages WITHOUT a genre restriction.
+        // A single discover page already spans all genres, so paging deep gets us
+        // hundreds of varied titles past the ones already watched — using far fewer
+        // requests than fetching every genre separately (which overwhelmed the Worker).
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        // This user may have watched/disliked 1000+ titles, so the top popularity
+        // pages are all seen. Randomize the starting page on a fresh load so each
+        // Refresh explores a different "known but unseen" slice; append continues deeper.
+        const pageCount = 10;
+        const startPage = append ? recPageCursor : (1 + Math.floor(Math.random() * 20));
+        const urls = [];
+        for (let i = 0; i < pageCount; i++) {
+          const page = Math.min(startPage + i, 480);
+          urls.push(`${base}&sort_by=popularity.desc&page=${page}`);
+          urls.push(`${base}&sort_by=vote_average.desc&page=${page}`);
+        }
+        urls.push(`/api/tmdb/3/trending/movie/week`);
+
+        // Concurrency-limited runner: at most CONCURRENCY requests in flight so we
+        // never burst the Worker / trip TMDB rate limits (which caused stuck skeletons).
+        const CONCURRENCY = 5;
+        let urlIndex = 0;
+        async function worker() {
+          while (urlIndex < urls.length) {
+            const u = urls[urlIndex++];
+            try {
+              const d = await apiFetch(u);
+              raw = raw.concat(d.results || []);
+            } catch (_) {
+              // One retry after a short backoff for transient TMDB/Worker failures
+              try {
+                await new Promise(r => setTimeout(r, 500));
+                const d = await apiFetch(u);
+                raw = raw.concat(d.results || []);
+              } catch (_) { /* give up on this page */ }
             }
           }
         }
-        // Also pull trending this week for freshness
-        fetchJobs.push(apiFetch(`/api/tmdb/3/trending/movie/week`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.desc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&with_genres=53`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-
-        await Promise.all(fetchJobs);
+        await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
         // Dedupe + filter
         const seen = new Set();
@@ -4508,7 +4538,7 @@
           overview: r.overview || '', popularity: r.popularity || 0
         }));
         currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
-        recPageCursor = startPage + pages.length;
+        recPageCursor = startPage + pageCount;
 
         console.log('[Recs] Pool size:', currentRecPool.length);
         if (!currentRecPool.length) {
