@@ -2326,7 +2326,7 @@
           </div>
           <div class="mt-1.5">
             <button id="curator-chips-toggle" onclick="toggleCuratorChips()"
-              style="font-size:10px;padding:1px 8px;min-height:0;color:#71717a;background:transparent;border:1px solid #3f3f46;border-radius:9999px;line-height:1.5;cursor:pointer;">
+              style="font-size:11px;padding:2px 10px;min-height:0;color:#a1a1aa;background:rgba(39,39,42,0.6);border:1px solid #52525b;border-radius:9999px;line-height:1.5;cursor:pointer;">
               Suggestions ▾
             </button>
             <div class="flex flex-wrap gap-1 mt-1" id="curator-quick-replies" style="display:none;"></div>
@@ -2691,6 +2691,10 @@
         b.textContent = p.label;
         b.className = 'text-[9px] px-2 py-px rounded-full border border-zinc-700 hover:bg-zinc-800';
         b.dataset.q = p.q;
+        b.onclick = () => {
+          const inp = document.getElementById('curator-input');
+          if (inp) { inp.value = p.q; sendToCurator(); }
+        };
         container.appendChild(b);
       });
     }
