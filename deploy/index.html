@@ -643,13 +643,26 @@
       /* Curator input */
       #curator-input { font-size: 16px !important; }
       .curator-msg { padding: 6px 9px; font-size: 13px; max-width: 85%; }
+      #curator-quick-replies {
+        gap: 4px !important;
+        margin-top: 4px !important;
+      }
       #curator-quick-replies button {
-        padding: 1px 6px !important;
-        font-size: 8px !important;
+        padding: 2px 8px !important;
+        font-size: 10px !important;
+        min-height: 0 !important;
+        line-height: 1.3 !important;
       }
       #curator-status {
         font-size: 8px !important;
         margin-top: 2px !important;
+      }
+      /* Inline rating bar — compact on mobile regardless of context */
+      .inline-rating-bar button {
+        min-height: 0 !important;
+        font-size: 13px !important;
+        padding: 4px 10px !important;
+        line-height: 1.3 !important;
       }
       
       /* Recommended header buttons */
