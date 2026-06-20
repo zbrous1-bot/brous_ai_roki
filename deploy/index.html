@@ -2098,6 +2098,9 @@
         </div>
       </div>
 
+      <!-- Genre filter chips for recommendations -->
+      <div id="recs-genre-chips" class="flex gap-2 flex-wrap mb-3"></div>
+
       <div id="recs-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2">
         <!-- Populated by recomputeRecommendations() -->
       </div>
@@ -4402,6 +4405,32 @@
 
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
 
+    let recGenreFilter = null; // null = All, otherwise a genre id (number)
+
+    function renderRecGenreChips() {
+      const wrap = document.getElementById('recs-genre-chips');
+      if (!wrap) return;
+      // Derive which genres actually exist in the current pool
+      const poolGenreIds = new Set();
+      currentRecPool.forEach(m => (m.genre_ids || []).forEach(id => poolGenreIds.add(id)));
+      const available = GENRES.filter(g => g.id !== 16 && poolGenreIds.has(g.id));
+
+      const allBtn = document.createElement('button');
+      allBtn.textContent = 'All';
+      allBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${recGenreFilter === null ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+      allBtn.onclick = () => { recGenreFilter = null; renderRecGenreChips(); recomputeRecommendations(); };
+      wrap.innerHTML = '';
+      wrap.appendChild(allBtn);
+
+      available.forEach(g => {
+        const btn = document.createElement('button');
+        btn.textContent = g.name;
+        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${recGenreFilter === g.id ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+        btn.onclick = () => { recGenreFilter = recGenreFilter === g.id ? null : g.id; renderRecGenreChips(); recomputeRecommendations(); };
+        wrap.appendChild(btn);
+      });
+    }
+
     let _recPoolLoading = false;
 
     async function refreshRecPool(options = {}) {
@@ -4427,25 +4456,25 @@
 
       try {
         const excluded = getExcludedKeys();
-        // Fetch a broad dark cinema pool across horror, thriller, sci-fi, mystery, crime, fantasy, and drama.
-        const genreIds = [27, 53, 878, 9648, 80, 14, 18];
+        // Fetch a broad pool across all major genres — filtered to popular/well-rated English films
+        const genreIds = [28, 12, 35, 80, 18, 14, 27, 9648, 10749, 878, 53, 10751, 99];
         const startPage = append ? recPageCursor : 1;
-        const pages = [startPage, startPage + 1, startPage + 2, startPage + 3, startPage + 4];
-        const sorts = ['popularity.desc', 'vote_average.desc', 'primary_release_date.desc'];
+        const pages = [startPage, startPage + 1, startPage + 2];
+        const sorts = ['popularity.desc', 'vote_average.desc'];
         let raw = [];
 
         const fetchJobs = [];
         for (const g of genreIds) {
           for (const page of pages) {
             for (const sort of sorts) {
-              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=10&vote_average.gte=4.8`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+              fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=${sort}&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&with_genres=${g}&page=${Math.min(page, 500)}&vote_count.gte=100&vote_average.gte=5.5`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
             }
           }
         }
         // Also pull trending this week for freshness
         fetchJobs.push(apiFetch(`/api/tmdb/3/trending/movie/week`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=80&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
-        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.asc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=25&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=vote_average.desc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&with_genres=27`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
+        fetchJobs.push(apiFetch(`/api/tmdb/3/discover/movie?language=en-US&sort_by=popularity.desc&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&with_genres=53`).then(d => { raw = raw.concat(d.results || []); }).catch(()=>{}));
 
         await Promise.all(fetchJobs);
 
@@ -4522,12 +4551,18 @@
       }
       if (empty) empty.classList.add('hidden');
 
+      renderRecGenreChips();
+
       const prefs = getUserGenrePrefs();
       const excluded = getExcludedKeys();
       // score + sort
       let scored = currentRecPool.map(it => ({...it, _score: boostScore(it, prefs)}));
-      // Strict filter against all personal lists (watched, to-watch, disliked) - fixes suggesting already seen titles
+      // Strict filter against all personal lists (watched, to-watch, disliked)
       scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
+      // Genre filter
+      if (recGenreFilter !== null) {
+        scored = scored.filter(it => (it.genre_ids || []).includes(recGenreFilter));
+      };
       if (!scored.length) {
         grid.innerHTML = `<div class="empty-state col-span-full">
           <span class="empty-state-icon">🎬</span>
