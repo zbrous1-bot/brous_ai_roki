@@ -58,26 +58,41 @@ export default {
         tmdbUrl.searchParams.set('api_key', env.TMDB_TOKEN);
       }
 
-      // Forward the request to TMDB
-      const tmdbResponse = await fetch(tmdbUrl.toString(), {
-        method: request.method,
-        headers,
-        body: request.body,
-        cf: {
-          cacheTtl: 300,           // Cache for 5 minutes
-          cacheEverything: true,
-        },
-      });
+      // Forward the request to TMDB. Wrap in try/catch with one retry so a
+      // transient TMDB failure (rate limit / connection reset) returns a clean
+      // JSON error WITH CORS headers instead of crashing the Worker — a crash
+      // produces a response with no CORS headers, which the browser reports as
+      // "Failed to fetch" and which hangs the client UI.
+      async function fetchTmdb() {
+        const resp = await fetch(tmdbUrl.toString(), {
+          method: request.method,
+          headers,
+          body: request.body,
+          cf: { cacheTtl: 300, cacheEverything: true },
+        });
+        const text = await resp.text();
+        let json;
+        try { json = JSON.parse(text); }
+        catch (_) { throw new Error('TMDB returned non-JSON (status ' + resp.status + ')'); }
+        return { status: resp.status, json };
+      }
 
-      const data = await tmdbResponse.json();
-
-      return new Response(JSON.stringify(data), {
-        status: tmdbResponse.status,
-        headers: {
-          'Content-Type': 'application/json',
-          ...CORS_HEADERS,
-        },
-      });
+      try {
+        let result;
+        try {
+          result = await fetchTmdb();
+        } catch (e1) {
+          // brief backoff then one retry
+          await new Promise(r => setTimeout(r, 350));
+          result = await fetchTmdb();
+        }
+        return new Response(JSON.stringify(result.json), {
+          status: result.status,
+          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+        });
+      } catch (err) {
+        return jsonResponse({ error: 'TMDB upstream error: ' + (err && err.message || 'unknown') }, 502);
+      }
     }
 
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
