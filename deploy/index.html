@@ -5099,7 +5099,20 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       if (sugMatch) {
         try {
           const titlesStr = sugMatch[1];
-          let titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
+          let titles;
+          try {
+            // Parse as JSON array — correctly handles commas inside titles like "As Above, So Below"
+            titles = JSON.parse('[' + titlesStr + ']');
+          } catch(e) {
+            // Fallback: extract quoted tokens, then plain comma split
+            const quoted = titlesStr.match(/"([^"]+)"|'([^']+)'/g);
+            if (quoted && quoted.length) {
+              titles = quoted.map(s => s.replace(/^["']|["']$/g, '').trim());
+            } else {
+              titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
+            }
+          }
+          titles = titles.map(t => String(t).trim()).filter(Boolean);
           // Strict filter: never suggest titles already in any list
           const watchedTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => (x.title || '').toLowerCase()));
           titles = titles.filter(t => t && !watchedTitles.has(t.toLowerCase()));
