@@ -6128,6 +6128,22 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         padding: 5px 8px !important;
         border-radius: 10px !important;
       }
+      /* Browse card title: smaller + tighter so it reads cleanly and shows the
+         full name (no mid-word "..." truncation) in the narrow column beside the
+         bigger poster. Overrides the older .movie-card 16px title rule. */
+      .movie-card-v2 .line-clamp-3 {
+        font-size: 14px !important;
+        line-height: 1.3 !important;
+        -webkit-line-clamp: 3 !important;
+      }
+      /* Year stays legible but secondary */
+      .movie-card-v2 .flex-1 .text-sm { font-size: 12.5px !important; }
+      /* Even vertical rhythm: trim the oversized gaps between title/meta/buttons */
+      .movie-card-v2 .flex-1 .mt-2 { margin-top: 6px !important; }
+      .movie-card-v2 .flex-1 .mt-3 { margin-top: 8px !important; }
+      /* Vertically center content next to the tall poster so short cards don't
+         leave an awkward empty gap */
+      .movie-card-v2 > div { align-items: center !important; }
     }
   </style>
 </body>
