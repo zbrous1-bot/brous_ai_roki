@@ -533,7 +533,7 @@
       #results { grid-template-columns: 1fr !important; gap: 12px !important; }
       .movie-card-v2 { padding: 12px !important; }
       .movie-card-v2 > div { flex-direction: row !important; gap: 12px !important; align-items: flex-start !important; }
-      .movie-card-v2 img { width: 84px !important; height: 124px !important; flex-shrink: 0 !important; }
+      .movie-card-v2 img { width: 104px !important; height: 156px !important; flex-shrink: 0 !important; }
       .movie-card-v2 .font-semibold { font-size: 14px !important; }
       .movie-card-v2 .flex-1 { padding-top: 0 !important; }
       /* Compact action buttons so all 4 fit on one row beside the poster */
@@ -1425,9 +1425,9 @@
     .library-card {
       display: flex !important;
       flex-direction: row !important;
-      align-items: flex-start !important;
+      align-items: center !important;
       padding: 10px 12px !important;
-      gap: 10px !important;
+      gap: 12px !important;
       overflow: hidden !important;
       border-radius: 16px !important;
       transform: none !important;
@@ -1436,8 +1436,8 @@
       transform: translateX(2px) !important;
     }
     .library-card .lib-poster {
-      width: 92px;
-      height: 136px;
+      width: 112px;
+      height: 168px;
       overflow: hidden;
       flex-shrink: 0;
       border-radius: 8px;
@@ -4471,7 +4471,7 @@ function setCuratorPrompt(q) {
         card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-52 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            ${poster ? `<img src="${poster}" class="w-full sm:w-44 h-56 sm:h-[264px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="flex items-start justify-between gap-2">
@@ -4822,7 +4822,7 @@ function setCuratorPrompt(q) {
         card.innerHTML = `
           <div class="flex flex-row gap-3">
             <div class="relative flex-shrink-0">
-              <img src="${poster}" class="w-20 h-28 sm:w-24 sm:h-32 rounded-xl object-cover border border-zinc-800" alt="">
+              <img src="${poster}" class="w-24 h-36 sm:w-28 sm:h-40 rounded-xl object-cover border border-zinc-800" alt="">
             </div>
             <div class="min-w-0 flex-1">
               <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
@@ -5273,8 +5273,8 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           `;
         } else {
           const posterHtml = p.poster_path
-            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-20 h-28 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="">`
-            : `<div class="w-20 h-28 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-xl text-zinc-500">📽️</div>`;
+            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-24 h-36 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="">`
+            : `<div class="w-24 h-36 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl text-zinc-500">📽️</div>`;
           const pYear = p.year || '';
           const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;
           const rtUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(p.title)}`;
