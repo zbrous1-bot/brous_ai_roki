@@ -5020,7 +5020,7 @@ HOW TO USE THE PROVIDED CONTEXT:
 
 RULES:
 1. NEVER suggest a title in EXCLUDED_TITLES
-2. For recommendation queries: end with SUGGESTED: ["Title One", "Title Two", ...] (3-6 titles)
+2. For ANY query where you name films/shows to watch, you MUST end with a line in EXACTLY this format (this is what renders the clickable movie cards — without it the user only sees text): SUGGESTED: ["Title One", "Title Two", ...] (3-6 titles). Use the exact word SUGGESTED:, a real JSON array of plain double-quoted title strings, and put every title you recommend in it.
 3. Match the specific tone asked for precisely — found-footage dread, slow-burn, brutal, cozy, etc.
 4. For similar-to queries: analyze what makes the reference film distinctive and match those qualities
 5. For director/actor queries: include deep cuts alongside highlights
@@ -5140,8 +5140,17 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
     async function parseAndRenderCuratorExtras(fullText, parentDiv) {
       curatorPicks = [];
-      // SUGGESTED: ["Title One", "Title Two"]
-      const sugMatch = fullText.match(/SUGGESTED:\s*\[([^\]]+)\]/i);
+      // Strip TV/mini-series flag tags first so a "]" inside a title like
+      // "Midnight Mass [TV Series]" can't prematurely terminate the array capture.
+      const sugText = fullText.replace(/\s*\[(?:tv series|mini-?series|miniseries|tv|limited series)\]/gi, '');
+      // Accept the title list under several labels the model actually uses
+      // (SUGGESTED / SUGGEST / SUGGESTIONS / PICKS / RECOMMENDED ...), or a bare
+      // quoted-string array anywhere in the reply if the label is missing.
+      let sugMatch = sugText.match(/(?:SUGGEST(?:ED|IONS?)?|PICKS?|RECOMMEND(?:ED|ATIONS?)?)\s*:?\s*\[([^\]]+)\]/i);
+      if (!sugMatch) {
+        // Fallback: any array of 2+ quoted strings looks like a list of titles
+        sugMatch = sugText.match(/\[\s*("(?:[^"\\]|\\.)*"(?:\s*,\s*"(?:[^"\\]|\\.)*")+)\s*\]/);
+      }
       if (sugMatch) {
         try {
           const titlesStr = sugMatch[1];
@@ -5158,7 +5167,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
               titles = titlesStr.split(',').map(s => s.trim().replace(/^"|"$/g,'').replace(/^'|'$/g,''));
             }
           }
-          titles = titles.map(t => String(t).trim()).filter(Boolean);
+          // Strip trailing flag tags like "[TV Series]" / "[Mini-Series]" so the
+          // title enriches against TMDB cleanly (media type comes from the search).
+          titles = titles.map(t => String(t).replace(/\s*\[[^\]]*\]\s*$/, '').trim()).filter(Boolean);
           // Normalize titles for robust matching: case/punctuation/(year)-insensitive
           const normTitle = s => String(s || '').toLowerCase().replace(/\(\d{4}\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
           // Strict filter: never suggest titles already in any list (normalized match)
