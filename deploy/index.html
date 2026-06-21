@@ -3394,9 +3394,10 @@
         return mKey !== key;
       });
 
-      if (currentDiscoverResults.length > 0) {
-        renderResults(currentDiscoverResults);
-      } else if (lastRenderedItems.length > 0) {
+      // Re-render whatever is actually on screen now (search OR discover).
+      // lastRenderedItems always reflects the current view, so use it — preferring
+      // currentDiscoverResults here was switching a search view back to stale discover.
+      if (lastRenderedItems.length > 0) {
         renderResults(lastRenderedItems);
       }
       // keep recs grid fresh
@@ -3804,7 +3805,8 @@
 
       const libraryRow = anchor.closest('.library-item');
       const curatorRow = anchor.closest('.curator-pick-row');
-      const overlayHost = libraryRow || curatorRow;
+      const browseCard = anchor.closest('.movie-card-v2');
+      const overlayHost = libraryRow || curatorRow || browseCard;
 
       const rateBar = document.createElement('div');
       rateBar.className = 'inline-rating-bar';
@@ -3812,6 +3814,10 @@
         // Full-cover overlay over the compact Curator pick card — replaces the
         // row content with a clean row of 5 even star buttons (matches To Watch).
         rateBar.style.cssText = 'position:absolute;inset:0;z-index:20;display:flex;gap:4px;align-items:center;padding:6px 8px;background:rgba(10,8,14,0.96);border:1px solid rgba(245,158,11,0.3);border-radius:14px;';
+      } else if (browseCard) {
+        // Full-width bar across the bottom of the Browse card so the 5 stars are
+        // large and evenly spaced instead of cramped into the narrow text column.
+        rateBar.style.cssText = 'position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;gap:8px;align-items:center;padding:12px 16px;background:rgba(10,8,14,0.97);border-top:1px solid rgba(245,158,11,0.3);border-radius:0 0 24px 24px;';
       } else if (libraryRow) {
         // Absolute overlay at bottom of row — does not push poster or expand height
         rateBar.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;gap:4px;align-items:center;padding:4px 6px;background:rgba(10,8,14,0.93);border-top:1px solid rgba(245,158,11,0.25);border-radius:0 0 8px 8px;';
@@ -4520,7 +4526,7 @@ function setCuratorPrompt(q) {
           openInlineRatingPrompt(addBtnContainer, m, r => {
             addToWatched(m, r);
             b2.textContent='✓';
-          }, { hideButtons: [b1, b2, b3] });
+          }, { hideButtons: [b1, b2, b3, b4] });
         };
         const b3 = document.createElement('button');
         b3.className = 'flex-shrink-0 text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
