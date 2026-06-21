@@ -5159,45 +5159,56 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             }
           }
           titles = titles.map(t => String(t).trim()).filter(Boolean);
-          // Strict filter: never suggest titles already in any list
-          const watchedTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => (x.title || '').toLowerCase()));
-          titles = titles.filter(t => t && !watchedTitles.has(t.toLowerCase()));
+          // Normalize titles for robust matching: case/punctuation/(year)-insensitive
+          const normTitle = s => String(s || '').toLowerCase().replace(/\(\d{4}\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+          // Strict filter: never suggest titles already in any list (normalized match)
+          const seenTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => normTitle(x.title)));
+          titles = titles.filter(t => t && !seenTitles.has(normTitle(t)));
           if (!titles.length) return;
-          // Enrich with posters for visual appeal (local first, then live TMDB search)
+          // Enrich with posters; prefer an EXACT title match so similarly-named films aren't mixed up
           const enrichedSuggested = await Promise.all(titles.map(async (t) => {
             if (!t || t.length < 2) return null;
+            const nt = normTitle(t);
             let poster_path = null;
             let id = Date.now();
-            // Try local data first (rec pool, lists)
-            let local = (currentRecPool || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
-                        (toWatchList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
-                        (watchedList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase()) ||
-                        (dislikedList || []).find(x => x.title && x.title.toLowerCase() === t.toLowerCase());
+            let canonical = t;
+            let enrichExtra = {};
+            // Try local data first (exact normalized title)
+            const local = [...(currentRecPool||[]), ...(toWatchList||[]), ...(watchedList||[]), ...(dislikedList||[])]
+                            .find(x => x.title && normTitle(x.title) === nt);
             if (local) {
               poster_path = local.poster_path || null;
               id = local.id || id;
+              canonical = local.title || t;
             }
-            let enrichExtra = {};
             if (!poster_path) {
-              // Live search for poster thumbnail
+              // Live search — pick an exact title match (most-voted) before falling back to top result
               try {
                 const search = await apiFetch(`/api/tmdb/3/search/multi?query=${encodeURIComponent(t)}&page=1`);
-                if (search.results && search.results.length > 0) {
-                  const r = search.results.find(x => x.media_type === 'movie' || x.media_type === 'tv') || search.results[0];
+                const results = (search.results || []).filter(x => x.media_type === 'movie' || x.media_type === 'tv');
+                if (results.length) {
+                  const titleOf = x => x.title || x.name || '';
+                  const exact = results.filter(x => normTitle(titleOf(x)) === nt).sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0));
+                  const r = exact[0] || results[0];
                   poster_path = r.poster_path;
                   id = r.id;
+                  canonical = titleOf(r) || t;
                   enrichExtra = { year: (r.release_date || r.first_air_date || '').slice(0,4), vote: r.vote_average, mediaType: r.media_type || 'movie' };
                 }
               } catch (e) {}
             }
-            return {title: t, type: 'suggested', poster_path, id, year: enrichExtra.year || '', vote: enrichExtra.vote || null, mediaType: enrichExtra.mediaType || 'movie' };
+            return {title: canonical, suggestedTitle: t, type: 'suggested', poster_path, id, year: enrichExtra.year || '', vote: enrichExtra.vote || null, mediaType: enrichExtra.mediaType || 'movie' };
           }));
           const excluded = getExcludedKeys();
           enrichedSuggested.filter(Boolean).forEach(item => {
-            const key = `${item.id}:movie`; // default movie for suggested
-            if (!excluded.has(key) && !curatorPicks.some(p => p.title.toLowerCase() === item.title.toLowerCase())) {
-              curatorPicks.push(item);
-            }
+            const key = `${item.id}:${item.mediaType || 'movie'}`;
+            const nt = normTitle(item.title);
+            const nst = normTitle(item.suggestedTitle);
+            // Skip if already in any list (by id OR by normalized canonical/suggested title)
+            if (excluded.has(key) || seenTitles.has(nt) || seenTitles.has(nst)) return;
+            // Skip duplicates within this pick set (normalized title)
+            if (curatorPicks.some(p => normTitle(p.title) === nt)) return;
+            curatorPicks.push(item);
           });
         } catch(e){}
       }
@@ -5232,8 +5243,8 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           `;
         } else {
           const posterHtml = p.poster_path
-            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-16 h-24 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="">`
-            : `<div class="w-16 h-24 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-lg text-zinc-500">📽️</div>`;
+            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-20 h-28 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="">`
+            : `<div class="w-20 h-28 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-xl text-zinc-500">📽️</div>`;
           const pYear = p.year || '';
           const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;
           const rtUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(p.title)}`;
