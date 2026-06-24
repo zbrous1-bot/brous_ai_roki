@@ -50,10 +50,7 @@
     }
     .rec-card {
       border-color: #7f1d1d;
-      padding: 10px 12px;
-    }
-    @media (min-width: 640px) {
-      .rec-card { padding: 16px 20px; }
+      padding: 10px;
     }
 
     .section-header {
@@ -729,11 +726,8 @@
         padding: 6px 10px !important;
       }
       
-      /* Recs grid cards (top Recommended) - bigger for readability */
-      #recs-grid .movie-card { padding: 16px !important; }
-      /* Allow template responsive sizes for expanded recs on mobile */
-      /* #recs-grid .movie-card img { width: 72px !important; height: 108px !important; } */
-      #recs-grid .mt-2.flex.gap-1 > button { font-size: 11px !important; padding: 5px 8px !important; }
+      /* Recs grid — poster layout, compact padding */
+      #recs-grid .movie-card { padding: 10px !important; }
       
       /* Modal */
       #detail-modal .p-4 { padding: 14px; }
@@ -1034,6 +1028,20 @@
     ::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
 
     /* Where to watch popup */
+    .why-this-pop {
+      position: fixed;
+      z-index: 9999;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #a1a1aa;
+      max-width: 230px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      pointer-events: none;
+    }
+    .why-this-btn { background: none; border: none; cursor: pointer; padding: 0; }
     .wtw-popup {
       position: fixed;
       z-index: 500;
@@ -2250,6 +2258,7 @@
 
     <!-- ═══ TAB: FOR YOU ═══ -->
     <div id="panel-foryou" class="main-panel active">
+      <div id="taste-stats-panel" class="mb-4"></div>
 
       <!-- Recommended for you -->
 <!-- Recommended for you (primary content first) -->
@@ -2282,7 +2291,7 @@
         <div id="recs-genre-chips" class="flex gap-2 flex-wrap"></div>
       </div>
 
-      <div id="recs-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2">
+      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         <!-- Populated by recomputeRecommendations() -->
       </div>
       <div id="recs-empty" class="hidden empty-state text-sm">
@@ -2723,15 +2732,9 @@
       'Max': 'bg-purple-700 text-white',
       'Prime Video': 'bg-sky-600 text-white',
       'Peacock': 'bg-violet-600 text-white',
-      'Apple TV+': 'bg-zinc-500 text-white',
+      'Apple TV+': 'bg-zinc-600 text-white',
       'Paramount+': 'bg-blue-700 text-white',
       'Disney+': 'bg-indigo-700 text-white',
-      'Tubi': 'bg-orange-600 text-white',
-      'Pluto TV': 'bg-teal-700 text-white',
-      'Shudder': 'bg-red-900 text-red-200',
-      'Showtime': 'bg-red-800 text-white',
-      'AMC+': 'bg-stone-700 text-white',
-      'Crunchyroll': 'bg-orange-500 text-white',
     };
 
     let selectedGenres = new Set();
@@ -2883,23 +2886,32 @@
       c.innerHTML = '';
       const initial = document.getElementById('initial-state');
       if (initial) initial.style.display = 'none';
+      const isPoster = containerId === 'recs-grid';
       for (let i = 0; i < count; i++) {
         const card = document.createElement('div');
         card.className = 'skeleton-card';
         card.style.animationDelay = (i * 0.07) + 's';
-        card.innerHTML = `
-          <div style="display:flex;gap:14px;">
-            <div class="skeleton-poster" style="width:80px;height:120px;"></div>
-            <div style="flex:1;">
-              <div class="skeleton-line" style="width:80%;height:14px;margin-bottom:10px;"></div>
-              <div class="skeleton-line" style="width:55%;height:10px;margin-bottom:8px;"></div>
-              <div class="skeleton-line" style="width:40%;height:10px;margin-bottom:16px;"></div>
-              <div style="display:flex;gap:6px;">
-                <div class="skeleton-line" style="width:70px;height:28px;border-radius:9999px;margin:0;"></div>
-                <div class="skeleton-line" style="width:60px;height:28px;border-radius:9999px;margin:0;"></div>
+        if (isPoster) {
+          card.style.padding = '10px';
+          card.innerHTML = `
+            <div class="skeleton-poster" style="width:100%;aspect-ratio:2/3;height:unset;border-radius:16px;margin-bottom:10px;"></div>
+            <div class="skeleton-line" style="width:85%;height:12px;margin-bottom:6px;"></div>
+            <div class="skeleton-line" style="width:55%;height:10px;margin-bottom:0;"></div>`;
+        } else {
+          card.innerHTML = `
+            <div style="display:flex;gap:14px;">
+              <div class="skeleton-poster" style="width:80px;height:120px;"></div>
+              <div style="flex:1;">
+                <div class="skeleton-line" style="width:80%;height:14px;margin-bottom:10px;"></div>
+                <div class="skeleton-line" style="width:55%;height:10px;margin-bottom:8px;"></div>
+                <div class="skeleton-line" style="width:40%;height:10px;margin-bottom:16px;"></div>
+                <div style="display:flex;gap:6px;">
+                  <div class="skeleton-line" style="width:70px;height:28px;border-radius:9999px;margin:0;"></div>
+                  <div class="skeleton-line" style="width:60px;height:28px;border-radius:9999px;margin:0;"></div>
+                </div>
               </div>
-            </div>
-          </div>`;
+            </div>`;
+        }
         c.appendChild(card);
       }
     }
@@ -3634,6 +3646,54 @@
       el.innerHTML = parts.join('');
     }
 
+    function renderTasteStats() {
+      const el = document.getElementById('taste-stats-panel');
+      if (!el) return;
+      if (!watchedList.length) { el.innerHTML = ''; return; }
+
+      const rated = watchedList.filter(m => m.rating);
+      const avgRating = rated.length ? (rated.reduce((s, m) => s + m.rating, 0) / rated.length).toFixed(1) : null;
+
+      const genreScores = {};
+      watchedList.forEach(m => {
+        const w = m.rating >= 4 ? 2 : m.rating === 3 ? 1 : 0.5;
+        (m.genre_ids || []).forEach(g => { genreScores[g] = (genreScores[g] || 0) + w; });
+      });
+      const topGenres = Object.entries(genreScores)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([id, score]) => ({ name: GENRES.find(g => g.id == id)?.name || 'Unknown', score }));
+      const maxScore = topGenres[0]?.score || 1;
+
+      const decadeCounts = {};
+      watchedList.forEach(m => {
+        const y = parseInt((m.release_date || '').slice(0, 4));
+        if (y >= 1920) { const d = Math.floor(y / 10) * 10; decadeCounts[d] = (decadeCounts[d] || 0) + 1; }
+      });
+      const topDecade = Object.entries(decadeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+      const GENRE_COLORS = ['bg-red-600','bg-orange-500','bg-violet-600','bg-sky-600','bg-emerald-600'];
+
+      el.innerHTML = `
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Your Taste Profile</span>
+            <div class="flex gap-3 text-sm">
+              <span><strong class="text-zinc-100">${watchedList.length}</strong> <span class="text-zinc-500 text-xs">watched</span></span>
+              ${avgRating ? `<span><strong class="text-zinc-100">★ ${avgRating}</strong> <span class="text-zinc-500 text-xs">avg</span></span>` : ''}
+              <span><strong class="text-zinc-100">${toWatchList.length}</strong> <span class="text-zinc-500 text-xs">queued</span></span>
+              ${topDecade ? `<span><strong class="text-zinc-100">${topDecade}s</strong> <span class="text-zinc-500 text-xs">era</span></span>` : ''}
+            </div>
+          </div>
+          ${topGenres.length ? `<div class="space-y-2">${topGenres.map((g, i) => `
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-zinc-400 w-20 text-right shrink-0 truncate">${g.name}</span>
+              <div class="flex-1 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full ${GENRE_COLORS[i] || 'bg-zinc-600'} rounded-full" style="width:${Math.round(g.score / maxScore * 100)}%"></div>
+              </div>
+            </div>`).join('')}</div>` : ''}
+        </div>`;
+    }
+
     function updateHomeSnapshot() {
       const queueEl = document.getElementById('home-queue-count');
       const watchedEl = document.getElementById('home-watched-count');
@@ -3786,6 +3846,7 @@
       };
       if (existsIdx >= 0) watchedList[existsIdx] = rec; else watchedList.unshift(rec);
       saveWatched();
+      renderTasteStats();
       saveToWatch(); // counts + renders
       showToast('Marked watched ★' + (rating ? rating : ''));
       removeFromCurrentResults(item.id, item._mediaType || 'movie');
@@ -4397,7 +4458,7 @@
       });
       const homeGrid = document.getElementById('home-command-grid');
       if (homeGrid) homeGrid.style.display = tab === 'foryou' ? '' : 'none';
-      if (tab === 'foryou') updateHomeSnapshot();
+      if (tab === 'foryou') { updateHomeSnapshot(); renderTasteStats(); }
       // On mobile, hide the main tab bar when Library is open to free up screen space
       document.body.classList.toggle('library-open', tab === 'watched');
       // Scroll to top of content
@@ -4667,54 +4728,55 @@ function setCuratorPrompt(q) {
       sendToCurator();
     }
 
-    function getProviderName(p) {
-      const idMap = {
-        8: 'Netflix', 1796: 'Netflix',
-        9: 'Prime Video', 119: 'Prime Video',
-        15: 'Hulu',
-        1899: 'Max', 2: 'Max',
-        337: 'Disney+',
-        386: 'Peacock', 387: 'Peacock',
-        350: 'Apple TV+', 2552: 'Apple TV+',
-        531: 'Paramount+', 1853: 'Paramount+', 1770: 'Paramount+', 582: 'Paramount+',
-        2575: 'Tubi', 613: 'Tubi',
-        207: 'Pluto TV',
-        73: 'Shudder', 190: 'Shudder',
-        37: 'Showtime', 300: 'AMC+', 526: 'AMC+',
-        283: 'Crunchyroll',
-      };
-      if (idMap[p.provider_id]) return idMap[p.provider_id];
-      let name = p.provider_name || '';
-      name = name.replace(/\s+(Apple TV Channel|Amazon Channel|Roku Channel|with Showtime|\(with Ads\)|with Ads|Premium Plus|Premium|Basic|Plus Channel)\s*$/i, '').trim();
-      return name;
+    function addSwipeGesture(card, item) {
+      let startX = 0, startY = 0, tracking = false;
+      const overlay = card.querySelector('.swipe-overlay');
+      card.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = false;
+        card.style.transition = 'none';
+      }, { passive: true });
+      card.addEventListener('touchmove', e => {
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (!tracking && Math.abs(dy) > Math.abs(dx) + 5) return;
+        tracking = true;
+        card.style.transform = `translateX(${dx}px) rotate(${dx * 0.025}deg)`;
+        if (overlay) {
+          overlay.style.opacity = Math.min(Math.abs(dx) / 90, 0.85);
+          overlay.style.background = dx > 0 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
+          overlay.textContent = dx > 0 ? '+ Watch' : '✕ Hide';
+        }
+      }, { passive: true });
+      card.addEventListener('touchend', e => {
+        if (!tracking) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        card.style.transition = 'transform 0.25s ease, opacity 0.2s ease';
+        if (dx > 80) {
+          card.style.transform = 'translateX(150%) rotate(20deg)'; card.style.opacity = '0';
+          setTimeout(() => { addToToWatch(item); card.remove(); }, 230);
+        } else if (dx < -80) {
+          card.style.transform = 'translateX(-150%) rotate(-20deg)'; card.style.opacity = '0';
+          setTimeout(() => { addToNotInterested(item); card.remove(); }, 230);
+        } else {
+          card.style.transform = ''; card.style.opacity = '';
+          if (overlay) { overlay.style.opacity = '0'; overlay.textContent = ''; }
+        }
+      });
     }
 
-    function buildProviderPills(flatrate, max = 4) {
-      const seen = new Set();
-      const unique = [];
-      for (const p of (flatrate || [])) {
-        const name = getProviderName(p);
-        if (!seen.has(name)) { seen.add(name); unique.push({ name, p }); }
-        if (unique.length >= max) break;
-      }
-      return unique.map(({ name }) => {
-        const cc = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-        return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${name}</span>`;
-      }).join('');
+    function getProviderName(p) {
+      const map = { 8: 'Netflix', 9: 'Prime Video', 15: 'Hulu', 1899: 'Max', 337: 'Disney+', 386: 'Peacock', 350: 'Apple TV', 531: 'Paramount+', 2575: 'Tubi', 207: 'Pluto TV' };
+      return map[p.provider_id] || p.provider_name;
     }
 
     function showWatchPopup(anchorEl, providers) {
       document.querySelectorAll('.wtw-popup').forEach(p => p.remove());
       const popup = document.createElement('div');
       popup.className = 'wtw-popup';
-      function dedupeGroup(items) {
-        const seen = new Set();
-        return items.filter(p => { const n = getProviderName(p); return seen.has(n) ? false : seen.add(n); });
-      }
       const groups = [
-        { label: 'Stream', items: dedupeGroup(providers?.flatrate || []) },
-        { label: 'Rent',   items: dedupeGroup(providers?.rent    || []) },
-        { label: 'Buy',    items: dedupeGroup(providers?.buy     || []) },
+        { label: 'Stream', items: providers?.flatrate || [] },
+        { label: 'Rent',   items: providers?.rent    || [] },
+        { label: 'Buy',    items: providers?.buy     || [] },
       ].filter(g => g.items.length);
       if (!groups.length) {
         popup.innerHTML = `<div style="font-size:12px;color:#71717a;">No streaming data available</div>`;
@@ -4780,7 +4842,10 @@ function setCuratorPrompt(q) {
         );
         const html = (() => {
           if (streamProviders.length) {
-            const pills = buildProviderPills(streamProviders);
+            const pills = streamProviders.slice(0, 4).map(p => {
+              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
+              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
+            }).join('');
             return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
           }
           if (hasAnyProvider) {
@@ -5313,7 +5378,7 @@ function setCuratorPrompt(q) {
       grid.innerHTML = '';
       picks.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 flex flex-col';
+        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
@@ -5321,29 +5386,28 @@ function setCuratorPrompt(q) {
         const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
-          <div class="flex flex-row gap-3">
-            <div class="relative flex-shrink-0">
-              <img src="${poster}" class="w-24 h-36 sm:w-28 sm:h-40 rounded-xl object-cover border border-zinc-800" alt="">
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
-              <div class="flex items-center gap-1.5 flex-wrap mt-1">
-                ${year ? `<span class="text-xs text-zinc-500">${year}</span>` : ''}
-                ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 6px;"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span>` : ''}
-                <a id="imdb-si-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none"><i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb</a>
-                <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none">🍅 RT</a>
-              </div>
-              <div class="text-[10px] text-amber-400/80 mt-1.5">🎲 Outside your usual taste</div>
-              <div id="wtw-si-${item.id}" class="mt-1.5"></div>
-            </div>
-          </div>
-          <div class="mt-2 flex gap-1 items-center">
-            <button class="flex-1 min-w-0 text-xs px-2.5 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
-            <button class="text-xs px-2.5 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
-            <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
-            <button class="text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested">✕</button>
-            <button id="trailer-si-${item.id}" class="text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
-          </div>`;
+<div class="relative overflow-hidden rounded-2xl">
+  <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="">
+</div>
+<div class="mt-2 px-0.5">
+  <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
+  <div class="flex items-center gap-1 flex-wrap mt-1">
+    ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+    ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
+    <a id="imdb-si-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:9px"></i></a>
+    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
+  </div>
+  <button class="why-this-btn text-[10px] text-amber-400/80 mt-1.5 text-left w-full truncate hover:text-amber-300 transition-colors" title="Why this recommendation?">🎲 Outside your usual taste</button>
+  <div id="wtw-si-${item.id}" class="mt-1"></div>
+</div>
+<div class="mt-2 flex gap-1 items-center">
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested">✕</button>
+  <button id="trailer-si-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
+</div>`;
         card.querySelector('[data-act="towatch"]').onclick = () => { addToToWatch(item); card.remove(); };
         card.querySelector('[data-act="watched"]').onclick = () => {
           openInlineRatingPrompt(card, item, r => { addToWatched(item, r); card.remove(); },
@@ -5360,19 +5424,31 @@ function setCuratorPrompt(q) {
           const t = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') || (vdata?.results || []).find(v => v.site === 'YouTube');
           if (t) { const b = card.querySelector('[data-act="trailer"]'); if (b) { b.classList.remove('hidden', 'text-zinc-500'); b.classList.add('text-red-400'); } }
         }).catch(() => {});
-        apiFetch(`/api/tmdb/3/${item._mediaType||'movie'}/${item.id}/watch/providers`).then(provData => {
-          const providers = provData.results?.US || null;
-          const el = card.querySelector(`#wtw-si-${item.id}`);
-          if (!el || !providers) return;
-          const flatrate = providers.flatrate || [];
-          const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
-          if (flatrate.length) {
-            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${buildProviderPills(flatrate)}</div>`;
-          } else if (hasAny) {
-            el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
-            el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
-          }
-        }).catch(() => {});
+        // wire why-this-btn
+        const whyBtn = card.querySelector('.why-this-btn');
+        if (whyBtn) {
+          whyBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            document.querySelectorAll('.why-this-pop').forEach(p => p.remove());
+            const gNames = (item.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean);
+            const pop = document.createElement('div');
+            pop.className = 'why-this-pop';
+            pop.innerHTML = `
+              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${item._affinityReason || '🎲 Outside your usual taste'}</div>
+              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${gNames.join(', ')}</div>` : ''}
+              ${item.vote_average ? `<div style="color:#71717a;font-size:11px;margin-top:3px;">TMDB ${item.vote_average.toFixed(1)} / 10</div>` : ''}
+              ${item.vote_count ? `<div style="color:#52525b;font-size:10px;margin-top:2px;">${item.vote_count.toLocaleString()} votes</div>` : ''}
+            `;
+            document.body.appendChild(pop);
+            const rect = e.target.getBoundingClientRect();
+            const pw = 230;
+            pop.style.left = Math.min(rect.left, window.innerWidth - pw - 8) + 'px';
+            pop.style.top = (rect.bottom + 6) + 'px';
+            setTimeout(() => document.addEventListener('click', () => { document.querySelectorAll('.why-this-pop').forEach(p => p.remove()); }, { once: true }), 10);
+          });
+        }
+        // swipe gesture
+        addSwipeGesture(card, item);
         enhanceCard(card, item);
         grid.appendChild(card);
       });
@@ -5446,7 +5522,7 @@ function setCuratorPrompt(q) {
       grid.innerHTML = '';
       display.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl p-4 flex flex-col';
+        card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl flex flex-col';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
@@ -5454,50 +5530,30 @@ function setCuratorPrompt(q) {
         const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
-          <div class="flex flex-row gap-3">
-            <div class="relative flex-shrink-0">
-              <img src="${poster}" class="w-24 h-36 sm:w-28 sm:h-40 rounded-xl object-cover border border-zinc-800" alt="">
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="font-semibold text-lg leading-tight line-clamp-2">${item.title}</div>
-              <div class="flex items-center gap-1.5 flex-wrap mt-1">
-                ${year ? `<span class="text-xs text-zinc-500">${year}</span>` : ''}
-                ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 6px;"><i class="fa-solid fa-star" style="font-size:8px"></i> ${tmdbRating}</span>` : ''}
-                <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none">
-                  <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
-                </a>
-                <a href="${rtSearchUrl}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none">
-                  🍅 RT
-                </a>
-              </div>
-              <div class="text-[10px] text-emerald-400/80 mt-1.5">${matchLabel(item)}</div>
-              <div id="wtw-rec-${item.id}" class="mt-1.5"></div>
-            </div>
-          </div>
-          <div class="mt-2 flex gap-1 items-center">
-            <button class="flex-1 min-w-0 text-xs px-2.5 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
-            <button class="text-xs px-2.5 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">Watched</button>
-            <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
-            <button class="text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested — hide from results">✕</button>
-            <button id="trailer-btn-${item.id}" class="text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
-          </div>
+<div class="relative overflow-hidden rounded-2xl">
+  <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="">
+</div>
+<div class="mt-2 px-0.5">
+  <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
+  <div class="flex items-center gap-1 flex-wrap mt-1">
+    ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
+    ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
+    <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:9px"></i></a>
+    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
+  </div>
+  <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${matchLabel(item)}</button>
+  <div id="wtw-rec-${item.id}" class="mt-1"></div>
+</div>
+<div class="mt-2 flex gap-1 items-center">
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested">✕</button>
+  <button id="trailer-btn-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
+</div>
         `;
-        // Async: upgrade IMDB link + fetch trailer + fetch streaming providers
-        apiFetch(`/api/tmdb/3/${item._mediaType||'movie'}/${item.id}/watch/providers`).then(provData => {
-          const providers = provData.results?.US || null;
-          const el = card.querySelector(`#wtw-rec-${item.id}`);
-          if (!el || !providers) return;
-          const flatrate = providers.flatrate || [];
-          const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
-          if (flatrate.length) {
-            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${buildProviderPills(flatrate)}</div>`;
-          } else if (hasAny) {
-            el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
-            el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
-          }
-        }).catch(() => {});
+        // Async: upgrade IMDB link + fetch trailer
         apiFetch(`/api/tmdb/3/movie/${item.id}/external_ids`).then(ext => {
           if (ext && ext.imdb_id) {
             const lnk = card.querySelector(`#imdb-link-${item.id}`);
@@ -5536,6 +5592,31 @@ function setCuratorPrompt(q) {
                           (vdata?.results || []).find(v => v.site === 'YouTube');
           if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
         };
+        // wire why-this-btn
+        const whyBtn = card.querySelector('.why-this-btn');
+        if (whyBtn) {
+          whyBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            document.querySelectorAll('.why-this-pop').forEach(p => p.remove());
+            const gNames = (item.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean);
+            const pop = document.createElement('div');
+            pop.className = 'why-this-pop';
+            pop.innerHTML = `
+              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${item._affinityReason || '✨ Picked for you'}</div>
+              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${gNames.join(', ')}</div>` : ''}
+              ${item.vote_average ? `<div style="color:#71717a;font-size:11px;margin-top:3px;">TMDB ${item.vote_average.toFixed(1)} / 10</div>` : ''}
+              ${item.vote_count ? `<div style="color:#52525b;font-size:10px;margin-top:2px;">${item.vote_count.toLocaleString()} votes</div>` : ''}
+            `;
+            document.body.appendChild(pop);
+            const rect = e.target.getBoundingClientRect();
+            const pw = 230;
+            pop.style.left = Math.min(rect.left, window.innerWidth - pw - 8) + 'px';
+            pop.style.top = (rect.bottom + 6) + 'px';
+            setTimeout(() => document.addEventListener('click', () => { document.querySelectorAll('.why-this-pop').forEach(p => p.remove()); }, { once: true }), 10);
+          });
+        }
+        // swipe gesture
+        addSwipeGesture(card, item);
 
         // Make the whole rec card (including thumbnail) clickable for the rich detail bio modal,
         // just like search/discover results. Buttons are protected by the guard inside enhanceCard.
@@ -6646,6 +6727,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           // fire and forget; non blocking
           setTimeout(() => { if (typeof refreshRecPool === 'function') refreshRecPool().catch(()=>{}); }, 1200);
         }
+        renderTasteStats();
 
         // Helpful console note for first-time setup (password is required for the Worker)
         if (!localStorage.getItem('brous_password')) {
