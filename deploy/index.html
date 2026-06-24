@@ -5296,6 +5296,7 @@ function setCuratorPrompt(q) {
                 <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none">🍅 RT</a>
               </div>
               <div class="text-[10px] text-amber-400/80 mt-1.5">🎲 Outside your usual taste</div>
+              <div id="wtw-si-${item.id}" class="mt-1.5"></div>
             </div>
           </div>
           <div class="mt-2 flex gap-1 items-center">
@@ -5320,6 +5321,23 @@ function setCuratorPrompt(q) {
         apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).then(vdata => {
           const t = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') || (vdata?.results || []).find(v => v.site === 'YouTube');
           if (t) { const b = card.querySelector('[data-act="trailer"]'); if (b) { b.classList.remove('hidden', 'text-zinc-500'); b.classList.add('text-red-400'); } }
+        }).catch(() => {});
+        apiFetch(`/api/tmdb/3/${item._mediaType||'movie'}/${item.id}/watch/providers`).then(provData => {
+          const providers = provData.results?.US || null;
+          const el = card.querySelector(`#wtw-si-${item.id}`);
+          if (!el || !providers) return;
+          const flatrate = providers.flatrate || [];
+          const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
+          if (flatrate.length) {
+            const pills = flatrate.slice(0, 3).map(p => {
+              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
+              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
+            }).join('');
+            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
+          } else if (hasAny) {
+            el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
+            el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
+          }
         }).catch(() => {});
         enhanceCard(card, item);
         grid.appendChild(card);
@@ -5421,6 +5439,7 @@ function setCuratorPrompt(q) {
                 </a>
               </div>
               <div class="text-[10px] text-emerald-400/80 mt-1.5">${matchLabel(item)}</div>
+              <div id="wtw-rec-${item.id}" class="mt-1.5"></div>
             </div>
           </div>
           <div class="mt-2 flex gap-1 items-center">
@@ -5431,7 +5450,24 @@ function setCuratorPrompt(q) {
             <button id="trailer-btn-${item.id}" class="text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
           </div>
         `;
-        // Async: upgrade IMDB link + fetch trailer
+        // Async: upgrade IMDB link + fetch trailer + fetch streaming providers
+        apiFetch(`/api/tmdb/3/${item._mediaType||'movie'}/${item.id}/watch/providers`).then(provData => {
+          const providers = provData.results?.US || null;
+          const el = card.querySelector(`#wtw-rec-${item.id}`);
+          if (!el || !providers) return;
+          const flatrate = providers.flatrate || [];
+          const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
+          if (flatrate.length) {
+            const pills = flatrate.slice(0, 3).map(p => {
+              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
+              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
+            }).join('');
+            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
+          } else if (hasAny) {
+            el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
+            el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
+          }
+        }).catch(() => {});
         apiFetch(`/api/tmdb/3/movie/${item.id}/external_ids`).then(ext => {
           if (ext && ext.imdb_id) {
             const lnk = card.querySelector(`#imdb-link-${item.id}`);
