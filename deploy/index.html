@@ -4662,18 +4662,53 @@ function setCuratorPrompt(q) {
     }
 
     function getProviderName(p) {
-      const map = { 8: 'Netflix', 9: 'Prime Video', 15: 'Hulu', 1899: 'Max', 337: 'Disney+', 386: 'Peacock', 350: 'Apple TV', 531: 'Paramount+', 2575: 'Tubi', 207: 'Pluto TV' };
-      return map[p.provider_id] || p.provider_name;
+      const idMap = {
+        8: 'Netflix', 1796: 'Netflix',
+        9: 'Prime Video', 119: 'Prime Video',
+        15: 'Hulu',
+        1899: 'Max', 2: 'Max',
+        337: 'Disney+',
+        386: 'Peacock', 387: 'Peacock',
+        350: 'Apple TV+', 2552: 'Apple TV+',
+        531: 'Paramount+', 1853: 'Paramount+', 1770: 'Paramount+', 582: 'Paramount+',
+        2575: 'Tubi', 613: 'Tubi',
+        207: 'Pluto TV',
+        73: 'Shudder', 190: 'Shudder',
+        37: 'Showtime', 300: 'AMC+', 526: 'AMC+',
+        283: 'Crunchyroll',
+      };
+      if (idMap[p.provider_id]) return idMap[p.provider_id];
+      let name = p.provider_name || '';
+      name = name.replace(/\s+(Apple TV Channel|Amazon Channel|Roku Channel|with Showtime|\(with Ads\)|with Ads|Premium Plus|Premium|Basic|Plus Channel)\s*$/i, '').trim();
+      return name;
+    }
+
+    function buildProviderPills(flatrate, max = 4) {
+      const seen = new Set();
+      const unique = [];
+      for (const p of (flatrate || [])) {
+        const name = getProviderName(p);
+        if (!seen.has(name)) { seen.add(name); unique.push({ name, p }); }
+        if (unique.length >= max) break;
+      }
+      return unique.map(({ name }) => {
+        const cc = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
+        return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${name}</span>`;
+      }).join('');
     }
 
     function showWatchPopup(anchorEl, providers) {
       document.querySelectorAll('.wtw-popup').forEach(p => p.remove());
       const popup = document.createElement('div');
       popup.className = 'wtw-popup';
+      function dedupeGroup(items) {
+        const seen = new Set();
+        return items.filter(p => { const n = getProviderName(p); return seen.has(n) ? false : seen.add(n); });
+      }
       const groups = [
-        { label: 'Stream', items: providers?.flatrate || [] },
-        { label: 'Rent',   items: providers?.rent    || [] },
-        { label: 'Buy',    items: providers?.buy     || [] },
+        { label: 'Stream', items: dedupeGroup(providers?.flatrate || []) },
+        { label: 'Rent',   items: dedupeGroup(providers?.rent    || []) },
+        { label: 'Buy',    items: dedupeGroup(providers?.buy     || []) },
       ].filter(g => g.items.length);
       if (!groups.length) {
         popup.innerHTML = `<div style="font-size:12px;color:#71717a;">No streaming data available</div>`;
@@ -4739,10 +4774,7 @@ function setCuratorPrompt(q) {
         );
         const html = (() => {
           if (streamProviders.length) {
-            const pills = streamProviders.slice(0, 4).map(p => {
-              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
-              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
-            }).join('');
+            const pills = buildProviderPills(streamProviders);
             return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
           }
           if (hasAnyProvider) {
@@ -5329,11 +5361,7 @@ function setCuratorPrompt(q) {
           const flatrate = providers.flatrate || [];
           const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
           if (flatrate.length) {
-            const pills = flatrate.slice(0, 3).map(p => {
-              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
-              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
-            }).join('');
-            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
+            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${buildProviderPills(flatrate)}</div>`;
           } else if (hasAny) {
             el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
             el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
@@ -5458,11 +5486,7 @@ function setCuratorPrompt(q) {
           const flatrate = providers.flatrate || [];
           const hasAny = flatrate.length || (providers.rent||[]).length || (providers.buy||[]).length;
           if (flatrate.length) {
-            const pills = flatrate.slice(0, 3).map(p => {
-              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
-              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
-            }).join('');
-            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
+            el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${buildProviderPills(flatrate)}</div>`;
           } else if (hasAny) {
             el.innerHTML = `<button class="wtw-trigger" data-wtw-id="${item.id}">📍 Where to watch</button>`;
             el.querySelector('.wtw-trigger').addEventListener('click', e => { e.stopPropagation(); showWatchPopup(e.currentTarget, providers); });
