@@ -1671,6 +1671,118 @@
       }
     }
 
+    /* Taste Profile Dropdown */
+    .taste-dropdown-panel {
+      margin-top: 6px;
+      background: linear-gradient(145deg, rgba(24,24,27,0.98), rgba(9,9,11,0.99));
+      border: 1px solid rgba(63,63,70,0.92);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: taste-drop-in 0.18s ease;
+    }
+    .taste-dropdown-panel.hidden { display: none; }
+    @keyframes taste-drop-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .taste-dropdown-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .taste-dropdown-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text4);
+    }
+    .taste-dropdown-close {
+      background: none;
+      border: none;
+      color: var(--text4);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+    .taste-dropdown-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .taste-dropdown-genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .taste-genre-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(63,63,70,0.92);
+      background: rgba(39,39,42,0.8);
+      color: var(--text2);
+      cursor: pointer;
+      transition: border-color 0.14s, background 0.14s;
+      white-space: nowrap;
+    }
+    .taste-genre-chip:hover {
+      border-color: rgba(248,113,113,0.5);
+      background: rgba(63,63,70,0.5);
+    }
+    .taste-genre-chip.active {
+      background: rgba(185,28,28,0.85);
+      border-color: rgba(248,113,113,0.7);
+      color: #fff;
+    }
+    .taste-strength-dots {
+      display: inline-flex;
+      gap: 2px;
+    }
+    .taste-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(248,113,113,0.45);
+    }
+    .taste-dot.filled {
+      background: rgba(248,113,113,0.85);
+    }
+    .taste-genre-chip.active .taste-dot { background: rgba(255,255,255,0.4); }
+    .taste-genre-chip.active .taste-dot.filled { background: rgba(255,255,255,0.9); }
+    .taste-dropdown-footer {
+      border-top: 1px solid rgba(63,63,70,0.5);
+      padding-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .taste-dropdown-footer-btn {
+      background: none;
+      border: none;
+      color: var(--text4);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0;
+      text-decoration: none;
+    }
+    .taste-dropdown-footer-btn:hover { color: var(--text2); }
+    .home-command-card .taste-chevron {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 9px;
+      transition: transform 0.16s;
+      color: var(--text4);
+      vertical-align: middle;
+    }
+    .home-command-card.taste-open .taste-chevron {
+      transform: rotate(180deg);
+    }
+
     /* Expanded Curator on its own page */
     #curator-chat-full #curator-messages {
       max-height: calc(100vh - 340px) !important;
@@ -2111,16 +2223,29 @@
         <span class="home-command-value" id="home-queue-count">0 waiting</span>
         <span class="home-command-note" id="home-next-title">Add titles from search or Curator.</span>
       </button>
-      <button class="home-command-card" onclick="switchMainTab('watched')">
-        <span class="home-command-kicker">Watched</span>
+      <button class="home-command-card" id="taste-profile-card" onclick="toggleTasteDropdown(event)">
+        <span class="home-command-kicker">Taste Profile</span>
         <span class="home-command-value" id="home-watched-count">0 rated</span>
-        <span class="home-command-note" id="home-taste-label">Taste profile is warming up.</span>
+        <span class="home-command-note" id="home-taste-label">Taste profile is warming up.<span class="taste-chevron">▼</span></span>
       </button>
       <button class="home-command-card" onclick="switchMainTab('curator')">
         <span class="home-command-kicker">Curator</span>
         <span class="home-command-value">Ask next</span>
         <span class="home-command-note">Use your library to pick tonight.</span>
       </button>
+    </div>
+
+    <!-- Taste Profile Dropdown -->
+    <div id="taste-dropdown" class="taste-dropdown-panel hidden">
+      <div class="taste-dropdown-header">
+        <span class="taste-dropdown-title">Filter Recommendations by Genre</span>
+        <button class="taste-dropdown-close" onclick="closeTasteDropdown()">✕</button>
+      </div>
+      <div id="taste-dropdown-genres" class="taste-dropdown-genres"></div>
+      <div class="taste-dropdown-footer">
+        <button class="taste-dropdown-footer-btn" onclick="switchMainTab('watched'); closeTasteDropdown()">View watched list →</button>
+        <button class="taste-dropdown-footer-btn" onclick="switchMainTab('foryou'); closeTasteDropdown()">Go to For You →</button>
+      </div>
     </div>
 
     <!-- ═══ TAB: FOR YOU ═══ -->
@@ -2783,6 +2908,15 @@
       const wrap = document.getElementById('share-menu-wrap');
       const d = document.getElementById('share-menu-dropdown');
       if (wrap && d && !wrap.contains(e.target)) d.style.display = 'none';
+
+      // Close taste dropdown when clicking outside
+      const tastePanel = document.getElementById('taste-dropdown');
+      const tasteCard = document.getElementById('taste-profile-card');
+      if (tastePanel && !tastePanel.classList.contains('hidden')) {
+        if (!tastePanel.contains(e.target) && (!tasteCard || !tasteCard.contains(e.target))) {
+          closeTasteDropdown();
+        }
+      }
     });
 
     // ── Theme toggle ──
@@ -3510,7 +3644,87 @@
         watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
         const topGenreId = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0];
         const topGenre = topGenreId ? (GENRES.find(g => g.id == topGenreId)?.name || '') : '';
-        tasteEl.textContent = topGenre ? `Leaning ${topGenre.toLowerCase()} lately.` : 'Taste profile is warming up.';
+        const labelText = topGenre ? `Leaning ${topGenre.toLowerCase()} lately.` : 'Taste profile is warming up.';
+        tasteEl.innerHTML = `${labelText}<span class="taste-chevron">▼</span>`;
+      }
+    }
+
+    function toggleTasteDropdown(e) {
+      if (e) e.stopPropagation();
+      const panel = document.getElementById('taste-dropdown');
+      const card = document.getElementById('taste-profile-card');
+      if (!panel) return;
+      const isOpen = !panel.classList.contains('hidden');
+      if (isOpen) {
+        panel.classList.add('hidden');
+        if (card) card.classList.remove('taste-open');
+      } else {
+        renderTasteDropdownGenres();
+        panel.classList.remove('hidden');
+        if (card) card.classList.add('taste-open');
+      }
+    }
+
+    function closeTasteDropdown() {
+      const panel = document.getElementById('taste-dropdown');
+      const card = document.getElementById('taste-profile-card');
+      if (panel) panel.classList.add('hidden');
+      if (card) card.classList.remove('taste-open');
+    }
+
+    function renderTasteDropdownGenres() {
+      const container = document.getElementById('taste-dropdown-genres');
+      if (!container) return;
+
+      const profile = buildTasteProfile();
+      const { genreScores } = profile;
+
+      const genreList = GENRES.filter(g => g.id !== 16 && (genreScores[g.id] || 0) > 0)
+        .sort((a, b) => (genreScores[b.id] || 0) - (genreScores[a.id] || 0))
+        .slice(0, 9);
+
+      const maxScore = genreList.length ? (genreScores[genreList[0].id] || 1) : 1;
+
+      function dotsHtml(score) {
+        const filled = Math.max(1, Math.round((score / maxScore) * 5));
+        let html = '<span class="taste-strength-dots">';
+        for (let i = 0; i < 5; i++) {
+          html += `<span class="taste-dot${i < filled ? ' filled' : ''}"></span>`;
+        }
+        return html + '</span>';
+      }
+
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `taste-genre-chip${recGenreFilter === null ? ' active' : ''}`;
+      allBtn.innerHTML = 'All genres';
+      allBtn.onclick = () => {
+        recGenreFilter = null;
+        renderRecGenreChips();
+        recomputeRecommendations();
+        switchMainTab('foryou');
+        closeTasteDropdown();
+      };
+      container.appendChild(allBtn);
+
+      genreList.forEach(g => {
+        const score = genreScores[g.id] || 0;
+        const btn = document.createElement('button');
+        btn.className = `taste-genre-chip${recGenreFilter === g.id ? ' active' : ''}`;
+        btn.innerHTML = `${g.name} ${dotsHtml(score)}`;
+        btn.onclick = () => {
+          recGenreFilter = recGenreFilter === g.id ? null : g.id;
+          renderRecGenreChips();
+          recomputeRecommendations();
+          switchMainTab('foryou');
+          closeTasteDropdown();
+        };
+        container.appendChild(btn);
+      });
+
+      if (!genreList.length) {
+        container.innerHTML = '<span style="font-size:12px;color:var(--text4)">Rate some movies to unlock genre filters.</span>';
       }
     }
 
