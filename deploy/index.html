@@ -3673,25 +3673,51 @@
 
       const GENRE_COLORS = ['bg-red-600','bg-orange-500','bg-violet-600','bg-sky-600','bg-emerald-600'];
 
+      const isCollapsed = localStorage.getItem('tasteProfileCollapsed') === 'true';
       el.innerHTML = `
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <button onclick="toggleTasteProfile()" class="flex items-center justify-between w-full" style="background:none;border:none;cursor:pointer;padding:0;text-align:left;">
             <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Your Taste Profile</span>
-            <div class="flex gap-3 text-sm">
-              <span><strong class="text-zinc-100">${watchedList.length}</strong> <span class="text-zinc-500 text-xs">watched</span></span>
-              ${avgRating ? `<span><strong class="text-zinc-100">★ ${avgRating}</strong> <span class="text-zinc-500 text-xs">avg</span></span>` : ''}
-              <span><strong class="text-zinc-100">${toWatchList.length}</strong> <span class="text-zinc-500 text-xs">queued</span></span>
-              ${topDecade ? `<span><strong class="text-zinc-100">${topDecade}s</strong> <span class="text-zinc-500 text-xs">era</span></span>` : ''}
+            <div class="flex items-center gap-3">
+              <div class="flex gap-3 text-sm" id="taste-stats-summary">
+                <span><strong class="text-zinc-100">${watchedList.length}</strong> <span class="text-zinc-500 text-xs">watched</span></span>
+                ${avgRating ? `<span><strong class="text-zinc-100">★ ${avgRating}</strong> <span class="text-zinc-500 text-xs">avg</span></span>` : ''}
+                <span><strong class="text-zinc-100">${toWatchList.length}</strong> <span class="text-zinc-500 text-xs">queued</span></span>
+                ${topDecade ? `<span><strong class="text-zinc-100">${topDecade}s</strong> <span class="text-zinc-500 text-xs">era</span></span>` : ''}
+              </div>
+              <svg id="taste-profile-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#71717a;flex-shrink:0;transition:transform 0.2s;transform:rotate(${isCollapsed ? '-90deg' : '0deg'})"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </button>
+          <div id="taste-profile-body" style="overflow:hidden;transition:max-height 0.25s ease,opacity 0.2s ease;max-height:${isCollapsed ? '0' : '200px'};opacity:${isCollapsed ? '0' : '1'};">
+            <div class="mt-3">
+              ${topGenres.length ? `<div class="space-y-2">${topGenres.map((g, i) => `
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] text-zinc-400 w-20 text-right shrink-0 truncate">${g.name}</span>
+                  <div class="flex-1 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                    <div class="h-full ${GENRE_COLORS[i] || 'bg-zinc-600'} rounded-full" style="width:${Math.round(g.score / maxScore * 100)}%"></div>
+                  </div>
+                </div>`).join('')}</div>` : ''}
             </div>
           </div>
-          ${topGenres.length ? `<div class="space-y-2">${topGenres.map((g, i) => `
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] text-zinc-400 w-20 text-right shrink-0 truncate">${g.name}</span>
-              <div class="flex-1 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                <div class="h-full ${GENRE_COLORS[i] || 'bg-zinc-600'} rounded-full" style="width:${Math.round(g.score / maxScore * 100)}%"></div>
-              </div>
-            </div>`).join('')}</div>` : ''}
         </div>`;
+    }
+
+    function toggleTasteProfile() {
+      const body = document.getElementById('taste-profile-body');
+      const chevron = document.getElementById('taste-profile-chevron');
+      if (!body) return;
+      const collapsed = body.style.maxHeight === '0px' || body.style.maxHeight === '0';
+      if (collapsed) {
+        body.style.maxHeight = '200px';
+        body.style.opacity = '1';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        localStorage.setItem('tasteProfileCollapsed', 'false');
+      } else {
+        body.style.maxHeight = '0';
+        body.style.opacity = '0';
+        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+        localStorage.setItem('tasteProfileCollapsed', 'true');
+      }
     }
 
     function updateHomeSnapshot() {
