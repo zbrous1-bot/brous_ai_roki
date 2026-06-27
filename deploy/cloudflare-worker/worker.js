@@ -82,6 +82,24 @@ export default {
         tmdbUrl.searchParams.set('api_key', env.TMDB_TOKEN);
       }
 
+      // Per-endpoint cache TTL. Static-ish TMDB data (a film's details, credits,
+      // keywords, genre list, collections) effectively never changes, so it can be
+      // cached at Cloudflare's edge for a long time — repeated detail/affinity lookups
+      // then return instantly and don't burn the TMDB rate limit. Time-sensitive feeds
+      // (trending, discover, popular, top_rated) get a short TTL so the pool still
+      // refreshes. Only GETs are cached.
+      function tmdbCacheTtl(path) {
+        if (request.method !== 'GET') return 0;
+        if (/\/(credits|keywords|videos|images|watch\/providers|external_ids)(\?|$)/.test(path)) return 86400; // 1 day
+        if (/\/collection\//.test(path)) return 86400;
+        if (/\/genre\/.*\/list/.test(path)) return 604800; // 7 days — genre list is basically static
+        if (/\/(movie|tv)\/\d+(\?|$)/.test(path)) return 21600; // 6h — a title's core details
+        if (/\/(trending|discover|popular|top_rated|now_playing|airing_today|on_the_air|upcoming)/.test(path)) return 600; // 10 min
+        if (/\/search\//.test(path)) return 600;
+        return 300; // sensible default for anything else
+      }
+      const cacheTtl = tmdbCacheTtl(tmdbPath);
+
       // Forward the request to TMDB. Wrap in try/catch with one retry so a
       // transient TMDB failure (rate limit / connection reset) returns a clean
       // JSON error WITH CORS headers instead of crashing the Worker — a crash
@@ -92,7 +110,7 @@ export default {
           method: request.method,
           headers,
           body: request.body,
-          cf: { cacheTtl: 300, cacheEverything: true },
+          cf: cacheTtl > 0 ? { cacheTtl, cacheEverything: true } : { cacheTtl: 0 },
         });
         const text = await resp.text();
         let json;
@@ -270,7 +288,7 @@ export default {
       return jsonResponse({
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
-        version: '3.3.2',
+        version: '3.4.0',
         note: 'TMDB via /api/tmdb/* (open, no password). LLM (Curator) via POST /api/llm and data sync via GET/POST /api/data both require the shared PASSWORD secret when one is configured.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
       }, 200, request);

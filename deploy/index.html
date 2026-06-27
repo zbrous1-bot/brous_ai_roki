@@ -2625,6 +2625,8 @@
 
           <div id="modal-genres" class="flex flex-wrap gap-1 sm:gap-2 mb-3"></div>
 
+          <div id="modal-trailer-wrap" class="mb-3" style="display:none"></div>
+
           <div id="modal-availability-wrap" class="mb-2">
             <div class="text-[10px] font-medium text-zinc-400 mb-1">Where to watch</div>
             <div id="modal-availability"></div>
@@ -4644,6 +4646,9 @@
       // Reset availability wrap visibility for each modal open
       const whereWrap = document.getElementById('modal-availability-wrap');
       if (whereWrap) whereWrap.style.display = '';
+      // Reset trailer wrap so a previous title's trailer never flashes before this fetch
+      const trailerWrap = document.getElementById('modal-trailer-wrap');
+      if (trailerWrap) { trailerWrap.style.display = 'none'; trailerWrap.innerHTML = ''; }
       if (addBtn && addBtn.parentElement) addBtn.parentElement.style.display = '';
 
       modal.classList.remove('hidden');
@@ -4665,9 +4670,30 @@
 
         overviewEl.textContent = detail.overview || 'No overview available.';
 
-        genresEl.innerHTML = (detail.genres || []).map(g => 
+        genresEl.innerHTML = (detail.genres || []).map(g =>
           `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl modal-genre-chip">${g.name}</span>`
         ).join('');
+
+        // Trailer button — fetch /videos and, if a YouTube trailer exists, show a button
+        // that opens it (user-initiated; matches the To Watch list's existing trailer flow).
+        try {
+          const vdata = await apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/videos`).catch(() => null);
+          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer')
+                       || (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Teaser')
+                       || (vdata?.results || []).find(v => v.site === 'YouTube');
+          const tWrap = document.getElementById('modal-trailer-wrap');
+          if (tWrap) {
+            if (trailer) {
+              tWrap.style.display = '';
+              tWrap.innerHTML = `<button id="modal-trailer-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-2xl bg-red-600 hover:bg-red-500 text-white">▶ Watch Trailer</button>`;
+              const tb = document.getElementById('modal-trailer-btn');
+              if (tb) tb.onclick = (e) => { e.stopPropagation(); window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener'); };
+            } else {
+              tWrap.style.display = 'none';
+              tWrap.innerHTML = '';
+            }
+          }
+        } catch (_) {}
 
       } catch (e) {
         overviewEl.textContent = 'Could not load additional details for this title.';
@@ -5250,20 +5276,29 @@ function setCuratorPrompt(q) {
       };
     }
 
+    // Exploration knob for scoreItem's serendipity jitter. ~0.6 keeps variety subtle:
+    // it can reorder titles whose scores are within ~0.6 of each other, but a strong
+    // taste match (genre lift alone is up to ~4) still reliably beats a weak one.
+    const EXPLORATION_STRENGTH = 0.6;
+
     function scoreItem(item, profile, poolStats) {
       const { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos } = profile;
       const stats = poolStats || computePoolStats(null);
       const voteCount = item.vote_count || 0;
       const voteAvg = item.vote_average || 6.0;
 
-      // Start from a reliable quality baseline
-      let score = bayesianRating(voteAvg, voteCount) * 0.9;
+      // Start from a reliable quality baseline.
+      // Tuned slightly DOWN (0.9 -> 0.78) so generically well-rated films no longer
+      // out-muscle titles that actually match the user's taste — a gentle tilt toward
+      // "more personal" without narrowing the (intentionally broad) candidate pool.
+      let score = bayesianRating(voteAvg, voteCount) * 0.78;
 
-      // Genre affinity — normalised so top genres give a +2 to +3 lift, anti-genres pull down
+      // Genre affinity — normalised so top genres give a lift, anti-genres pull down.
+      // Tuned slightly UP (3.5 -> 4.0) as the other half of the taste tilt above.
       const gids = item.genre_ids || [];
       gids.forEach(gid => {
         if (genreScores[gid] != null) {
-          score += (genreScores[gid] / totalPos) * 3.5;
+          score += (genreScores[gid] / totalPos) * 4.0;
         }
       });
 
@@ -5298,6 +5333,14 @@ function setCuratorPrompt(q) {
 
       // Director / actor / keyword / franchise affinity boost (tagged at pool-fetch time)
       if (item._affinityBoost) score += item._affinityBoost;
+
+      // Serendipity / exploration jitter — a small random nudge so successive refreshes
+      // and Recompute don't return an identical frozen ordering, and near-tied titles get
+      // a fair shot at rotating into the visible top 40. EXPLORATION_STRENGTH is small
+      // relative to the genre-affinity lift (~4) so it reshuffles near-ties without ever
+      // floating a poor match above a strong one. Bump it up for more variety, down for
+      // more determinism.
+      score += (Math.random() - 0.5) * 2 * EXPLORATION_STRENGTH;
 
       return Math.max(0.01, score);
     }
@@ -5393,6 +5436,14 @@ function setCuratorPrompt(q) {
     }
 
     let _recPoolLoading = false;
+
+    // Negative affinity signals derived from disliked films (directors / keywords the
+    // user has repeatedly rejected). Mirrors the POSITIVE affinity phase: dislikes used
+    // to only push down genres, so a director you disliked 3x could still be recommended.
+    // Populated in refreshRecPool's disliked-affinity phase, consumed when tagging the pool.
+    let _dislikedPersonScores = {};   // personId -> penalty weight (positive number = how disliked)
+    let _dislikedKeywordScores = {};  // keywordId -> penalty weight
+    let _dislikedPenaltyIds = new Set(); // "id:movie" keys from strongly-disliked directors' filmographies
 
     async function refreshRecPool(options = {}) {
       if (_recPoolLoading) return; // prevent double-fire / infinite loop
@@ -5573,6 +5624,63 @@ function setCuratorPrompt(q) {
           }
         }
 
+        // ── PHASE 1b: Disliked-affinity (negative) signals ──
+        // Symmetric to the positive affinity phase: learn which directors and keywords
+        // the user has repeatedly disliked so the pool tagging can push those titles
+        // DOWN, not just penalise their genres. Scoped to movies (TV credits differ),
+        // best-effort, and capped to the most recent dislikes to bound API calls.
+        if (!append && dislikedList.length) {
+          _dislikedPersonScores = {};
+          _dislikedKeywordScores = {};
+          const dislikedMovies = dislikedList
+            .filter(m => m.id && (m._mediaType || 'movie') === 'movie')
+            .slice(0, 12); // most-recent dislikes (list is unshift-ordered)
+          if (dislikedMovies.length) {
+            try {
+              const [dCred, dKw] = await Promise.all([
+                Promise.allSettled(dislikedMovies.map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/credits`))),
+                Promise.allSettled(dislikedMovies.slice(0, 8).map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/keywords`)))
+              ]);
+              dCred.forEach(res => {
+                if (res.status !== 'fulfilled') return;
+                (res.value.crew || []).filter(c => c.job === 'Director').forEach(c => {
+                  _dislikedPersonScores[c.id] = (_dislikedPersonScores[c.id] || 0) + 1;
+                });
+              });
+              dKw.forEach(res => {
+                if (res.status !== 'fulfilled') return;
+                (res.value.keywords || []).forEach(kw => {
+                  _dislikedKeywordScores[kw.id] = (_dislikedKeywordScores[kw.id] || 0) + 1;
+                });
+              });
+
+              // Discover results only carry genre_ids — not credits — so we can't match a
+              // disliked director against an arbitrary pool item cheaply. Instead, for the
+              // most strongly-disliked directors (rejected >=2 times), pull their filmography
+              // and mark those specific movie IDs for a score penalty when they appear in
+              // the pool. Bounded to the top few directors to keep API calls small.
+              _dislikedPenaltyIds = new Set();
+              const strongDislikedDirectors = Object.entries(_dislikedPersonScores)
+                .filter(([, n]) => n >= 2)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([id]) => id);
+              if (strongDislikedDirectors.length) {
+                const dirFilms = await Promise.allSettled(
+                  strongDislikedDirectors.map(id =>
+                    apiFetch(`/api/tmdb/3/discover/movie?with_crew=${id}&sort_by=popularity.desc&page=1`))
+                );
+                dirFilms.forEach(res => {
+                  if (res.status !== 'fulfilled') return;
+                  (res.value.results || []).forEach(r => _dislikedPenaltyIds.add(`${r.id}:movie`));
+                });
+              }
+            } catch (e) {
+              console.warn('[Recs] Disliked-affinity phase error (non-fatal):', e.message);
+            }
+          }
+        }
+
         // ── PHASE 2: Broad pool URLs ──
         // Each entry carries its own media type so every fetched item can be tagged
         // correctly at the source — movie and TV ids can collide, so dedupe/scoring
@@ -5672,12 +5780,20 @@ function setCuratorPrompt(q) {
 
         const mapped = results.slice(0, append ? 200 : 350).map(r => {
           const mt = r._mediaType || 'movie';
+          // Negative affinity: titles from directors the user has repeatedly disliked get
+          // their boost pulled down. Subtracts from any positive boost they may also carry.
+          let boost = r._affinityBoost || 0;
+          let reason = r._affinityReason || null;
+          if (_dislikedPenaltyIds.has(`${r.id}:${mt}`)) {
+            boost -= 3.0;
+            if (!reason) reason = null; // don't surface a "reason" for a penalised item
+          }
           return {
             id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,
             poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || r.release_date) : (r.release_date || r.first_air_date),
             vote_average: r.vote_average, vote_count: r.vote_count || 0,
             genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
-            _affinityReason: r._affinityReason || null, _affinityBoost: r._affinityBoost || 0
+            _affinityReason: reason, _affinityBoost: boost
           };
         });
         currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
