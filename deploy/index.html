@@ -2551,6 +2551,23 @@
       <!-- Stats bar -->
       <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-2 flex gap-4 flex-wrap items-center mb-3 bg-zinc-900/60 border border-zinc-700/50 rounded-2xl"></div>
 
+      <!-- Search + sort bar for the active list -->
+      <div class="flex gap-2 mb-3">
+        <div class="relative flex-1">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#71717a;font-size:12px;pointer-events:none;">🔍</span>
+          <input id="library-search" type="search" placeholder="Search this list…" autocomplete="off"
+            oninput="onLibrarySearch()"
+            class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl pl-8 pr-3 py-2 text-sm text-white outline-none focus:border-indigo-400" />
+        </div>
+        <select id="library-sort" onchange="onLibrarySort()"
+          class="bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-400">
+          <option value="added">Recently added</option>
+          <option value="rating">Rating (high→low)</option>
+          <option value="title">Title (A→Z)</option>
+          <option value="year">Year (new→old)</option>
+        </select>
+      </div>
+
       <!-- Sub-tabs: To Watch / Watched / Disliked -->
       <div id="personal-tabs-bar" class="flex items-center flex-nowrap bg-zinc-900 border border-zinc-700 rounded-t-2xl text-sm p-1" style="-webkit-overflow-scrolling:touch;">
         <div class="flex overflow-x-auto flex-1">
@@ -4235,6 +4252,66 @@
       if (icon) { icon.style.animation = ''; }
     }
 
+    // ── Library search + sort state and helpers ──────────────────────────────────
+    // The Library lists used to render only a truncated head (24 watched / 12 disliked
+    // / 50 hidden) with a "+N more" label and no way to reach the rest. These helpers
+    // let search + sort operate across the ENTIRE list so a 700-item library is
+    // actually browsable. Re-rendering the active pane on every keystroke/sort change.
+    let librarySearch = '';
+    let librarySort = 'added';
+    const LIBRARY_DISPLAY_CAP = 120; // cap rendered nodes for performance; search narrows further
+
+    function onLibrarySearch() {
+      const el = document.getElementById('library-search');
+      librarySearch = (el ? el.value : '').trim().toLowerCase();
+      rerenderActivePersonalPane();
+    }
+    function onLibrarySort() {
+      const el = document.getElementById('library-sort');
+      librarySort = el ? el.value : 'added';
+      rerenderActivePersonalPane();
+    }
+    // Re-run only the render for whichever personal pane is currently visible.
+    function rerenderActivePersonalPane() {
+      if (!document.getElementById('pane-towatch')?.classList.contains('hidden')) { renderToWatch(); return; }
+      if (!document.getElementById('pane-watched')?.classList.contains('hidden')) { renderWatched(); return; }
+      if (!document.getElementById('pane-disliked')?.classList.contains('hidden')) { renderDisliked(); return; }
+      if (!document.getElementById('pane-notinterested')?.classList.contains('hidden')) { renderNotInterested(); return; }
+    }
+    // Apply the active search term + sort order to a list, returning a new array.
+    // `opts.preserveOrder` keeps the list's own order for the "added" sort (lists are
+    // unshift-ordered = most-recent-first already), so we don't disturb queue order.
+    function applyLibraryView(list) {
+      let out = list.slice();
+      if (librarySearch) {
+        out = out.filter(it => {
+          const t = (it.title || it.name || it.original_title || it.original_name || '').toLowerCase();
+          return t.includes(librarySearch);
+        });
+      }
+      switch (librarySort) {
+        case 'rating':
+          out.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          break;
+        case 'title':
+          out.sort((a, b) => (a.title || a.name || '').localeCompare(b.title || b.name || ''));
+          break;
+        case 'year': {
+          const yr = x => parseInt((x.release_date || x.first_air_date || '0').slice(0, 4)) || 0;
+          out.sort((a, b) => yr(b) - yr(a));
+          break;
+        }
+        // 'added' → leave in native (most-recent-first) order
+      }
+      return out;
+    }
+    // Small helper: the "+N more" footer, only shown when not searching and the list
+    // exceeds the display cap.
+    function libraryMoreFooter(total, shown) {
+      if (librarySearch || total <= shown) return '';
+      return `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">Showing ${shown} of ${total} — use search to find any title</div>`;
+    }
+
     function renderToWatch() {
       const c = document.getElementById('to-watch-content');
       if (!c) return;
@@ -4242,8 +4319,17 @@
         c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🎬</span><div class="text-sm font-medium text-zinc-400">Your queue is empty</div><div class="text-xs text-zinc-600 mt-1">Add from recommendations, search, or ask the Curator.</div></div>`;
         return;
       }
+      // Filter + sort across the WHOLE queue, then cap for rendering. Each rendered
+      // item keeps a reference to its index in the original toWatchList so the Rate /
+      // Dislike actions (which take an original-list index) stay correct after sorting.
+      const view = applyLibraryView(toWatchList.map((item, idx) => ({ item, idx })));
+      if (!view.length) {
+        c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your queue</div></div>`;
+        return;
+      }
+      const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      toWatchList.forEach((item, idx) => {
+      shown.forEach(({ item, idx }) => {
         const year = (item.release_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
@@ -4266,10 +4352,11 @@
           </div>
         </div>`;
       });
+      html += libraryMoreFooter(toWatchList.length, shown.length);
       c.innerHTML = html;
 
-      // Async: fetch trailers for each To Watch item and show button if found
-      toWatchList.forEach(item => {
+      // Async: fetch trailers for each visible To Watch item and show button if found
+      shown.map(s => s.item).forEach(item => {
         const mediaPath = (item._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
         apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/videos`).then(vdata => {
           const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
@@ -4287,7 +4374,7 @@
 
       // Make poster area clickable to open detail modal
       const toWatchRows = c.querySelectorAll('.library-item');
-      toWatchList.forEach((item, i) => {
+      shown.map(s => s.item).forEach((item, i) => {
         if (i >= toWatchRows.length) return;
         const posterEl = toWatchRows[i].querySelector('.lib-poster');
         if (posterEl && item) {
@@ -4403,8 +4490,14 @@
       const c = document.getElementById('watched-content');
       if (!c) return;
       if (!watchedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👁️</span><div class="text-sm font-medium text-zinc-400">No watched titles yet</div><div class="text-xs text-zinc-600 mt-1">Rate movies as you watch — this powers your personal recs.</div></div>`; return; }
+      const view = applyLibraryView(watchedList);
+      if (!view.length) {
+        c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your watched library</div></div>`;
+        return;
+      }
+      const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      watchedList.slice(0,24).forEach((item, idx) => {
+      shown.forEach((item) => {
         const year = (item.release_date || '').slice(0,4);
         const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
@@ -4426,12 +4519,12 @@
           </div>
         </div>`;
       });
-      if (watchedList.length > 24) html += `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">+${watchedList.length-24} more</div>`;
+      html += libraryMoreFooter(watchedList.length, shown.length);
       c.innerHTML = html;
 
       // Make poster area clickable to open detail modal
       const watchedRows = c.querySelectorAll('.library-item');
-      watchedList.slice(0,24).forEach((item, i) => {
+      shown.forEach((item, i) => {
         if (i >= watchedRows.length) return;
         const posterEl = watchedRows[i].querySelector('.lib-poster');
         if (posterEl && item) {
@@ -4449,8 +4542,14 @@
       const c = document.getElementById('disliked-content');
       if (!c) return;
       if (!dislikedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👎</span><div class="text-sm font-medium text-zinc-400">Nothing disliked yet</div><div class="text-xs text-zinc-600 mt-1">Disliked titles are excluded from recommendations.</div></div>`; return; }
+      const view = applyLibraryView(dislikedList);
+      if (!view.length) {
+        c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your disliked list</div></div>`;
+        return;
+      }
+      const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      dislikedList.slice(0,12).forEach((item, idx) => {
+      shown.forEach((item, idx) => {
         const displayTitle = item.title || item.name || item.original_title || item.original_name || 'Unknown Title';
         const year = (item.release_date || item.first_air_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
@@ -4471,12 +4570,12 @@
           </div>
         </div>`;
       });
-      if (dislikedList.length > 12) html += `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">+${dislikedList.length-12} more</div>`;
+      html += libraryMoreFooter(dislikedList.length, shown.length);
       c.innerHTML = html;
 
       // Make poster area clickable to open detail modal
       const dislikedRows = c.querySelectorAll('.library-item');
-      dislikedList.slice(0,12).forEach((item, i) => {
+      shown.forEach((item, i) => {
         if (i >= dislikedRows.length) return;
         const posterEl = dislikedRows[i].querySelector('.lib-poster');
         if (posterEl && item) {
@@ -4497,8 +4596,14 @@
         c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🚫</span><div class="text-sm font-medium text-zinc-400">Nothing hidden yet</div><div class="text-xs text-zinc-600 mt-1">Movies you mark Not Interested are hidden and their genres are downranked in recs.</div></div>`;
         return;
       }
+      const view = applyLibraryView(notInterestedList);
+      if (!view.length) {
+        c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your hidden list</div></div>`;
+        return;
+      }
+      const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      notInterestedList.slice(0, 50).forEach((item, idx) => {
+      shown.forEach((item, idx) => {
         const displayTitle = item.title || item.name || item.original_title || 'Unknown Title';
         const year = (item.release_date || item.first_air_date || '').slice(0, 4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g => g.id === item.genre_ids[0])?.name || '') : '';
@@ -4519,7 +4624,7 @@
           </div>
         </div>`;
       });
-      if (notInterestedList.length > 50) html += `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">+${notInterestedList.length - 50} more</div>`;
+      html += libraryMoreFooter(notInterestedList.length, shown.length);
       c.innerHTML = html;
     }
 
@@ -4632,6 +4737,9 @@
 
     // Simple tabs for top personal (To Watch etc moved to top)
     function switchPersonalTab(tab) {
+      // Clear the search box when switching lists so each tab starts unfiltered.
+      const searchEl = document.getElementById('library-search');
+      if (searchEl && searchEl.value) { searchEl.value = ''; librarySearch = ''; }
       document.querySelectorAll('.personal-pane').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.personal-tab').forEach(b => b.classList.remove('active'));
       const pane = document.getElementById('pane-' + tab);
