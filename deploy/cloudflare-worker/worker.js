@@ -270,7 +270,7 @@ export default {
       return jsonResponse({
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
-        version: '3.2.4-deploy-test5',
+        version: '3.2.5-deploy-test6-nocache',
         note: 'TMDB via /api/tmdb/* (open, no password). LLM (Curator) via POST /api/llm and data sync via GET/POST /api/data both require the shared PASSWORD secret when one is configured.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
       }, 200, request);
@@ -304,6 +304,11 @@ function jsonResponse(data, status = 200, request = null) {
     status,
     headers: {
       'Content-Type': 'application/json',
+      // Explicit no-store: API responses must never be cached at Cloudflare's edge
+      // or by browsers. Without this, default cache heuristics on workers.dev can
+      // serve a stale snapshot of /api/health (or worse, stale /api/data) long
+      // after the Worker has been redeployed with new code.
+      'Cache-Control': 'no-store',
       ...(request ? corsHeaders(request) : {}),
     },
   });
