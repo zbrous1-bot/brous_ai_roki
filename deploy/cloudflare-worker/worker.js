@@ -12,15 +12,35 @@
  * LLM calls (POST): /api/llm  (body = OpenAI compatible chat.completions payload, key injected server-side)
  */
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-};
+// Allowed origins for browser calls to this Worker. Add any domain you self-host
+// the static site on (custom domains, other pages.dev previews, localhost for dev).
+// Wildcard CORS ('*') let any website on the internet call /api/data and /api/llm
+// using a visitor's browser as a relay — restricting Allow-Origin to known hosts closes
+// that off without affecting normal use of the app from its real site(s).
+const ALLOWED_ORIGINS = [
+  'https://horror-roki.pages.dev',
+  'https://brous-movie-engine.pages.dev',
+  'http://localhost:8788',   // wrangler pages dev default port
+  'http://localhost:3000',
+  'http://127.0.0.1:8788',
+];
+
+function corsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+  };
+}
 
 export default {
   async fetch(request, env) {
+    const CORS_HEADERS = corsHeaders(request);
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
@@ -29,7 +49,10 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // No password auth. TMDB token is protected server side.
+    // TMDB proxy below is intentionally open (no password) — the TMDB token is
+    // protected server-side and TMDB data is not sensitive. /api/data and
+    // /api/llm DO require the shared PASSWORD (via isAuthenticated below) since
+    // they expose your synced library and can incur xAI usage costs.
 
     // === 2. Generic TMDB Proxy ===
     if (pathname.startsWith('/api/tmdb/')) {
@@ -42,12 +65,13 @@ export default {
 
       // Add TMDB authentication
       if (!env.TMDB_TOKEN) {
-        const available = Object.keys(env).filter(k => !k.startsWith('CF_') && !k.startsWith('__'));
-        return jsonResponse({ 
-          error: 'TMDB_TOKEN secret is not configured', 
-          availableSecrets: available,
+        // Note: deliberately NOT echoing Object.keys(env) here — that would hand an
+        // attacker the exact names of every secret configured on this Worker (e.g.
+        // confirming XAI_TOKEN exists) for free. Check the Cloudflare dashboard instead.
+        return jsonResponse({
+          error: 'TMDB_TOKEN secret is not configured',
           note: 'The secret must be named exactly "TMDB_TOKEN" (case sensitive) in the dashboard for THIS Worker. If you see it listed but the error persists, redeploy the Worker code.'
-        }, 500);
+        }, 500, request);
       }
 
       if (env.TMDB_TOKEN.startsWith('eyJ')) {
@@ -91,24 +115,27 @@ export default {
           headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
         });
       } catch (err) {
-        return jsonResponse({ error: 'TMDB upstream error: ' + (err && err.message || 'unknown') }, 502);
+        return jsonResponse({ error: 'TMDB upstream error: ' + (err && err.message || 'unknown') }, 502, request);
       }
     }
 
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
     if (pathname === '/api/llm' || pathname === '/api/llm/') {
+      if (env.PASSWORD && !isAuthenticated(request, env)) {
+        return jsonError('Unauthorized (wrong or missing password)', 401, request);
+      }
       if (request.method !== 'POST') {
-        return jsonError('Method not allowed for /api/llm; use POST with chat.completions payload', 405);
+        return jsonError('Method not allowed for /api/llm; use POST with chat.completions payload', 405, request);
       }
       if (!env.XAI_TOKEN) {
-        return jsonError('XAI_TOKEN secret not configured (Curator requires it in Worker env)', 500);
+        return jsonError('XAI_TOKEN secret not configured (Curator requires it in Worker env)', 500, request);
       }
 
       let body;
       try {
         body = await request.json();
       } catch (e) {
-        return jsonError('Invalid JSON in request body', 400);
+        return jsonError('Invalid JSON in request body', 400, request);
       }
 
       // Never trust/forward any key from client
@@ -157,39 +184,42 @@ export default {
     // POST /api/data        save the shared library
     // GET  /api/data/check  check whether shared data exists
     if (pathname === '/api/data' || pathname === '/api/data/check') {
+      if (env.PASSWORD && !isAuthenticated(request, env)) {
+        return jsonError('Unauthorized (wrong or missing password)', 401, request);
+      }
       if (!env.DATA_KV) {
         return jsonResponse({
           error: 'DATA_KV binding not configured',
           instructions: 'In Cloudflare dashboard: Workers & Pages > your Worker > Settings > Variables > KV Namespace Bindings. Bind your KV namespace as DATA_KV. Then redeploy the Worker.',
-        }, 501);
+        }, 501, request);
       }
 
       const DATA_KEY = 'roki_data_v1';
 
       if (pathname === '/api/data/check') {
         const meta = await env.DATA_KV.get(DATA_KEY + '_meta', { type: 'json' });
-        if (!meta) return jsonResponse({ exists: false });
-        return jsonResponse({ exists: true, saved_at: meta.saved_at, count: meta.count });
+        if (!meta) return jsonResponse({ exists: false }, 200, request);
+        return jsonResponse({ exists: true, saved_at: meta.saved_at, count: meta.count }, 200, request);
       }
 
       if (request.method === 'GET') {
         const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' }) || {};
-        return jsonResponse(data);
+        return jsonResponse(data, 200, request);
       }
 
       if (request.method === 'POST') {
         let payload;
         try { payload = await request.json(); } catch (e) {
-          return jsonError('Invalid JSON payload', 400);
+          return jsonError('Invalid JSON payload', 400, request);
         }
         const count = (payload.watched||[]).length + (payload.to_watch||[]).length;
         const saved_at = new Date().toISOString();
         await env.DATA_KV.put(DATA_KEY, JSON.stringify(payload));
         await env.DATA_KV.put(DATA_KEY + '_meta', JSON.stringify({ saved_at, count }));
-        return jsonResponse({ success: true, saved_at, count });
+        return jsonResponse({ success: true, saved_at, count }, 200, request);
       }
 
-      return jsonError('Method not allowed (use GET or POST)', 405);
+      return jsonError('Method not allowed (use GET or POST)', 405, request);
     }
 
     // === 5. Health Check / Info ===
@@ -198,12 +228,12 @@ export default {
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
         version: '3.1.0',
-        note: 'TMDB via /api/tmdb/* ; LLM (Curator) via POST /api/llm ; Data sync via GET/POST /api/data . TMDB does not require the shared password in this Worker.',
+        note: 'TMDB via /api/tmdb/* (open, no password). LLM (Curator) via POST /api/llm and data sync via GET/POST /api/data both require the shared PASSWORD secret when one is configured.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
-      });
+      }, 200, request);
     }
 
-    return jsonError('Not found', 404);
+    return jsonError('Not found', 404, request);
   },
 };
 
@@ -226,16 +256,16 @@ function isAuthenticated(request, env) {
   }
 }
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, request = null) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...CORS_HEADERS,
+      ...(request ? corsHeaders(request) : {}),
     },
   });
 }
 
-function jsonError(message, status = 400) {
-  return jsonResponse({ error: message }, status);
+function jsonError(message, status = 400, request = null) {
+  return jsonResponse({ error: message }, status, request);
 }

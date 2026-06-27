@@ -36,17 +36,12 @@
       border-radius: 20px;
     }
 
-    .movie-card { 
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    /* Base .movie-card box model lives here; transition/hover/animation are consolidated
+       in one place below (search "CONSOLIDATED movie-card") to avoid scattered overrides. */
+    .movie-card {
       border: 1px solid var(--border);
       overflow: hidden;
       background: var(--card-bg2);
-    }
-    .movie-card:hover { 
-      transform: translateY(-3px); 
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 10px 10px -5px rgb(0 0 0 / 0.1);
-      border-color: #b91c1c;
     }
     .rec-card {
       border-color: #7f1d1d;
@@ -114,6 +109,23 @@
     /* Prevent pull-to-refresh on some browsers */
     .no-pull-refresh {
       overscroll-behavior: contain;
+    }
+
+    /* ── Keyboard accessibility: visible focus ring for every interactive element ──
+       Several elements set outline-none / outline:none for mouse-click polish; this
+       restores a clear indicator specifically for keyboard navigation (:focus-visible
+       only fires for keyboard/programmatic focus, not mouse clicks, so it doesn't
+       reintroduce the "ring on every click" look that prompted outline-none originally). */
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    summary:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 2px solid rgba(var(--accent), 0.9) !important;
+      outline-offset: 2px !important;
+      border-radius: inherit;
     }
 
     /* ── Theme variables ── */
@@ -191,9 +203,9 @@
                   0 0 12px rgba(var(--accent), 0.18);
     }
 
-    /* Subtle animated glow on streaming tables (breathing effect on hover) */
+    /* Subtle animated glow on streaming tables (single pulse on hover, not a continuous loop) */
     .provider-table.streaming:hover {
-      animation: streaming-glow 2.2s ease-in-out infinite;
+      animation: streaming-glow 0.6s ease-in-out 1;
     }
 
     @keyframes streaming-glow {
@@ -207,19 +219,18 @@
       }
     }
 
-    /* Blue-violet lift + glow on result cards - smooth animated transition */
+    /* CONSOLIDATED movie-card: transition/animation/padding for the base state.
+       Hover styling (transform + final box-shadow/border-color) lives in the single
+       .movie-card:hover rule further down — search "red glow on hover" — so there is
+       only one rule winning at runtime instead of several !important overrides stacked
+       across the file. */
     .movie-card {
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                  box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                  box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       animation: card-enter 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
       padding: 1.25rem; /* slightly more breathing room */
       overflow: hidden;
-    }
-    .movie-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 22px 28px -8px rgb(0 0 0 / 0.12), 
-                  0 10px 12px -6px rgb(0 0 0 / 0.1),
-                  0 0 0 1px rgba(var(--accent), 0.16);
     }
 
     @keyframes card-enter {
@@ -967,12 +978,13 @@
       border-radius: 2px;
     }
 
-    /* Movie cards — red glow on hover */
+    /* Movie cards — single source of truth for hover state (red glow + lift) */
     .movie-card:hover {
+      transform: translateY(-3px);
       box-shadow: 0 20px 30px -8px rgba(0,0,0,0.4),
                   0 0 0 1px rgba(185,28,28,0.3),
-                  0 0 20px rgba(185,28,28,0.08) !important;
-      border-color: rgba(185,28,28,0.5) !important;
+                  0 0 20px rgba(185,28,28,0.08);
+      border-color: rgba(185,28,28,0.5);
     }
 
     /* Personal tabs bar — subtle top red glow */
@@ -1337,21 +1349,12 @@
       40%           { transform: translateY(-5px); opacity: 1; }
     }
 
-    /* Enhanced movie card */
+    /* Enhanced movie card layout (.movie-card-v2 is layered on top of .movie-card in markup;
+       background/border/transition/hover now live solely on .movie-card above to avoid two
+       rules fighting over the same element — this class only adds the gradient background
+       variant that .movie-card's flat --card-bg2 doesn't cover). */
     .movie-card-v2 {
       background: linear-gradient(160deg, #18181b 0%, #121014 100%);
-      border: 1px solid #3f3f46;
-      border-radius: 1.25rem;
-      overflow: hidden;
-      transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
-      animation: card-enter 0.38s cubic-bezier(0.34,1.56,0.64,1) backwards;
-    }
-    .movie-card-v2:hover {
-      transform: translateY(-4px);
-      border-color: rgba(185,28,28,0.5);
-      box-shadow: 0 20px 40px -8px rgba(0,0,0,0.5),
-                  0 0 0 1px rgba(185,28,28,0.2),
-                  0 0 25px rgba(185,28,28,0.06);
     }
     .rating-badge {
       display: inline-flex;
@@ -1659,11 +1662,19 @@
       line-height: 1.25;
       margin-top: 6px;
     }
+    /* Primary card (Fresh pool) is the main home-screen CTA — give it slightly more
+       visual weight than the other three command cards (richer color, subtle glow)
+       without changing its grid footprint or size, so it stands out without dominating. */
     .home-command-card.primary {
-      border-color: rgba(185,28,28,0.46);
+      border-color: rgba(185,28,28,0.55);
       background:
-        radial-gradient(circle at top right, rgba(147,51,234,0.2), transparent 42%),
+        radial-gradient(circle at top right, rgba(147,51,234,0.22), transparent 42%),
         linear-gradient(145deg, rgba(41,12,18,0.98), rgba(14,10,18,0.98));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 20px rgba(185,28,28,0.12);
+    }
+    .home-command-card.primary:hover {
+      border-color: rgba(248,113,113,0.65);
+      box-shadow: 0 12px 28px rgba(185,28,28,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
     }
     @media (max-width: 820px) {
       .home-command-grid {
@@ -2196,7 +2207,7 @@
       <a class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
       <!-- Theme toggle -->
-      <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode"
+      <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode" aria-label="Toggle light / dark mode"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         🌙 Dark
       </button>
@@ -2541,7 +2552,7 @@
               <div class="text-lg font-bold text-white">Settings</div>
               <div class="text-xs text-zinc-400">Cloud Sync, backup &amp; config</div>
             </div>
-            <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-2xl text-zinc-400 hover:text-white w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800">&times;</button>
+            <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-2xl text-zinc-400 hover:text-white w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800" aria-label="Close settings">&times;</button>
           </div>
 
           <!-- CLOUD SYNC -->
@@ -2599,7 +2610,7 @@
               <div id="modal-title" class="text-xl sm:text-2xl font-semibold leading-tight"></div>
               <div id="modal-meta" class="text-zinc-400 mt-1 text-sm"></div>
             </div>
-            <button onclick="closeModal()" class="text-2xl text-zinc-400 hover:text-white flex-shrink-0">×</button>
+            <button onclick="closeModal()" class="text-2xl text-zinc-400 hover:text-white flex-shrink-0" aria-label="Close details">×</button>
           </div>
 
           <div id="modal-overview" class="text-zinc-300 leading-relaxed mb-3 text-sm sm:text-base"></div>
@@ -2638,7 +2649,7 @@
             <div class="text-lg font-bold text-zinc-100">📲 Transfer to Another Device</div>
             <div class="text-xs text-zinc-500 mt-0.5">No server or account needed — works instantly</div>
           </div>
-          <button onclick="closeTransferModal()" class="text-2xl text-zinc-500 hover:text-white leading-none ml-3 flex-shrink-0">×</button>
+          <button onclick="closeTransferModal()" class="text-2xl text-zinc-500 hover:text-white leading-none ml-3 flex-shrink-0" aria-label="Close transfer dialog">×</button>
         </div>
 
         <!-- STEP 1: Generate -->
@@ -2714,6 +2725,39 @@
       if (document.body) document.body.insertBefore(banner, document.body.firstChild);
       else document.addEventListener('DOMContentLoaded', function() { document.body.insertBefore(banner, document.body.firstChild); });
     });
+
+    // Shared overflow-menu wiring for movie cards: toggles the [data-act-menu] panel
+    // open/closed via the [data-act="more"] button, and closes it on outside click.
+    // Used by the recs-grid card templates (the browse-results card builds its own
+    // menu directly in JS since it isn't an HTML string template).
+    function wireMoreMenu(card) {
+      const moreBtn = card.querySelector('[data-act="more"]');
+      const menu = card.querySelector('[data-act-menu]');
+      if (!moreBtn || !menu) return;
+      function close() {
+        menu.classList.add('hidden');
+        moreBtn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('click', onDocClick);
+      }
+      function onDocClick(ev) {
+        if (!menu.contains(ev.target) && ev.target !== moreBtn) close();
+      }
+      moreBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+          menu.classList.remove('hidden');
+          moreBtn.setAttribute('aria-expanded', 'true');
+          document.addEventListener('click', onDocClick);
+        } else {
+          close();
+        }
+      };
+      // Clicking a menu item should also close the menu afterward.
+      menu.querySelectorAll('button[data-act]').forEach(item => {
+        item.addEventListener('click', close);
+      });
+    }
 
     // Discover data
     const GENRES = [
@@ -3568,7 +3612,7 @@
         html += `
           <div class="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded-2xl p-3">
             <div class="flex items-center gap-3">
-              ${item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-10 h-14 rounded-lg object-cover">` : ''}
+              ${item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-10 h-14 rounded-lg object-cover" alt="${item.title} poster">` : ''}
               <div>
                 <div class="font-medium">${item.title}</div>
                 <div class="text-xs text-zinc-400">${year} · ${item._mediaType === 'tv' ? 'TV' : 'Movie'}</div>
@@ -3824,7 +3868,7 @@
       if (!item || !item.poster_path) {
         return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
       }
-      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" onload="this.parentNode.classList.remove('loading')"></div>`;
+      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" onload="this.parentNode.classList.remove('loading')"></div>`;
     }
 
     function addToToWatch(item) {
@@ -3868,7 +3912,8 @@
         id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
         poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
         vote_average: item.vote_average, genre_ids: item.genre_ids || [],
-        overview: item.overview || '', rating: rating || null
+        overview: item.overview || '', rating: rating || null,
+        _ts: Date.now() // real timestamp for recency-decay scoring (buildTasteProfile); falls back to list-index decay for older entries without it
       };
       if (existsIdx >= 0) watchedList[existsIdx] = rec; else watchedList.unshift(rec);
       saveWatched();
@@ -4060,10 +4105,10 @@
         const year = (item.release_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" style="position:relative;">
-          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
+          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" aria-label="Remove ${item.title || item.name || 'title'} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
             <div class="lib-title" style="padding-right:18px;">${item.title}</div>
@@ -4221,7 +4266,7 @@
         const year = (item.release_date || '').slice(0,4);
         const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         const stars = item.rating ? `<span class="library-rating text-[10px]">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : '';
         html += `<div class="library-item library-item-v2 library-card">
@@ -4234,7 +4279,7 @@
               ${stars}
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700">×</button>
+              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700" aria-label="Remove ${item.title || item.name || 'title'} from Watched" title="Remove from Watched">×</button>
             </div>
           </div>
         </div>`;
@@ -4268,7 +4313,7 @@
         const year = (item.release_date || item.first_air_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" data-disliked-idx="${idx}">
           <div class="lib-poster">${posterImg}</div>
@@ -4279,7 +4324,7 @@
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked">×</button>
+              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked" aria-label="Remove ${item.title || item.name || 'title'} from Disliked">×</button>
             </div>
           </div>
         </div>`;
@@ -4316,7 +4361,7 @@
         const year = (item.release_date || item.first_air_date || '').slice(0, 4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g => g.id === item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" data-ni-idx="${idx}">
           <div class="lib-poster">${posterImg}</div>
@@ -4887,7 +4932,7 @@ function setCuratorPrompt(q) {
         card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow">` : ''}
+            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow" alt="${title} poster">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
                 <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${title}</div>
@@ -4919,35 +4964,84 @@ function setCuratorPrompt(q) {
         const wtwBtn = card.querySelector('.wtw-trigger');
         if (wtwBtn) wtwBtn.addEventListener('click', (e) => { e.stopPropagation(); showWatchPopup(wtwBtn, m.providers); });
 
-        // Rich list actions (To Watch primary + Watched/Dislike)
+        // Rich list actions: +Watch / Watched stay primary and visible; Dislike + Hide
+        // move into a single overflow (⋯) menu so the row doesn't compete for attention
+        // with 5 buttons of equal visual weight.
         const addBtnContainer = document.createElement('div');
         addBtnContainer.className = 'mt-2 flex gap-1.5 flex-wrap';
+        addBtnContainer.style.position = 'relative';
         const b1 = document.createElement('button');
         b1.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
         b1.textContent = '+ Watch';
+        b1.setAttribute('aria-label', `Add ${title} to To Watch`);
         b1.onclick = (e) => { e.stopImmediatePropagation(); addToToWatch(m); b1.textContent = '✓'; setTimeout(()=>b1.textContent='+ Watch',900); };
         const b2 = document.createElement('button');
         b2.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
         b2.textContent = 'Watched';
+        b2.setAttribute('aria-label', `Mark ${title} as watched`);
         b2.onclick = (e) => {
           e.stopImmediatePropagation();
           openInlineRatingPrompt(addBtnContainer, m, r => {
             addToWatched(m, r);
             b2.textContent='✓';
-          }, { hideButtons: [b1, b2, b3, b4] });
+          }, { hideButtons: [b1, b2, moreBtn, b4] });
         };
+
+        // Overflow menu: Dislike + Hide
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'flex-shrink-0 text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400';
+        moreBtn.textContent = '⋯';
+        moreBtn.title = 'More actions';
+        moreBtn.setAttribute('aria-label', `More actions for ${title}`);
+        moreBtn.setAttribute('aria-haspopup', 'true');
+        moreBtn.setAttribute('aria-expanded', 'false');
+
+        const moreMenu = document.createElement('div');
+        moreMenu.className = 'hidden';
+        moreMenu.setAttribute('role', 'menu');
+        moreMenu.style.cssText = 'position:absolute;bottom:calc(100% + 6px);left:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);';
+
         const b3 = document.createElement('button');
-        b3.className = 'flex-shrink-0 text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400';
-        b3.textContent = '👎';
-        b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); b3.textContent='✓'; };
+        b3.className = 'w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800';
+        b3.textContent = '👎 Dislike';
+        b3.setAttribute('role', 'menuitem');
+        b3.setAttribute('aria-label', `Dislike ${title}`);
+        b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); closeMoreMenu(); moreBtn.textContent = '✓'; };
+
         const bni = document.createElement('button');
-        bni.className = 'flex-shrink-0 text-xs px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500';
+        bni.className = 'w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800';
         bni.textContent = '✕ Hide';
         bni.title = 'Not Interested — hide from results';
-        bni.onclick = (e) => { e.stopImmediatePropagation(); addToNotInterested(m); };
+        bni.setAttribute('role', 'menuitem');
+        bni.setAttribute('aria-label', `Hide ${title} — not interested`);
+        bni.onclick = (e) => { e.stopImmediatePropagation(); addToNotInterested(m); closeMoreMenu(); };
+
+        moreMenu.appendChild(b3); moreMenu.appendChild(bni);
+
+        function closeMoreMenu() {
+          moreMenu.classList.add('hidden');
+          moreBtn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', onDocClick);
+        }
+        function onDocClick(ev) {
+          if (!moreMenu.contains(ev.target) && ev.target !== moreBtn) closeMoreMenu();
+        }
+        moreBtn.onclick = (e) => {
+          e.stopImmediatePropagation();
+          const isHidden = moreMenu.classList.contains('hidden');
+          if (isHidden) {
+            moreMenu.classList.remove('hidden');
+            moreBtn.setAttribute('aria-expanded', 'true');
+            document.addEventListener('click', onDocClick);
+          } else {
+            closeMoreMenu();
+          }
+        };
+
         const b4 = document.createElement('button');
         b4.className = 'flex-shrink-0 text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden';
         b4.textContent = '▶ Trailer';
+        b4.setAttribute('aria-label', `Play trailer for ${title}`);
         b4.onclick = async (e) => {
           e.stopImmediatePropagation();
           const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
@@ -4956,7 +5050,7 @@ function setCuratorPrompt(q) {
                           (vdata?.results || []).find(v => v.site === 'YouTube');
           if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
         };
-        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(b3); addBtnContainer.appendChild(bni); addBtnContainer.appendChild(b4);
+        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(moreBtn); addBtnContainer.appendChild(moreMenu); addBtnContainer.appendChild(b4);
         // Append inside content div so buttons stay beside the poster on mobile
         const contentDiv = card.querySelector('.flex-1.min-w-0');
         (contentDiv || card).appendChild(addBtnContainer);
@@ -4995,13 +5089,34 @@ function setCuratorPrompt(q) {
     function buildTasteProfile() {
       const genreScores = {};   // genre_id -> weighted affinity (positive or negative)
       const decadeCounts = {};  // decade (e.g. 1990) -> weighted count
+      const genrePairScores = {}; // "gidA,gidB" (sorted) -> weighted affinity for that *combination*
+      const genreDislikeCounts = {}; // genre_id -> count of disliked items carrying it (for scaled penalty)
 
-      // Watched history — weight by rating + recency decay (index 0 = most recently added)
+      // Watched history — weight by rating + recency decay.
+      // Decay prefers an actual watched timestamp (m._ts, ms since epoch) when present;
+      // older stored entries lack it, so we fall back to list-index decay for those
+      // (index 0 = most recently added) to stay backward compatible.
+      const now = Date.now();
+      const DAY = 86400000;
       watchedList.forEach((m, index) => {
         const r = m.rating || 3;
-        const decay = Math.pow(0.97, index); // full weight at 0; ~50% by index 23; ~5% by index 95
+        const decay = m._ts
+          ? Math.pow(0.97, Math.max(0, (now - m._ts) / DAY) / 1.4) // ~daily-equivalent decay using real elapsed time
+          : Math.pow(0.97, index); // legacy fallback: full weight at 0; ~50% by index 23; ~5% by index 95
         const w = (r === 5 ? 4 : r === 4 ? 2 : r === 3 ? 0.3 : r === 2 ? -1 : -2) * decay;
-        (m.genre_ids || []).forEach(gid => { genreScores[gid] = (genreScores[gid] || 0) + w; });
+        const gids = m.genre_ids || [];
+        gids.forEach(gid => { genreScores[gid] = (genreScores[gid] || 0) + w; });
+        // Pairwise co-occurrence: reward the *combination* of genres this title carries,
+        // not just each genre independently. Only counted for positively-weighted titles
+        // so co-occurrence doesn't end up rewarding pairs from films the user disliked.
+        if (w > 0 && gids.length >= 2) {
+          for (let i = 0; i < gids.length; i++) {
+            for (let j = i + 1; j < gids.length; j++) {
+              const key = gids[i] < gids[j] ? `${gids[i]},${gids[j]}` : `${gids[j]},${gids[i]}`;
+              genrePairScores[key] = (genrePairScores[key] || 0) + w;
+            }
+          }
+        }
         const year = parseInt((m.release_date || '').slice(0, 4));
         if (year >= 1920) {
           const decade = Math.floor(year / 10) * 10;
@@ -5009,16 +5124,24 @@ function setCuratorPrompt(q) {
         }
       });
 
-      // Disliked — clear negative genre signal
+      // Disliked — negative genre signal, scaled by how often each genre shows up in
+      // dislikes rather than a flat penalty per item. One disliked horror movie nudges
+      // the horror score down; ten disliked horror movies push it down hard.
       dislikedList.forEach(m => {
-        (m.genre_ids || []).forEach(gid => { genreScores[gid] = (genreScores[gid] || 0) - 2.5; });
+        (m.genre_ids || []).forEach(gid => { genreDislikeCounts[gid] = (genreDislikeCounts[gid] || 0) + 1; });
+      });
+      Object.entries(genreDislikeCounts).forEach(([gid, count]) => {
+        // Diminishing per-item penalty (sqrt) so it scales with frequency but doesn't
+        // run away to an unbounded negative for genres with many dislikes.
+        genreScores[gid] = (genreScores[gid] || 0) - 1.6 * Math.sqrt(count);
       });
 
       // Normalise: total positive genre weight (for relative boost calculation)
       const totalPos = Object.values(genreScores).reduce((a, b) => a + Math.max(0, b), 0) || 1;
       const totalDecade = Object.values(decadeCounts).reduce((a, b) => a + b, 0) || 1;
+      const totalPairPos = Object.values(genrePairScores).reduce((a, b) => a + Math.max(0, b), 0) || 1;
 
-      return { genreScores, decadeCounts, totalPos, totalDecade };
+      return { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos };
     }
 
     // Bayesian-corrected rating — penalises films with few votes
@@ -5028,8 +5151,39 @@ function setCuratorPrompt(q) {
       return (voteCount * voteAvg + m * C) / (voteCount + m);
     }
 
-    function scoreItem(item, profile) {
-      const { genreScores, decadeCounts, totalPos, totalDecade } = profile;
+    // Percentile helper — value below which `p` fraction of a sorted numeric array falls.
+    function percentile(sortedArr, p) {
+      if (!sortedArr.length) return 0;
+      const idx = Math.min(sortedArr.length - 1, Math.max(0, Math.floor(p * (sortedArr.length - 1))));
+      return sortedArr[idx];
+    }
+
+    // Pool-relative thresholds for the hidden-gem bonus and vote-count reliability
+    // penalty in scoreItem(). Fixed constants (vote_average>=7.2, popularity<60, etc.)
+    // don't adapt: a pool that's mostly obscure titles would almost never clear a fixed
+    // popularity<60 bar in a meaningful way, while a blockbuster-heavy pool would clear
+    // it too easily. Computing percentiles from the actual fetched pool keeps both bonus
+    // and penalty calibrated to whatever was actually returned this refresh.
+    function computePoolStats(pool) {
+      if (!pool || !pool.length) {
+        // Sane fallbacks matching the old fixed constants, for an empty/missing pool.
+        return { gemVoteAvgMin: 7.2, gemPopularityMax: 60, gemVoteCountMin: 500, lowVoteCount: 150, midVoteCount: 400 };
+      }
+      const voteAvgs = pool.map(p => p.vote_average || 0).sort((a, b) => a - b);
+      const popularities = pool.map(p => p.popularity || 0).sort((a, b) => a - b);
+      const voteCounts = pool.map(p => p.vote_count || 0).sort((a, b) => a - b);
+      return {
+        gemVoteAvgMin: Math.max(6.5, percentile(voteAvgs, 0.75)),     // top quartile rating in this pool
+        gemPopularityMax: Math.max(20, percentile(popularities, 0.5)), // below-median popularity = "didn't blow up"
+        gemVoteCountMin: Math.max(200, percentile(voteCounts, 0.25)),  // still enough votes to trust the rating
+        lowVoteCount: Math.max(50, percentile(voteCounts, 0.15)),
+        midVoteCount: Math.max(150, percentile(voteCounts, 0.35))
+      };
+    }
+
+    function scoreItem(item, profile, poolStats) {
+      const { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos } = profile;
+      const stats = poolStats || computePoolStats(null);
       const voteCount = item.vote_count || 0;
       const voteAvg = item.vote_average || 6.0;
 
@@ -5044,6 +5198,20 @@ function setCuratorPrompt(q) {
         }
       });
 
+      // Genre co-occurrence bonus — rewards the *specific combination* of genres this
+      // item carries when the user has consistently rated that exact combination well,
+      // not just each genre in isolation (e.g. specifically Horror+Comedy, not just
+      // "likes Horror" and "likes Comedy" as two separate unrelated facts).
+      if (gids.length >= 2 && genrePairScores) {
+        for (let i = 0; i < gids.length; i++) {
+          for (let j = i + 1; j < gids.length; j++) {
+            const key = gids[i] < gids[j] ? `${gids[i]},${gids[j]}` : `${gids[j]},${gids[i]}`;
+            const pairScore = genrePairScores[key];
+            if (pairScore > 0) score += (pairScore / totalPairPos) * 1.5;
+          }
+        }
+      }
+
       // Decade affinity
       const year = parseInt((item.release_date || '').slice(0, 4));
       if (year && totalDecade > 0) {
@@ -5051,12 +5219,13 @@ function setCuratorPrompt(q) {
         if (decadeCounts[decade]) score += (decadeCounts[decade] / totalDecade) * 1.2;
       }
 
-      // Hidden-gem bonus: quality film that didn't blow up mainstream
-      if (voteAvg >= 7.2 && (item.popularity || 0) < 60 && voteCount >= 500) score += 0.8;
+      // Hidden-gem bonus: quality film that didn't blow up mainstream — thresholds are
+      // relative to this pool's own distribution (see computePoolStats), not fixed constants.
+      if (voteAvg >= stats.gemVoteAvgMin && (item.popularity || 0) < stats.gemPopularityMax && voteCount >= stats.gemVoteCountMin) score += 0.8;
 
-      // Vote-count reliability penalty
-      if (voteCount < 150) score -= 0.8;
-      else if (voteCount < 400) score -= 0.3;
+      // Vote-count reliability penalty — also pool-relative.
+      if (voteCount < stats.lowVoteCount) score -= 0.8;
+      else if (voteCount < stats.midVoteCount) score -= 0.3;
 
       // Director / actor / keyword / franchise affinity boost (tagged at pool-fetch time)
       if (item._affinityBoost) score += item._affinityBoost;
@@ -5079,20 +5248,33 @@ function setCuratorPrompt(q) {
 
       // Sort bucket keys by the score of their top item (best genre first)
       const keys = Object.keys(buckets).sort((a, b) => buckets[b][0]._score - buckets[a][0]._score);
-      const result = [];
+
+      // Round-robin across genre buckets first, *without* touching `ungrouped` — this
+      // produces a clean genre-interleaved sequence with no arbitrary score-offset logic.
+      const interleaved = [];
       let i = 0;
-      while (result.length < limit) {
+      while (true) {
         let added = false;
         for (const k of keys) {
-          if (buckets[k].length > i) { result.push(buckets[k][i]); if (result.length >= limit) break; added = true; }
-        }
-        while (ungrouped.length && ungrouped[0]._score >= (result[result.length - 1]?._score || 0) - 1 && result.length < limit) {
-          result.push(ungrouped.shift());
+          if (buckets[k].length > i) { interleaved.push(buckets[k][i]); added = true; }
         }
         if (!added) break;
         i++;
       }
-      return result.slice(0, limit);
+
+      // Merge `ungrouped` into the interleaved sequence purely by score rank (both lists
+      // are already sorted descending by _score, since `scored` was sorted before this
+      // call) — a standard two-pointer merge, so an ungrouped item lands exactly where
+      // its score places it rather than via a fixed "-1" fudge-factor comparison.
+      const result = [];
+      let a = 0, b = 0;
+      while (result.length < limit && (a < interleaved.length || b < ungrouped.length)) {
+        const left = interleaved[a];
+        const right = ungrouped[b];
+        if (left && (!right || left._score >= right._score)) { result.push(left); a++; }
+        else { result.push(right); b++; }
+      }
+      return result;
     }
 
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
@@ -5176,23 +5358,28 @@ function setCuratorPrompt(q) {
 
         if (!append && watchedList.length) {
           const topRated = [...watchedList]
-            .filter(m => (m.rating || 0) >= 4 && m.id && (m._mediaType || 'movie') === 'movie')
+            .filter(m => (m.rating || 0) >= 4 && m.id)
             .sort((a, b) => (b.rating || 0) - (a.rating || 0))
             .slice(0, 8);
+          // Affinity signals (credits/keywords/collection) only exist for the movie
+          // endpoints below — TV uses a different credits shape (created_by, no belongs_to_collection),
+          // so we scope this phase to movies but still let TV-watched items inform genre/decade
+          // scoring in buildTasteProfile (that part is media-type agnostic already).
+          const topRatedMovies = topRated.filter(m => (m._mediaType || 'movie') === 'movie');
 
-          if (topRated.length) {
+          if (topRatedMovies.length) {
             try {
               const [credResults, kwResults, detResults] = await Promise.all([
-                Promise.allSettled(topRated.map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/credits`))),
-                Promise.allSettled(topRated.slice(0, 5).map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/keywords`))),
-                Promise.allSettled(topRated.slice(0, 5).map(m => apiFetch(`/api/tmdb/3/movie/${m.id}?language=en-US`)))
+                Promise.allSettled(topRatedMovies.map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/credits`))),
+                Promise.allSettled(topRatedMovies.slice(0, 5).map(m => apiFetch(`/api/tmdb/3/movie/${m.id}/keywords`))),
+                Promise.allSettled(topRatedMovies.slice(0, 5).map(m => apiFetch(`/api/tmdb/3/movie/${m.id}?language=en-US`)))
               ]);
 
               // Build person scores (directors weighted higher than cast)
               const personScores = {};
               credResults.forEach((res, i) => {
                 if (res.status !== 'fulfilled') return;
-                const w = topRated[i].rating === 5 ? 4 : topRated[i].rating === 4 ? 2.5 : 1.5;
+                const w = topRatedMovies[i].rating === 5 ? 4 : topRatedMovies[i].rating === 4 ? 2.5 : 1.5;
                 (res.value.crew || []).filter(c => c.job === 'Director').forEach(c => {
                   if (!personScores[c.id]) personScores[c.id] = { name: c.name, score: 0, type: 'director' };
                   personScores[c.id].score += w;
@@ -5207,7 +5394,7 @@ function setCuratorPrompt(q) {
               const kwCounts = {};
               kwResults.forEach((res, i) => {
                 if (res.status !== 'fulfilled') return;
-                const w = topRated[i].rating === 5 ? 3 : 2;
+                const w = topRatedMovies[i].rating === 5 ? 3 : 2;
                 (res.value.keywords || []).forEach(kw => { kwCounts[kw.id] = (kwCounts[kw.id] || 0) + w; });
               });
               const topKeywordIds = Object.entries(kwCounts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id]) => id);
@@ -5224,7 +5411,7 @@ function setCuratorPrompt(q) {
                   if (res.status !== 'fulfilled') return;
                   (res.value.parts || []).forEach(p => {
                     if (p.poster_path && p.original_language === 'en')
-                      affinityTagged.push({ ...p, _affinityReason: `Part of a series you love`, _affinityBoost: 2.5 });
+                      affinityTagged.push({ ...p, _mediaType: 'movie', _affinityReason: `Part of a series you love`, _affinityBoost: 2.5 });
                   });
                 });
               }
@@ -5255,39 +5442,110 @@ function setCuratorPrompt(q) {
               for (const { url, reason, boost } of affinityUrls) {
                 try {
                   const d = await apiFetch(url).catch(() => null);
-                  (d?.results || []).forEach(r => affinityTagged.push({ ...r, _affinityReason: reason, _affinityBoost: boost }));
+                  (d?.results || []).forEach(r => affinityTagged.push({ ...r, _mediaType: 'movie', _affinityReason: reason, _affinityBoost: boost }));
                 } catch (_) {}
               }
             } catch (e) {
               console.warn('[Recs] Affinity phase error (non-fatal):', e.message);
             }
           }
+
+          // ── TV affinity pass — parallels the movie pass above using TV-shaped
+          // endpoints (created_by instead of crew/Director; no belongs_to_collection). ──
+          const topRatedTv = topRated.filter(m => m._mediaType === 'tv');
+          if (topRatedTv.length) {
+            try {
+              const [tvCredResults, tvKwResults] = await Promise.all([
+                Promise.allSettled(topRatedTv.map(m => apiFetch(`/api/tmdb/3/tv/${m.id}/credits`))),
+                Promise.allSettled(topRatedTv.slice(0, 5).map(m => apiFetch(`/api/tmdb/3/tv/${m.id}/keywords`)))
+              ]);
+
+              const tvPersonScores = {};
+              tvCredResults.forEach((res, i) => {
+                if (res.status !== 'fulfilled') return;
+                const w = topRatedTv[i].rating === 5 ? 4 : topRatedTv[i].rating === 4 ? 2.5 : 1.5;
+                // TV credits don't reliably expose a "Director" job on /credits; cast carries the signal.
+                (res.value.cast || []).slice(0, 3).forEach(c => {
+                  if (!tvPersonScores[c.id]) tvPersonScores[c.id] = { name: c.name, score: 0, type: 'actor' };
+                  tvPersonScores[c.id].score += w * 0.4;
+                });
+              });
+
+              const tvKwCounts = {};
+              tvKwResults.forEach((res, i) => {
+                if (res.status !== 'fulfilled') return;
+                const w = topRatedTv[i].rating === 5 ? 3 : 2;
+                // /tv/{id}/keywords returns { results: [...] } rather than { keywords: [...] }
+                (res.value.results || res.value.keywords || []).forEach(kw => { tvKwCounts[kw.id] = (tvKwCounts[kw.id] || 0) + w; });
+              });
+              const topTvKeywordIds = Object.entries(tvKwCounts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id]) => id);
+
+              const tvAffinityUrls = [];
+              Object.entries(tvPersonScores)
+                .filter(([, p]) => p.type === 'actor' && p.score >= 1.5)
+                .sort((a, b) => b[1].score - a[1].score).slice(0, 3)
+                .forEach(([id, p]) => {
+                  tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_cast=${id}&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Stars ${p.name}`, boost: 1.2 });
+                });
+              if (topTvKeywordIds.length) {
+                const kwStr = topTvKeywordIds.slice(0, 5).join('|');
+                tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_keywords=${kwStr}&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Matches your themes`, boost: 0.8 });
+              }
+
+              for (const { url, reason, boost } of tvAffinityUrls) {
+                try {
+                  const d = await apiFetch(url).catch(() => null);
+                  (d?.results || []).forEach(r => affinityTagged.push({ ...r, _mediaType: 'tv', _affinityReason: reason, _affinityBoost: boost }));
+                } catch (_) {}
+              }
+            } catch (e) {
+              console.warn('[Recs] TV affinity phase error (non-fatal):', e.message);
+            }
+          }
         }
 
         // ── PHASE 2: Broad pool URLs ──
+        // Each entry carries its own media type so every fetched item can be tagged
+        // correctly at the source — movie and TV ids can collide, so dedupe/scoring
+        // downstream needs `${id}:${mediaType}` keys rather than id alone.
         const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&without_genres=16&first_air_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
         const pageCount = 10;
         const startPage = append ? recPageCursor : (1 + Math.floor(Math.random() * 20));
-        const urls = [];
+        const urls = []; // { url, type }
         for (let i = 0; i < pageCount; i++) {
           const page = Math.min(startPage + i, 480);
-          urls.push(`${base}&sort_by=popularity.desc&page=${page}`);
-          urls.push(`${base}&sort_by=vote_average.desc&page=${page}`);
+          urls.push({ url: `${base}&sort_by=popularity.desc&page=${page}`, type: 'movie' });
+          urls.push({ url: `${base}&sort_by=vote_average.desc&page=${page}`, type: 'movie' });
         }
-        urls.push(`/api/tmdb/3/trending/movie/week`);
+        // TV gets a lighter share of the broad pool (fewer pages) since affinity/similar
+        // signals carry more of the TV weight, keeping movie:TV roughly balanced overall.
+        for (let i = 0; i < Math.ceil(pageCount / 2); i++) {
+          const page = Math.min(startPage + i, 480);
+          urls.push({ url: `${tvBase}&sort_by=popularity.desc&page=${page}`, type: 'tv' });
+          urls.push({ url: `${tvBase}&sort_by=vote_average.desc&page=${page}`, type: 'tv' });
+        }
+        urls.push({ url: `/api/tmdb/3/trending/movie/week`, type: 'movie' });
+        urls.push({ url: `/api/tmdb/3/trending/tv/week`, type: 'tv' });
         for (let i = 0; i < 5; i++) {
           const page = Math.min(startPage + i, 480);
-          urls.push(`/api/tmdb/3/movie/popular?language=en-US&page=${page}`);
-          urls.push(`/api/tmdb/3/movie/top_rated?language=en-US&page=${page}`);
+          urls.push({ url: `/api/tmdb/3/movie/popular?language=en-US&page=${page}`, type: 'movie' });
+          urls.push({ url: `/api/tmdb/3/movie/top_rated?language=en-US&page=${page}`, type: 'movie' });
         }
-        // Similar/recommendations from top-rated watches
+        for (let i = 0; i < 3; i++) {
+          const page = Math.min(startPage + i, 480);
+          urls.push({ url: `/api/tmdb/3/tv/popular?language=en-US&page=${page}`, type: 'tv' });
+          urls.push({ url: `/api/tmdb/3/tv/top_rated?language=en-US&page=${page}`, type: 'tv' });
+        }
+        // Similar/recommendations from top-rated watches (movie + TV, each via its own endpoint)
         if (!append && watchedList.length) {
-          [...watchedList].filter(m => (m.rating || 0) >= 4 && m.id && (m._mediaType || 'movie') === 'movie')
-            .sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5)
-            .forEach(m => {
-              urls.push(`/api/tmdb/3/movie/${m.id}/similar?language=en-US&page=1`);
-              urls.push(`/api/tmdb/3/movie/${m.id}/recommendations?language=en-US&page=1`);
-            });
+          const topRatedAll = [...watchedList].filter(m => (m.rating || 0) >= 4 && m.id)
+            .sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
+          topRatedAll.forEach(m => {
+            const mt = m._mediaType === 'tv' ? 'tv' : 'movie';
+            urls.push({ url: `/api/tmdb/3/${mt}/${m.id}/similar?language=en-US&page=1`, type: mt });
+            urls.push({ url: `/api/tmdb/3/${mt}/${m.id}/recommendations?language=en-US&page=1`, type: mt });
+          });
         }
 
         // Concurrency-limited fetch
@@ -5295,12 +5553,12 @@ function setCuratorPrompt(q) {
         let urlIndex = 0;
         async function worker() {
           while (urlIndex < urls.length) {
-            const u = urls[urlIndex++];
+            const { url: u, type } = urls[urlIndex++];
             try {
               const d = await apiFetch(u);
-              raw = raw.concat(d.results || []);
+              raw = raw.concat((d.results || []).map(r => ({ ...r, _mediaType: type })));
             } catch (_) {
-              try { await new Promise(r => setTimeout(r, 500)); const d = await apiFetch(u); raw = raw.concat(d.results || []); } catch (_) {}
+              try { await new Promise(r => setTimeout(r, 500)); const d = await apiFetch(u); raw = raw.concat((d.results || []).map(r => ({ ...r, _mediaType: type }))); } catch (_) {}
             }
           }
         }
@@ -5310,39 +5568,49 @@ function setCuratorPrompt(q) {
         raw = raw.concat(affinityTagged);
 
         // ── PHASE 3: Dedupe, filter, sort ──
+        // Dedupe key is `${id}:${mediaType}` everywhere below — a movie and a TV show
+        // can share a numeric id, so id alone is not a safe key once TV is included.
         // Affinity-tagged items win the dedupe race: process them first so their tags survive.
         const seen = new Set();
         let results = [];
-        if (append) currentRecPool.forEach(r => seen.add(r.id));
+        if (append) currentRecPool.forEach(r => seen.add(`${r.id}:${r._mediaType || 'movie'}`));
 
         // Affinity items first (preserve tags)
         for (const r of affinityTagged) {
-          if (!seen.has(r.id)) { seen.add(r.id); results.push(r); }
+          const k = `${r.id}:${r._mediaType || 'movie'}`;
+          if (!seen.has(k)) { seen.add(k); results.push(r); }
         }
         // Then broad pool (sorted by quality)
-        const sorted = [...raw.filter(r => !seen.has(r.id))].sort((a, b) => {
+        const sorted = [...raw.filter(r => !seen.has(`${r.id}:${r._mediaType || 'movie'}`))].sort((a, b) => {
           const s = x => (x.vote_average || 0) * 10 + (x.vote_count || 0) * 0.015 + (x.popularity || 0) * 0.08;
           return s(b) - s(a);
         });
         for (const r of sorted) {
-          if (!seen.has(r.id)) { seen.add(r.id); results.push(r); }
+          const k = `${r.id}:${r._mediaType || 'movie'}`;
+          if (!seen.has(k)) { seen.add(k); results.push(r); }
         }
 
         results = results.filter(r => {
-          const key = `${r.id}:movie`;
-          const year = parseInt((r.release_date || '').slice(0, 4));
+          const mt = r._mediaType || 'movie';
+          const key = `${r.id}:${mt}`;
+          // TV uses first_air_date / name; movies use release_date / title.
+          const dateStr = mt === 'tv' ? (r.first_air_date || '') : (r.release_date || '');
+          const year = parseInt(dateStr.slice(0, 4));
           return !excluded.has(key) && (r.vote_average || 0) >= 4.8 && r.poster_path
             && r.original_language === 'en' && !r.adult && !(r.genre_ids || []).includes(16)
             && (!year || year >= 1960);
         });
 
-        const mapped = results.slice(0, append ? 200 : 350).map(r => ({
-          id: r.id, title: r.title, _mediaType: 'movie',
-          poster_path: r.poster_path, release_date: r.release_date,
-          vote_average: r.vote_average, vote_count: r.vote_count || 0,
-          genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
-          _affinityReason: r._affinityReason || null, _affinityBoost: r._affinityBoost || 0
-        }));
+        const mapped = results.slice(0, append ? 200 : 350).map(r => {
+          const mt = r._mediaType || 'movie';
+          return {
+            id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,
+            poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || r.release_date) : (r.release_date || r.first_air_date),
+            vote_average: r.vote_average, vote_count: r.vote_count || 0,
+            genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
+            _affinityReason: r._affinityReason || null, _affinityBoost: r._affinityBoost || 0
+          };
+        });
         currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
         recPageCursor = startPage + pageCount;
 
@@ -5380,15 +5648,15 @@ function setCuratorPrompt(q) {
           .slice(0, 3)
           .map(([id]) => Number(id))
       );
-      // Pick from movies that don't share those top genres
+      // Pick from movies/TV that don't share those top genres
       let outside = currentRecPool.filter(it => {
-        if (excluded.has(`${it.id}:movie`)) return false;
+        if (excluded.has(`${it.id}:${it._mediaType || 'movie'}`)) return false;
         const gids = it.genre_ids || [];
         return !gids.some(g => topGenreIds.has(g));
       });
       if (outside.length < 5) {
         // Fallback: broaden to anything not in top genre
-        outside = currentRecPool.filter(it => !excluded.has(`${it.id}:movie`));
+        outside = currentRecPool.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
       }
       // Shuffle and pick 20
       for (let i = outside.length - 1; i > 0; i--) {
@@ -5414,7 +5682,7 @@ function setCuratorPrompt(q) {
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${item.title} poster">
 </div>
 <div class="mt-2 px-0.5">
   <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
@@ -5427,12 +5695,15 @@ function setCuratorPrompt(q) {
   <button class="why-this-btn text-[10px] text-amber-400/80 mt-1.5 text-left w-full truncate hover:text-amber-300 transition-colors" title="Why this recommendation?">🎲 Outside your usual taste</button>
   <div id="wtw-si-${item.id}" class="mt-1"></div>
 </div>
-<div class="mt-2 flex gap-1 items-center">
-  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">✓</button>
-  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested">✕</button>
-  <button id="trailer-si-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
+<div class="mt-2 flex gap-1 items-center" style="position:relative;">
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${item.title} to To Watch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${item.title} as watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${item.title}" aria-haspopup="true" aria-expanded="false">⋯</button>
+  <button id="trailer-si-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${item.title}">▶</button>
+  <div class="hidden" data-act-menu role="menu" style="position:absolute;bottom:calc(100% + 6px);right:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);">
+    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${item.title}">👎 Dislike</button>
+    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${item.title} — not interested">✕ Not Interested</button>
+  </div>
 </div>`;
         card.querySelector('[data-act="towatch"]').onclick = () => { addToToWatch(item); card.remove(); };
         card.querySelector('[data-act="watched"]').onclick = () => {
@@ -5441,12 +5712,14 @@ function setCuratorPrompt(q) {
         };
         card.querySelector('[data-act="dislike"]').onclick = () => { addToDisliked(item); card.remove(); };
         card.querySelector('[data-act="notinterested"]').onclick = () => { addToNotInterested(item); card.remove(); };
+        wireMoreMenu(card);
+        const _mt = item._mediaType === 'tv' ? 'tv' : 'movie';
         card.querySelector('[data-act="trailer"]').onclick = async () => {
-          const vdata = await apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).catch(() => null);
+          const vdata = await apiFetch(`/api/tmdb/3/${_mt}/${item.id}/videos`).catch(() => null);
           const t = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') || (vdata?.results || []).find(v => v.site === 'YouTube');
           if (t) window.open(`https://www.youtube.com/watch?v=${t.key}`, '_blank', 'noopener');
         };
-        apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).then(vdata => {
+        apiFetch(`/api/tmdb/3/${_mt}/${item.id}/videos`).then(vdata => {
           const t = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') || (vdata?.results || []).find(v => v.site === 'YouTube');
           if (t) { const b = card.querySelector('[data-act="trailer"]'); if (b) { b.classList.remove('hidden', 'text-zinc-500'); b.classList.add('text-red-400'); } }
         }).catch(() => {});
@@ -5504,8 +5777,11 @@ function setCuratorPrompt(q) {
 
       const profile = buildTasteProfile();
       const excluded = getExcludedKeys();
+      // Pool-relative thresholds (hidden-gem / vote-count reliability), computed once
+      // per recompute rather than per item, then reused for every score in this pass.
+      const poolStats = computePoolStats(currentRecPool);
       // Score every item in the pool
-      let scored = currentRecPool.map(it => ({...it, _score: scoreItem(it, profile)}));
+      let scored = currentRecPool.map(it => ({...it, _score: scoreItem(it, profile, poolStats)}));
       // Filter out already seen/queued/hidden
       scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
       // Genre filter
@@ -5532,7 +5808,7 @@ function setCuratorPrompt(q) {
         const topGenreName = topGenreId ? GENRES.find(g => g.id === topGenreId)?.name : null;
         const year = parseInt((item.release_date || '').slice(0, 4));
         const decade = year ? Math.floor(year / 10) * 10 : null;
-        const isHiddenGem = (item.vote_average || 0) >= 7.2 && (item.popularity || 0) < 60 && (item.vote_count || 0) >= 500;
+        const isHiddenGem = (item.vote_average || 0) >= poolStats.gemVoteAvgMin && (item.popularity || 0) < poolStats.gemPopularityMax && (item.vote_count || 0) >= poolStats.gemVoteCountMin;
         // Affinity labels take priority — they're the most specific signal
         if (item._affinityReason) {
           return isHiddenGem ? `💎 ${item._affinityReason}` : `🎬 ${item._affinityReason}`;
@@ -5558,7 +5834,7 @@ function setCuratorPrompt(q) {
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${item.title} poster">
 </div>
 <div class="mt-2 px-0.5">
   <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
@@ -5571,16 +5847,20 @@ function setCuratorPrompt(q) {
   <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${matchLabel(item)}</button>
   <div id="wtw-rec-${item.id}" class="mt-1"></div>
 </div>
-<div class="mt-2 flex gap-1 items-center">
-  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch">+ Watch</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched">✓</button>
-  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-red-400" data-act="dislike" title="Disliked">👎</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500" data-act="notinterested" title="Not Interested">✕</button>
-  <button id="trailer-btn-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer">▶</button>
+<div class="mt-2 flex gap-1 items-center" style="position:relative;">
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${item.title} to To Watch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${item.title} as watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${item.title}" aria-haspopup="true" aria-expanded="false">⋯</button>
+  <button id="trailer-btn-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${item.title}">▶</button>
+  <div class="hidden" data-act-menu role="menu" style="position:absolute;bottom:calc(100% + 6px);right:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);">
+    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${item.title}">👎 Dislike</button>
+    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${item.title} — not interested">✕ Not Interested</button>
+  </div>
 </div>
         `;
         // Async: upgrade IMDB link + fetch trailer
-        apiFetch(`/api/tmdb/3/movie/${item.id}/external_ids`).then(ext => {
+        const _mt2 = item._mediaType === 'tv' ? 'tv' : 'movie';
+        apiFetch(`/api/tmdb/3/${_mt2}/${item.id}/external_ids`).then(ext => {
           if (ext && ext.imdb_id) {
             const lnk = card.querySelector(`#imdb-link-${item.id}`);
             if (lnk) {
@@ -5589,7 +5869,7 @@ function setCuratorPrompt(q) {
             }
           }
         }).catch(() => {});
-        apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).then(vdata => {
+        apiFetch(`/api/tmdb/3/${_mt2}/${item.id}/videos`).then(vdata => {
           const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
                           (vdata?.results || []).find(v => v.site === 'YouTube');
           if (trailer) {
@@ -5612,8 +5892,9 @@ function setCuratorPrompt(q) {
         };
         card.querySelector('[data-act="dislike"]').onclick = () => { addToDisliked(item); card.remove(); };
         card.querySelector('[data-act="notinterested"]').onclick = () => { addToNotInterested(item); card.remove(); };
+        wireMoreMenu(card);
         card.querySelector('[data-act="trailer"]').onclick = async () => {
-          const vdata = await apiFetch(`/api/tmdb/3/movie/${item.id}/videos`).catch(() => null);
+          const vdata = await apiFetch(`/api/tmdb/3/${_mt2}/${item.id}/videos`).catch(() => null);
           const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
                           (vdata?.results || []).find(v => v.site === 'YouTube');
           if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
@@ -6030,7 +6311,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           `;
         } else {
           const posterHtml = p.poster_path
-            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-24 h-36 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="">`
+            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-24 h-36 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="${p.title} poster">`
             : `<div class="w-24 h-36 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl text-zinc-500">📽️</div>`;
           const pYear = p.year || '';
           const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;

@@ -1,0 +1,15 @@
+# Secrets / environment files — never commit real tokens or passwords
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+*.secret
+
+# Wrangler local state/cache
+.wrangler/
+
+# Dependencies
+node_modules/
+
+# OS/editor noise
+.DS_Store
