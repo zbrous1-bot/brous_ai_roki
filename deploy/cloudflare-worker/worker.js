@@ -270,13 +270,9 @@ export default {
       return jsonResponse({
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
-        version: '3.3.1',
+        version: '3.3.2',
         note: 'TMDB via /api/tmdb/* (open, no password). LLM (Curator) via POST /api/llm and data sync via GET/POST /api/data both require the shared PASSWORD secret when one is configured.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
-        // TEMP DIAGNOSTIC — remove after secret-visibility test. Reports which env
-        // keys the running Worker actually sees, WITHOUT exposing any values.
-        diag_env_keys: Object.keys(env || {}),
-        diag_has_test_secret: !!env.TEST_DIAG_SECRET,
       }, 200, request);
     }
 
