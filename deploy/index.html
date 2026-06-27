@@ -4016,7 +4016,7 @@
     const SYNC_URL = 'https://horror-roki.zbrous1.workers.dev';
 
     async function _dataFetch(path, options = {}) {
-      const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json' } };
+      const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } };
       if (options.body) fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
       const res = await fetch(SYNC_URL + path, fetchOptions);
       if (!res.ok && res.status !== 404) throw new Error('Sync error ' + res.status);
