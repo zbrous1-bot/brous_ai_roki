@@ -270,7 +270,7 @@ export default {
       return jsonResponse({
         ok: true,
         service: 'Brous / Horror Roki - TMDB + LLM Proxy + Auth + KV Data',
-        version: '3.2.5-deploy-test6-nocache',
+        version: '3.3.0',
         note: 'TMDB via /api/tmdb/* (open, no password). LLM (Curator) via POST /api/llm and data sync via GET/POST /api/data both require the shared PASSWORD secret when one is configured.',
         features: ['tmdb-proxy', 'llm-proxy-xai', 'basic-auth', 'kv-data-sync'],
       }, 200, request);
