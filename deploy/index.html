@@ -3158,9 +3158,9 @@
     }
 
     async function apiFetch(path, options = {}) {
-      // No password required — Worker is open, TMDB token protected server-side
+      // TMDB routes are open (token protected server-side); /api/data and /api/llm require the shared password.
       const isDataPath = path.startsWith('/api/data');
-      const headers = {};
+      const headers = { ...getAuthHeaders() };
       if (options.body && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
       }
@@ -7068,7 +7068,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       renderWatchlist();
     };
 
-    function managePassword() {
+    async function managePassword() {
       const current = localStorage.getItem('brous_password');
       if (current) {
         if (confirm('Password is currently set. Clear it and enter a new one?')) {
@@ -7078,17 +7078,45 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           return;
         }
       }
-      apiPassword = prompt('Enter the shared password (matches your Worker PASSWORD secret):') || '';
-      if (apiPassword) {
-        localStorage.setItem('brous_password', apiPassword);
-        const btn = document.getElementById('pass-btn');
-        if (btn) {
-          btn.textContent = '🔐 OK';
-          btn.title = 'Password saved for this browser. Click to change or clear.';
-        }
-        alert('Password saved for this browser. Try loading Discover, Refresh Pool, or Curator again.');
-        const helpNote = document.getElementById('first-time-help');
-        if (helpNote) helpNote.style.display = 'none';
+      const entered = prompt('Enter the shared password (matches your Worker PASSWORD secret):');
+      if (!entered) return; // cancelled or empty — leave state untouched, no false "saved" message
+
+      // Verify against the live Worker before claiming success, so a typo is never silently treated as correct.
+      const base = (apiBase || DEFAULT_WORKER_URL).replace(/\/+$/, '');
+      let verifyRes;
+      try {
+        verifyRes = await fetch(base + '/api/data/check', {
+          headers: { 'Authorization': 'Basic ' + btoa('user:' + entered) },
+        });
+      } catch (err) {
+        alert('Could not reach the Worker to verify the password (network error). Not saved — try again.');
+        return;
+      }
+
+      if (verifyRes.status === 401) {
+        alert('Wrong password — the Worker rejected it. Not saved. Click 🔐 Pass to try again.');
+        return;
+      }
+      if (!verifyRes.ok) {
+        alert('Worker returned an unexpected error (status ' + verifyRes.status + ') while verifying. Password not saved.');
+        return;
+      }
+
+      apiPassword = entered;
+      localStorage.setItem('brous_password', apiPassword);
+      const btn = document.getElementById('pass-btn');
+      if (btn) {
+        btn.textContent = '🔐 OK';
+        btn.title = 'Password saved for this browser. Click to change or clear.';
+      }
+      alert('Password verified and saved for this browser. Reloading data now...');
+      const helpNote = document.getElementById('first-time-help');
+      if (helpNote) helpNote.style.display = 'none';
+      // Refresh anything that depends on auth (library sync, etc.) now that we have a valid password.
+      if (typeof syncFromServer === 'function') {
+        syncFromServer().catch(() => {});
+      } else {
+        location.reload();
       }
     }
 
