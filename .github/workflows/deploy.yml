@@ -1,0 +1,46 @@
+name: Deploy Brous Movie Engine
+
+# Auto-deploys the Pages frontend and the Worker to Cloudflare on every push to main.
+# Also runnable on demand from the Actions tab (workflow_dispatch).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Cloudflare credentials are read from GitHub repo secrets — never hardcode them here.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: bd3acf733c055218f2c2175fdf9249b7
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: deploy
+        run: npm ci || npm install
+
+      # --- Frontend (Cloudflare Pages) ---
+      # Mirrors `npm run build:pages`: stages the static files into .pages-dist,
+      # then deploys that directory to the brous-movie-engine Pages project.
+      - name: Build Pages output
+        working-directory: deploy
+        run: mkdir -p .pages-dist && cp index.html manifest.json .pages-dist/
+
+      - name: Deploy Pages frontend
+        working-directory: deploy
+        run: npx wrangler pages deploy .pages-dist --project-name brous-movie-engine --branch main --commit-dirty=true
+
+      # --- Worker (horror-roki) ---
+      # Uses deploy/wrangler.toml (name = "horror-roki"). --keep-vars preserves the
+      # secrets/vars already configured on the Worker (TMDB_TOKEN, XAI_TOKEN, PASSWORD).
+      - name: Deploy Worker
+        working-directory: deploy
+        run: npx wrangler deploy --keep-vars
