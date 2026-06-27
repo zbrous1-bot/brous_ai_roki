@@ -1,0 +1,7 @@
+name = "horror-roki"
+main = "cloudflare-worker/worker.js"
+compatibility_date = "2026-06-11"
+
+[[kv_namespaces]]
+binding = "DATA_KV"
+id = "dc0743eee387436f85af1aa92561fdda"
