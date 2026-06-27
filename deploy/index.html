@@ -1053,7 +1053,36 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.6);
       pointer-events: none;
     }
-    .why-this-btn { background: none; border: none; cursor: pointer; padding: 0; }
+    /* Match-reason chip on each rec card. Styled as a subtle inline pill so the
+       "why was this recommended" signal reads as an intentional badge rather than
+       loose text — makes the recommendation logic visible at a glance. The text
+       colour utility classes on the element (emerald / amber) still apply. */
+    .why-this-btn {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      line-height: 1.3;
+    }
+    .why-this-btn:hover { background: rgba(255,255,255,0.09); }
+
+    /* Genre filter chips: a single horizontally-scrollable row instead of wrapping to
+       multiple lines. Standard streaming-app pattern — keeps the filter to one tidy
+       line at every width and saves vertical space (especially on mobile). Chips don't
+       shrink, and the scrollbar is hidden for a clean look. */
+    .recs-chip-scroll {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .recs-chip-scroll::-webkit-scrollbar { display: none; }
+    .recs-chip-scroll > * { flex: 0 0 auto; }
     .wtw-popup {
       position: fixed;
       z-index: 500;
@@ -1569,6 +1598,14 @@
       border: 1px solid var(--border2);
       border-radius: 16px;
       margin-bottom: 20px;
+    }
+    /* On desktop the sticky header already shows the four page tabs (For You /
+       Curator / Browse / Library), so this second in-page tab bar is redundant and
+       just eats vertical space. Hide it from tablet width up; keep it on phones,
+       where it stays the large touch-friendly primary nav and the header's tiny
+       text links are the secondary affordance. */
+    @media (min-width: 768px) {
+      .main-tab-bar { display: none; }
     }
     .main-tab-btn {
       flex: 1;
@@ -2307,7 +2344,7 @@
           <span id="recs-filter-current" class="text-[11px] font-bold text-white bg-red-600/90 rounded-full px-2 py-0.5 leading-none">All</span>
           <span class="recs-filter-chevron text-zinc-400" style="font-size:11px;">▼</span>
         </button>
-        <div id="recs-genre-chips" class="flex gap-2 flex-wrap"></div>
+        <div id="recs-genre-chips" class="recs-chip-scroll flex gap-2"></div>
       </div>
 
       <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -2641,6 +2678,12 @@
 
     <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+        <!-- Backdrop banner — populated from the title's TMDB backdrop_path in openModal().
+             Hidden by default; only shown when an image is available. Gives the modal a
+             visual anchor so it reads like a real movie page. -->
+        <div id="modal-backdrop" class="relative w-full bg-cover bg-center hidden" style="aspect-ratio:16/9;border-radius:1.5rem 1.5rem 0 0;">
+          <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(24,24,27,1) 0%, rgba(24,24,27,0.35) 55%, rgba(24,24,27,0.1) 100%);border-radius:1.5rem 1.5rem 0 0;"></div>
+        </div>
         <div class="p-4 sm:p-6">
           <div class="flex justify-between items-start mb-3 sm:mb-4">
             <div class="min-w-0 pr-2">
@@ -4678,6 +4721,9 @@
       // Reset trailer wrap so a previous title's trailer never flashes before this fetch
       const trailerWrap = document.getElementById('modal-trailer-wrap');
       if (trailerWrap) { trailerWrap.style.display = 'none'; trailerWrap.innerHTML = ''; }
+      // Reset backdrop so a previous title's image never lingers
+      const backdropEl = document.getElementById('modal-backdrop');
+      if (backdropEl) { backdropEl.classList.add('hidden'); backdropEl.style.backgroundImage = ''; }
       if (addBtn && addBtn.parentElement) addBtn.parentElement.style.display = '';
 
       modal.classList.remove('hidden');
@@ -4702,6 +4748,16 @@
         genresEl.innerHTML = (detail.genres || []).map(g =>
           `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl modal-genre-chip">${g.name}</span>`
         ).join('');
+
+        // Backdrop banner — prefer the wide backdrop, fall back to the poster.
+        const bd = detail.backdrop_path
+          ? `https://image.tmdb.org/t/p/w780${detail.backdrop_path}`
+          : (detail.poster_path ? `https://image.tmdb.org/t/p/w780${detail.poster_path}` : null);
+        const backdropEl2 = document.getElementById('modal-backdrop');
+        if (backdropEl2 && bd) {
+          backdropEl2.style.backgroundImage = `url('${bd}')`;
+          backdropEl2.classList.remove('hidden');
+        }
 
         // Trailer button — fetch /videos and, if a YouTube trailer exists, show a button
         // that opens it (user-initiated; matches the To Watch list's existing trailer flow).
