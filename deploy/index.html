@@ -2595,6 +2595,35 @@
             <button id="settings-save-config" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Save Config</button>
           </div>
 
+          <!-- RECOMMENDATION TUNING -->
+          <div class="mb-4 pt-3 border-t border-zinc-800">
+            <div class="text-sm font-semibold text-zinc-200 mb-1">Recommendation tuning</div>
+            <div class="text-[11px] text-zinc-500 mb-3">Adjust how the For You ranking behaves. Changes apply on the next Recompute.</div>
+
+            <div class="mb-3">
+              <div class="flex justify-between items-baseline mb-1">
+                <label for="tune-taste" class="text-xs text-zinc-300">Personal taste vs. broad quality</label>
+                <span id="tune-taste-val" class="text-[11px] text-zinc-500"></span>
+              </div>
+              <input type="range" id="tune-taste" min="0" max="100" step="5" class="w-full accent-indigo-500">
+              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>More popular picks</span><span>More my taste</span></div>
+            </div>
+
+            <div class="mb-3">
+              <div class="flex justify-between items-baseline mb-1">
+                <label for="tune-explore" class="text-xs text-zinc-300">Serendipity (shuffle on refresh)</label>
+                <span id="tune-explore-val" class="text-[11px] text-zinc-500"></span>
+              </div>
+              <input type="range" id="tune-explore" min="0" max="100" step="5" class="w-full accent-indigo-500">
+              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>Same every time</span><span>More variety</span></div>
+            </div>
+
+            <div class="flex gap-2">
+              <button id="tune-apply" class="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Apply &amp; Recompute</button>
+              <button id="tune-reset" class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white">Reset</button>
+            </div>
+          </div>
+
           <!-- BACKUP -->
           <div class="flex gap-2 mb-2">
             <button id="settings-backup" class="flex-1 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white">Download Backup</button>
@@ -5276,10 +5305,23 @@ function setCuratorPrompt(q) {
       };
     }
 
-    // Exploration knob for scoreItem's serendipity jitter. ~0.6 keeps variety subtle:
-    // it can reorder titles whose scores are within ~0.6 of each other, but a strong
-    // taste match (genre lift alone is up to ~4) still reliably beats a weak one.
-    const EXPLORATION_STRENGTH = 0.6;
+    // ── Live-tunable ranking weights ────────────────────────────────────────────
+    // These three numbers were hardcoded; they're now driven by the sliders in
+    // Settings → Recommendation tuning and persisted to localStorage so the user can
+    // adjust ranking behaviour without editing code.
+    //   qualityBaseline : weight on the Bayesian "is this objectively well-rated" score
+    //   genreAffinity   : weight on how well a title matches the user's genre taste
+    //   exploration     : size of the random serendipity jitter (shuffle on refresh)
+    // Defaults match the shipped tuning (0.78 / 4.0 / 0.6).
+    const RECTUNE_DEFAULTS = { qualityBaseline: 0.78, genreAffinity: 4.0, exploration: 0.6 };
+    let recTune = { ...RECTUNE_DEFAULTS };
+    try {
+      const saved = JSON.parse(localStorage.getItem('roki_rec_tune') || 'null');
+      if (saved && typeof saved === 'object') recTune = { ...RECTUNE_DEFAULTS, ...saved };
+    } catch (_) {}
+    function saveRecTune() {
+      try { localStorage.setItem('roki_rec_tune', JSON.stringify(recTune)); } catch (_) {}
+    }
 
     function scoreItem(item, profile, poolStats) {
       const { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos } = profile;
@@ -5291,14 +5333,14 @@ function setCuratorPrompt(q) {
       // Tuned slightly DOWN (0.9 -> 0.78) so generically well-rated films no longer
       // out-muscle titles that actually match the user's taste — a gentle tilt toward
       // "more personal" without narrowing the (intentionally broad) candidate pool.
-      let score = bayesianRating(voteAvg, voteCount) * 0.78;
+      let score = bayesianRating(voteAvg, voteCount) * recTune.qualityBaseline;
 
       // Genre affinity — normalised so top genres give a lift, anti-genres pull down.
       // Tuned slightly UP (3.5 -> 4.0) as the other half of the taste tilt above.
       const gids = item.genre_ids || [];
       gids.forEach(gid => {
         if (genreScores[gid] != null) {
-          score += (genreScores[gid] / totalPos) * 4.0;
+          score += (genreScores[gid] / totalPos) * recTune.genreAffinity;
         }
       });
 
@@ -5336,11 +5378,11 @@ function setCuratorPrompt(q) {
 
       // Serendipity / exploration jitter — a small random nudge so successive refreshes
       // and Recompute don't return an identical frozen ordering, and near-tied titles get
-      // a fair shot at rotating into the visible top 40. EXPLORATION_STRENGTH is small
-      // relative to the genre-affinity lift (~4) so it reshuffles near-ties without ever
-      // floating a poor match above a strong one. Bump it up for more variety, down for
-      // more determinism.
-      score += (Math.random() - 0.5) * 2 * EXPLORATION_STRENGTH;
+      // a fair shot at rotating into the visible top 40. recTune.exploration is small
+      // relative to the genre-affinity lift so it reshuffles near-ties without ever
+      // floating a poor match above a strong one. Controlled by the Serendipity slider
+      // in Settings → Recommendation tuning.
+      score += (Math.random() - 0.5) * 2 * recTune.exploration;
 
       return Math.max(0.01, score);
     }
@@ -6640,6 +6682,88 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
     }
 
 // Settings (LLM config + backup + import) - simple modal using existing style
+    // Map the single 0-100 "taste" slider position onto the two underlying weights.
+    // 0 = popular-leaning (high quality weight, low genre weight); 50 = shipped defaults;
+    // 100 = taste-heavy (low quality weight, high genre weight). Linear interpolation
+    // through the default at the midpoint so the slider's centre == current behaviour.
+    function tasteSliderToWeights(pos) {
+      // pos in [0,100]
+      if (pos <= 50) {
+        const t = pos / 50; // 0..1
+        return {
+          qualityBaseline: 1.10 + (RECTUNE_DEFAULTS.qualityBaseline - 1.10) * t,
+          genreAffinity:   2.50 + (RECTUNE_DEFAULTS.genreAffinity   - 2.50) * t,
+        };
+      } else {
+        const t = (pos - 50) / 50; // 0..1
+        return {
+          qualityBaseline: RECTUNE_DEFAULTS.qualityBaseline + (0.45 - RECTUNE_DEFAULTS.qualityBaseline) * t,
+          genreAffinity:   RECTUNE_DEFAULTS.genreAffinity   + (6.00 - RECTUNE_DEFAULTS.genreAffinity)   * t,
+        };
+      }
+    }
+    // Inverse: recover the closest slider position from stored weights (for re-opening
+    // the panel). Uses genreAffinity as the reference axis since it's monotonic in pos.
+    function weightsToTasteSlider() {
+      const g = recTune.genreAffinity;
+      if (g <= RECTUNE_DEFAULTS.genreAffinity) {
+        return Math.round(((g - 2.50) / (RECTUNE_DEFAULTS.genreAffinity - 2.50)) * 50);
+      }
+      return Math.round(50 + ((g - RECTUNE_DEFAULTS.genreAffinity) / (6.00 - RECTUNE_DEFAULTS.genreAffinity)) * 50);
+    }
+    // Serendipity slider 0-100 <-> exploration 0..1.5
+    function exploreSliderToVal(pos) { return (pos / 100) * 1.5; }
+    function exploreValToSlider() { return Math.round((recTune.exploration / 1.5) * 100); }
+
+    function initRecTuneSliders() {
+      const tasteEl = document.getElementById('tune-taste');
+      const exploreEl = document.getElementById('tune-explore');
+      const tasteVal = document.getElementById('tune-taste-val');
+      const exploreVal = document.getElementById('tune-explore-val');
+      const applyBtn = document.getElementById('tune-apply');
+      const resetBtn = document.getElementById('tune-reset');
+      if (!tasteEl || !exploreEl) return;
+
+      const tasteLabel = (pos) => pos < 33 ? 'Popular-leaning' : pos > 66 ? 'Taste-heavy' : 'Balanced';
+      const exploreLabel = (pos) => pos < 20 ? 'Stable' : pos > 70 ? 'High variety' : 'Some variety';
+
+      // Initialise positions from current (possibly saved) weights
+      tasteEl.value = Math.max(0, Math.min(100, weightsToTasteSlider()));
+      exploreEl.value = Math.max(0, Math.min(100, exploreValToSlider()));
+      const refreshLabels = () => {
+        if (tasteVal) tasteVal.textContent = tasteLabel(+tasteEl.value);
+        if (exploreVal) exploreVal.textContent = exploreLabel(+exploreEl.value);
+      };
+      refreshLabels();
+      tasteEl.oninput = refreshLabels;
+      exploreEl.oninput = refreshLabels;
+
+      if (applyBtn) applyBtn.onclick = () => {
+        const w = tasteSliderToWeights(+tasteEl.value);
+        recTune.qualityBaseline = w.qualityBaseline;
+        recTune.genreAffinity = w.genreAffinity;
+        recTune.exploration = exploreSliderToVal(+exploreEl.value);
+        saveRecTune();
+        try { showToast('Recommendation tuning applied'); } catch (_) {}
+        document.getElementById('settings-modal').classList.add('hidden');
+        // Re-rank the existing pool in place if we have one; otherwise a fresh fetch.
+        if (typeof currentRecPool !== 'undefined' && currentRecPool && currentRecPool.length) {
+          recomputeRecommendations();
+        } else if (typeof refreshRecPool === 'function') {
+          refreshRecPool();
+        }
+      };
+
+      if (resetBtn) resetBtn.onclick = () => {
+        recTune = { ...RECTUNE_DEFAULTS };
+        saveRecTune();
+        tasteEl.value = weightsToTasteSlider();
+        exploreEl.value = exploreValToSlider();
+        refreshLabels();
+        try { showToast('Tuning reset to defaults'); } catch (_) {}
+      };
+    }
+
     function showSettings() {
       const modal = document.getElementById('settings-modal');
       if (!modal) return;
@@ -6689,6 +6813,12 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig));
         setCloudStatus('\u2713 Config saved', '#4ade80');
       };
+
+      // ── Recommendation tuning sliders ──
+      // The "taste" slider (0-100) drives BOTH quality baseline and genre affinity on a
+      // single axis: sliding toward "my taste" lowers the quality weight and raises the
+      // genre weight, and vice-versa. The "serendipity" slider drives the jitter size.
+      initRecTuneSliders();
 
       // Download Backup
       const backupBtn = document.getElementById('settings-backup');
