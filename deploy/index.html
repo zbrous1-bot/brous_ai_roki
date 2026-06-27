@@ -4011,6 +4011,7 @@
     // Data shape is the same as the existing backup JSON.
 
     let _syncTimeout = null;
+    let _lastServerSyncedAt = null; // server's synced_at as of our last successful pull — used to detect stale writes
 
     // Always use the Worker URL directly for data sync — pages.dev has no /api/* route binding.
     const SYNC_URL = 'https://horror-roki.zbrous1.workers.dev';
@@ -4019,28 +4020,73 @@
       const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } };
       if (options.body) fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
       const res = await fetch(SYNC_URL + path, fetchOptions);
-      if (!res.ok && res.status !== 404) throw new Error('Sync error ' + res.status);
+      if (!res.ok && res.status !== 404) {
+        const err = new Error('Sync error ' + res.status);
+        err.status = res.status;
+        throw err;
+      }
       return res.json();
     }
 
-    async function pushToServer(immediate = false) {
-      const payload = {
-        watched: watchedList,
-        to_watch: toWatchList,
-        disliked: dislikedList,
-        not_interested: notInterestedList,
-        chat_history: chatHistory.slice(-30),
-        llm_config: llmConfig,
-        synced_at: new Date().toISOString()
-      };
-      const doPush = async () => {
+    // Union-merge two item lists by id+mediaType, preferring the local copy on
+    // overlap (local edits like rating/notes are assumed more recent than whatever
+    // the server has, since this merge only runs right after a losing race).
+    function _mergeItemLists(localList, serverList) {
+      const key = w => `${w.id}:${w._mediaType || 'movie'}`;
+      const merged = new Map((serverList || []).map(w => [key(w), w]));
+      for (const item of (localList || [])) merged.set(key(item), item);
+      return Array.from(merged.values());
+    }
+
+    async function pushToServer(immediate = false, force = false) {
+      const doPush = async (retried = false) => {
+        // Build the payload fresh on each attempt so a retry after a merge reflects
+        // base_synced_at and list contents as of right now, not whatever was queued first.
+        const payload = {
+          watched: watchedList,
+          to_watch: toWatchList,
+          disliked: dislikedList,
+          not_interested: notInterestedList,
+          chat_history: chatHistory.slice(-30),
+          llm_config: llmConfig,
+          synced_at: new Date().toISOString(),
+          base_synced_at: _lastServerSyncedAt // server version we last pulled — lets the Worker detect conflicts
+        };
         try {
-          const r = await _dataFetch('/api/data', { method: 'POST', body: payload });
+          const path = force ? '/api/data?force=1' : '/api/data';
+          const r = await _dataFetch(path, { method: 'POST', body: payload });
+          _lastServerSyncedAt = r.saved_at || payload.synced_at;
           console.log('[Brous] Cloud save OK:', r);
           setSyncLabel('✓ Saved', '#4ade80');
         } catch (e) {
+          if (e.status === 409 && !retried) {
+            // Someone else saved since we last pulled (e.g. another device). Pull their
+            // version, union-merge it with our current in-memory lists by item id so
+            // neither side's additions are lost, then retry the push once.
+            console.warn('[Brous] Stale write detected, merging with server before retry...');
+            try {
+              const serverData = await _dataFetch('/api/data');
+              if (serverData && typeof serverData === 'object') {
+                watchedList = _mergeItemLists(watchedList, serverData.watched);
+                toWatchList = _mergeItemLists(toWatchList, serverData.to_watch);
+                dislikedList = _mergeItemLists(dislikedList, serverData.disliked);
+                notInterestedList = _mergeItemLists(notInterestedList, serverData.not_interested);
+                localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+                localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+                localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+                localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
+                watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
+                if (serverData.synced_at) _lastServerSyncedAt = serverData.synced_at;
+                updateAllLibraryRenders(); renderPersonalStats();
+              }
+            } catch (mergeErr) {
+              console.warn('[Brous] Merge pull failed:', mergeErr.message);
+            }
+            await doPush(true);
+            return;
+          }
           console.warn('[Brous] Cloud save failed:', e.message);
-          setSyncLabel('Save failed', '#f87171');
+          setSyncLabel(e.status === 409 ? 'Conflict — reload' : 'Save failed', '#f87171');
         }
       };
       if (immediate) { await doPush(); }
@@ -4051,6 +4097,7 @@
       try {
         const serverData = await _dataFetch('/api/data');
         if (!serverData || typeof serverData !== 'object') return null;
+        if (serverData.synced_at) _lastServerSyncedAt = serverData.synced_at;
         let changed = false;
         if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
         if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
@@ -4087,12 +4134,26 @@
       if (icon) { icon.style.animation = 'spin 1s linear infinite'; }
       setSyncLabel('Syncing...', '#fbbf24');
       try {
-        await pushToServer(true);
+        // Pull remote changes first and merge them into our local lists, then push.
+        // This way a manual sync picks up edits made on other devices instead of
+        // always overwriting them — pushToServer's own 409 handling is a backstop
+        // for the rare race where another device saves in between these two calls.
+        const before = { watchedList: [...watchedList], toWatchList: [...toWatchList], dislikedList: [...dislikedList], notInterestedList: [...notInterestedList] };
         const result = await syncFromServer();
         if (!result) {
           // syncFromServer returned null — KV not bound or Worker not configured
           setSyncLabel('No KV — use Transfer ↑', '#f87171');
           setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
+        } else {
+          // Merge back in any local-only items the pull would otherwise have dropped
+          // (e.g. something added in the brief window before this sync ran).
+          watchedList = _mergeItemLists(before.watchedList, watchedList);
+          toWatchList = _mergeItemLists(before.toWatchList, toWatchList);
+          dislikedList = _mergeItemLists(before.dislikedList, dislikedList);
+          notInterestedList = _mergeItemLists(before.notInterestedList, notInterestedList);
+          watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
+          updateAllLibraryRenders(); renderPersonalStats();
+          await pushToServer(true);
         }
       } catch(e) {
         setSyncLabel('Failed — use Transfer ↑', '#f87171');
@@ -6824,7 +6885,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         try { updateAllLibraryRenders(); } catch(e) { console.warn('[Transfer] render error:', e); }
         try { renderPersonalStats(); } catch(e) { console.warn('[Transfer] stats error:', e); }
         try { if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot(); } catch(e) { console.warn('[Transfer] home snapshot error:', e); }
-        try { await pushToServer(true); } catch(e) { console.warn('[Transfer] cloud save error:', e); }
+        try { await pushToServer(true, true); } catch(e) { console.warn('[Transfer] cloud save error:', e); }
 
         setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
 
@@ -6887,7 +6948,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
           if (typeof renderPersonalStats === 'function') renderPersonalStats();
           if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
-          await pushToServer(true);
+          await pushToServer(true, true);
           setStatus(`✓ Loaded ${count} titles!`, '#4ade80');
           // Clean URL
           const clean = new URL(window.location.href);

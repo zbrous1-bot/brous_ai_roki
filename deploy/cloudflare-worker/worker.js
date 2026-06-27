@@ -180,10 +180,11 @@ export default {
     }
 
     // === 4. Server side Data Sync ===
-    // GET  /api/data        load the shared library
-    // POST /api/data        save the shared library
-    // GET  /api/data/check  check whether shared data exists
-    if (pathname === '/api/data' || pathname === '/api/data/check') {
+    // GET  /api/data         load the shared library
+    // POST /api/data         save the shared library
+    // GET  /api/data/check   check whether shared data exists
+    // GET  /api/data/backup  recover the previous snapshot
+    if (pathname === '/api/data' || pathname === '/api/data/check' || pathname === '/api/data/backup') {
       if (env.PASSWORD && !isAuthenticated(request, env)) {
         return jsonError('Unauthorized (wrong or missing password)', 401, request);
       }
@@ -202,6 +203,17 @@ export default {
         return jsonResponse({ exists: true, saved_at: meta.saved_at, count: meta.count }, 200, request);
       }
 
+      // GET /api/data/backup — recover the previous snapshot (the version that existed
+      // right before the most recent save). Manual disaster-recovery escape hatch.
+      if (pathname === '/api/data/backup') {
+        if (request.method !== 'GET') {
+          return jsonError('Method not allowed (use GET)', 405, request);
+        }
+        const backup = await env.DATA_KV.get(DATA_KEY + '_backup', { type: 'json' });
+        if (!backup) return jsonResponse({ exists: false }, 200, request);
+        return jsonResponse(backup, 200, request);
+      }
+
       if (request.method === 'GET') {
         const data = await env.DATA_KV.get(DATA_KEY, { type: 'json' }) || {};
         return jsonResponse(data, 200, request);
@@ -212,6 +224,37 @@ export default {
         try { payload = await request.json(); } catch (e) {
           return jsonError('Invalid JSON payload', 400, request);
         }
+
+        // Stale-write guard (optimistic concurrency): the client must tell us which
+        // server version it last pulled, via base_synced_at. If the server's current
+        // saved_at doesn't match, someone else has written since this client last synced
+        // — reject so we don't silently clobber those changes. Pass ?force=1 to bypass
+        // (used for explicit user-initiated overwrite actions, e.g. first-time setup).
+        const force = url.searchParams.get('force') === '1';
+        if (!force) {
+          const existingMeta = await env.DATA_KV.get(DATA_KEY + '_meta', { type: 'json' });
+          if (existingMeta && existingMeta.saved_at) {
+            if (payload.base_synced_at !== existingMeta.saved_at) {
+              return jsonError(
+                'Stale write rejected: server data has changed since this client last synced. Pull the latest data and retry.',
+                409,
+                request
+              );
+            }
+          }
+        }
+
+        // Snapshot the current value as a backup before overwriting, so a bad/partial
+        // push is always recoverable. Best-effort — never blocks the save.
+        try {
+          const previous = await env.DATA_KV.get(DATA_KEY);
+          if (previous) {
+            await env.DATA_KV.put(DATA_KEY + '_backup', previous);
+          }
+        } catch (e) {
+          // Backup failure should never block a save.
+        }
+
         const count = (payload.watched||[]).length + (payload.to_watch||[]).length;
         const saved_at = new Date().toISOString();
         await env.DATA_KV.put(DATA_KEY, JSON.stringify(payload));
