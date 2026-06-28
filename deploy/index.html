@@ -2348,10 +2348,9 @@
           <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">All</button>
           <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">🎬 Movies</button>
           <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">📺 TV</button>
-          <button onclick="toggleTasteDropdown(event)" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500 ml-auto" title="Filter recommendations by genre">
-            <span id="rec-genre-filter-label">Genre: All</span> ▾
-          </button>
         </div>
+        <!-- Genre filtering lives in the Taste Profile card's dropdown (single source).
+             #recs-genre-chips kept (hidden) for renderRecGenreChips()/recompute references. -->
         <div id="recs-genre-chips" class="hidden"></div>
       </div>
 
