@@ -3972,6 +3972,28 @@
       }
     }
 
+    // Build a best-effort DIRECT Rotten Tomatoes movie/TV URL instead of a search page.
+    // RT has no public API or stable ID in TMDB data, but its pages follow a predictable
+    // slug pattern: rottentomatoes.com/m/<title-slugified> (movies) and /tv/<slug> (TV).
+    // Slugify = lowercase, strip punctuation, spaces→underscores. This lands directly on
+    // the title page for the large majority of films; for the misses (year-suffixed slugs,
+    // remakes) RT's own 404 page redirects to a search for the slug, so it degrades
+    // gracefully rather than dead-ending.
+    function rtSlug(title) {
+      return (title || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/['’.]/g, '')            // drop apostrophes / periods (don't → dont)
+        .replace(/[^a-z0-9]+/g, '_')      // any other run of non-alphanumerics → underscore
+        .replace(/^_+|_+$/g, '');         // trim leading/trailing underscores
+    }
+    function rtUrl(title, mediaType = 'movie') {
+      const slug = rtSlug(title);
+      if (!slug) return 'https://www.rottentomatoes.com/';
+      const path = mediaType === 'tv' ? 'tv' : 'm';
+      return `https://www.rottentomatoes.com/${path}/${slug}`;
+    }
+
     function posterHtml(item, size = 'w92') {
       if (!item || !item.poster_path) {
         return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
@@ -5244,7 +5266,7 @@ function setCuratorPrompt(q) {
                       <span>IMDb</span>
                     </a>
                   ` : ''}
-                  <a href="https://www.rottentomatoes.com/search?search=${encodeURIComponent(title + (year ? ' ' + year : ''))}" 
+                  <a href="${rtUrl(title, m._mediaType || currentSearchType)}"
                      target="_blank" rel="noopener"
                      class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-95">
                     <span>RT</span>
@@ -6102,7 +6124,7 @@ function setCuratorPrompt(q) {
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
-        const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
+        const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
@@ -6259,7 +6281,7 @@ function setCuratorPrompt(q) {
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
-        const rtSearchUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}`;
+        const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
@@ -6745,7 +6767,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             : `<div class="w-24 h-36 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl text-zinc-500">📽️</div>`;
           const pYear = p.year || '';
           const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;
-          const rtUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(p.title)}`;
+          const rtHref = rtUrl(p.title, p._mediaType || 'movie');
           const voteStr = p.vote ? `<span class="text-[11px] text-amber-400/90 font-semibold">${p.vote.toFixed(1)}★</span>` : '';
           const yearStr = pYear ? `<span class="text-[11px] text-zinc-500">${pYear}</span>` : '';
           row.innerHTML = `
@@ -6759,7 +6781,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
                      class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
                     <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
                   </a>
-                  <a href="${rtUrl}" target="_blank" rel="noopener"
+                  <a href="${rtHref}" target="_blank" rel="noopener"
                      class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
                     🍅 RT
                   </a>
