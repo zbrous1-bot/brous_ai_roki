@@ -2338,6 +2338,13 @@
 
       <!-- Genre filter for recommendations (collapsible on mobile) -->
       <div id="recs-filter-wrap" class="recs-filter-collapsed mb-3">
+        <!-- Media-type toggle: All / Movies / TV. Filters the rec pool by each item's
+             _mediaType. Sits above the genre chips and combines with the genre filter. -->
+        <div class="flex gap-2 mb-2">
+          <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">All</button>
+          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">🎬 Movies</button>
+          <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">📺 TV</button>
+        </div>
         <button onclick="toggleRecsGenreFilter()" class="recs-filter-toggle items-center gap-2" style="display:none;background:none;border:none;padding:0 0 8px;cursor:pointer;">
           <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Genre</span>
           <span id="recs-filter-current" class="text-[11px] font-bold text-white bg-red-600/90 rounded-full px-2 py-0.5 leading-none">All</span>
@@ -5597,6 +5604,20 @@ function setCuratorPrompt(q) {
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
 
     let recGenreFilter = null; // null = All, otherwise a genre id (number)
+    let recMediaFilter = 'all'; // 'all' | 'movie' | 'tv' — filters For You recs by media type
+
+    function setRecMediaFilter(val) {
+      recMediaFilter = val;
+      // Update the toggle buttons' active styling
+      ['all', 'movie', 'tv'].forEach(v => {
+        const b = document.getElementById('rec-media-' + v);
+        if (b) {
+          const active = v === val;
+          b.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${active ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+        }
+      });
+      recomputeRecommendations();
+    }
 
     function renderRecGenreChips() {
       const wrap = document.getElementById('recs-genre-chips');
@@ -6178,11 +6199,16 @@ function setCuratorPrompt(q) {
       if (recGenreFilter !== null) {
         scored = scored.filter(it => (it.genre_ids || []).includes(recGenreFilter));
       }
+      // Media-type filter (All / Movies / TV) using each item's _mediaType tag
+      if (recMediaFilter !== 'all') {
+        scored = scored.filter(it => (it._mediaType || 'movie') === recMediaFilter);
+      }
       if (!scored.length) {
+        const mediaHint = recMediaFilter === 'tv' ? 'No TV shows in the current pool. ' : recMediaFilter === 'movie' ? 'No movies in the current pool. ' : '';
         grid.innerHTML = `<div class="empty-state col-span-full">
           <span class="empty-state-icon">🎬</span>
           <div class="text-zinc-300 font-medium">This pool is tapped out</div>
-          <div class="text-zinc-500 text-xs mt-1">Use More Recs to search deeper pages and less obvious titles.</div>
+          <div class="text-zinc-500 text-xs mt-1">${mediaHint}Use More Recs to search deeper pages and less obvious titles.</div>
         </div>`;
         return;
       }
