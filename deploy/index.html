@@ -2336,21 +2336,23 @@
         </div>
       </div>
 
-      <!-- Genre filter for recommendations (collapsible on mobile) -->
-      <div id="recs-filter-wrap" class="recs-filter-collapsed mb-3">
-        <!-- Media-type toggle: All / Movies / TV. Filters the rec pool by each item's
-             _mediaType. Sits above the genre chips and combines with the genre filter. -->
-        <div class="flex gap-2 mb-2">
+      <!-- Recommendation filters. The inline genre chips were removed to avoid duplicating
+           the genre filter in the Taste Profile dropdown ("Filter Recommendations by
+           Genre") — that dropdown is now the single home for genre filtering. The
+           Movies/TV toggle stays here, visible, since it's toggled frequently.
+           #recs-genre-chips is kept (hidden) because renderRecGenreChips() and
+           recomputeRecommendations() still reference it; the dropdown drives the actual
+           genre state via recGenreFilter. -->
+      <div id="recs-filter-wrap" class="mb-3">
+        <div class="flex items-center gap-2 flex-wrap">
           <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">All</button>
           <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">🎬 Movies</button>
           <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">📺 TV</button>
+          <button onclick="toggleTasteDropdown(event)" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500 ml-auto" title="Filter recommendations by genre">
+            <span id="rec-genre-filter-label">Genre: All</span> ▾
+          </button>
         </div>
-        <button onclick="toggleRecsGenreFilter()" class="recs-filter-toggle items-center gap-2" style="display:none;background:none;border:none;padding:0 0 8px;cursor:pointer;">
-          <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Genre</span>
-          <span id="recs-filter-current" class="text-[11px] font-bold text-white bg-red-600/90 rounded-full px-2 py-0.5 leading-none">All</span>
-          <span class="recs-filter-chevron text-zinc-400" style="font-size:11px;">▼</span>
-        </button>
-        <div id="recs-genre-chips" class="recs-chip-scroll flex gap-2"></div>
+        <div id="recs-genre-chips" class="hidden"></div>
       </div>
 
       <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -3943,6 +3945,7 @@
       allBtn.onclick = () => {
         recGenreFilter = null;
         renderRecGenreChips();
+        updateRecGenreLabel();
         recomputeRecommendations();
         switchMainTab('foryou');
         closeTasteDropdown();
@@ -3957,6 +3960,7 @@
         btn.onclick = () => {
           recGenreFilter = recGenreFilter === g.id ? null : g.id;
           renderRecGenreChips();
+          updateRecGenreLabel();
           recomputeRecommendations();
           switchMainTab('foryou');
           closeTasteDropdown();
@@ -5606,6 +5610,15 @@ function setCuratorPrompt(q) {
     let recGenreFilter = null; // null = All, otherwise a genre id (number)
     let recMediaFilter = 'all'; // 'all' | 'movie' | 'tv' — filters For You recs by media type
 
+    // Keep the inline "Genre: X ▾" button label in sync with the dropdown's selection.
+    function updateRecGenreLabel() {
+      const el = document.getElementById('rec-genre-filter-label');
+      if (!el) return;
+      if (recGenreFilter === null) { el.textContent = 'Genre: All'; return; }
+      const g = (typeof GENRES !== 'undefined') ? GENRES.find(x => x.id === recGenreFilter) : null;
+      el.textContent = 'Genre: ' + (g ? g.name : '…');
+    }
+
     function setRecMediaFilter(val) {
       recMediaFilter = val;
       // Update the toggle buttons' active styling
@@ -5648,6 +5661,8 @@ function setCuratorPrompt(q) {
         const active = GENRES.find(g => g.id === recGenreFilter);
         label.textContent = active ? active.name : 'All';
       }
+      // Keep the inline "Genre: X ▾" button in sync as well
+      updateRecGenreLabel();
     }
 
     function toggleRecsGenreFilter() {
