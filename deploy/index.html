@@ -2331,6 +2331,8 @@
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">More Recs</button>
           <button onclick="surpriseMe()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-amber-400 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn" title="Pick something outside your usual genres">🎲 Surprise Me</button>
+          <button onclick="loadFoundFootage()"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn" title="Load found-footage films (Blair Witch, [REC], Cloverfield…)">🎥 Found Footage</button>
           <button onclick="recomputeRecommendations()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Recompute</button>
         </div>
@@ -6081,6 +6083,69 @@ function setCuratorPrompt(q) {
 
     async function loadMoreRecommendations() {
       await refreshRecPool({ append: true });
+    }
+
+    // Load a dedicated Found Footage pool. Found footage is a TMDB *keyword*, not a genre,
+    // so the existing genre chips can't surface it — items in the normal pool don't carry
+    // the tag. Instead we fetch films tagged with the found-footage keywords directly,
+    // replace the rec pool with them, and reuse recomputeRecommendations() so they get
+    // scored by the user's taste and rendered with all the normal card wiring.
+    // Keywords: 163053 found footage · 342857 found footage horror · 340385 found footage story.
+    let _foundFootageLoading = false;
+    async function loadFoundFootage() {
+      if (_foundFootageLoading) return;
+      _foundFootageLoading = true;
+      const grid = document.getElementById('recs-grid');
+      const empty = document.getElementById('recs-empty');
+      if (empty) empty.classList.add('hidden');
+      if (grid) { grid.innerHTML = ''; showSkeletons('recs-grid', 8); }
+      try {
+        const kw = '163053|342857|340385';
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=50&sort_by=popularity.desc`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=20&sort_by=popularity.desc`;
+        const urls = [
+          { url: `${base}&page=1`, type: 'movie' },
+          { url: `${base}&page=2`, type: 'movie' },
+          { url: `${base}&page=3`, type: 'movie' },
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, type: 'movie' },
+          { url: `${tvBase}&page=1`, type: 'tv' },
+        ];
+        let raw = [];
+        for (const { url, type } of urls) {
+          try { const d = await apiFetch(url); raw = raw.concat((d.results || []).map(r => ({ ...r, _mediaType: type }))); } catch (_) {}
+        }
+        // Dedupe by id:mediaType, tag with a reason, drop animation + excluded items.
+        const excluded = getExcludedKeys();
+        const seen = new Set();
+        const mapped = [];
+        for (const r of raw) {
+          const mt = r._mediaType || 'movie';
+          const key = `${r.id}:${mt}`;
+          if (seen.has(key) || excluded.has(key)) continue;
+          if (!r.poster_path || (r.genre_ids || []).includes(16)) continue;
+          seen.add(key);
+          mapped.push({
+            id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,
+            poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || '') : (r.release_date || ''),
+            vote_average: r.vote_average, vote_count: r.vote_count || 0,
+            genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
+            _affinityReason: '🎥 Found footage', _affinityBoost: 0
+          });
+        }
+        if (!mapped.length) {
+          if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🎥</span><div class="text-zinc-300 font-medium">No found-footage titles loaded</div><div class="text-zinc-500 text-xs mt-1">Check the 🔐 Pass button or your connection.</div></div>`;
+          return;
+        }
+        currentRecPool = mapped;
+        recGenreFilter = null;      // found-footage pool spans many genres; don't pre-filter
+        recMediaFilter = 'all';
+        setRecMediaFilter('all');   // resets toggle styling + triggers recompute/render
+        showToast(`Found footage: ${mapped.length} titles`);
+      } catch (e) {
+        if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">⚠️</span><div class="text-zinc-300 font-medium">Couldn't load found footage</div></div>`;
+      } finally {
+        _foundFootageLoading = false;
+      }
     }
 
     function surpriseMe() {
