@@ -2949,7 +2949,11 @@
     const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
     // Always use the Worker URL directly. Clear any stale overrides from localStorage.
     localStorage.removeItem('brous_api_base');
-    localStorage.removeItem('brous_password');
+    // NOTE: do NOT remove 'brous_password' here. This line previously wiped the saved
+    // password on every page load — the password was read into apiPassword above (line
+    // ~2943) and then immediately deleted from storage, so it never survived a reload.
+    // That silently broke cloud sync (every save/load 401'd) and caused devices to drift
+    // apart. The password must persist across loads for sync to work.
     let apiBase = DEFAULT_WORKER_URL;
     localStorage.removeItem('brous_cloud_pin');
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
