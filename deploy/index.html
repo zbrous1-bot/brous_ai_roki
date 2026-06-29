@@ -4167,7 +4167,7 @@
     }
 
     async function pushToServer(immediate = false, force = false) {
-      const doPush = async (retried = false) => {
+      const doPush = async (retried = false, forceThisAttempt = force) => {
         // Build the payload fresh on each attempt so a retry after a merge reflects
         // base_synced_at and list contents as of right now, not whatever was queued first.
         const payload = {
@@ -4181,7 +4181,7 @@
           base_synced_at: _lastServerSyncedAt // server version we last pulled — lets the Worker detect conflicts
         };
         try {
-          const path = force ? '/api/data?force=1' : '/api/data';
+          const path = forceThisAttempt ? '/api/data?force=1' : '/api/data';
           const r = await _dataFetch(path, { method: 'POST', body: payload });
           _lastServerSyncedAt = r.saved_at || payload.synced_at;
           console.log('[Brous] Cloud save OK:', r);
@@ -4210,7 +4210,12 @@
             } catch (mergeErr) {
               console.warn('[Brous] Merge pull failed:', mergeErr.message);
             }
-            await doPush(true);
+            // Retry as a FORCE write. We've just pulled + union-merged the server's copy
+            // into our lists, so nothing is lost — but the plain retry kept 409'ing because
+            // the GET payload's synced_at doesn't equal the server's authoritative saved_at
+            // (the value the conflict guard checks), so base_synced_at never matched. Forcing
+            // the reconciled write resolves the conflict cleanly instead of dead-ending.
+            await doPush(true, true);
             return;
           }
           console.warn('[Brous] Cloud save failed:', e.message);
