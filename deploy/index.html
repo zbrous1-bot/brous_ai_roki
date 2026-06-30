@@ -4267,6 +4267,17 @@
     }
 
     async function syncFromServer() {
+      // If a local edit is mid-flight to the server (debounced or already sending),
+      // flush it first. Otherwise this pull's GET can land on the server's pre-edit
+      // copy and blind-overwrite the in-memory lists with it — e.g. remove a title
+      // from To Watch, then the periodic auto-sync (650ms after page load) pulls the
+      // not-yet-saved server copy back over it and the removal silently reappears
+      // (and then gets re-pushed, undoing the removal on the server too).
+      if (_syncTimeout || _pushInFlight) {
+        clearTimeout(_syncTimeout);
+        _syncTimeout = null;
+        try { await pushToServer(true); } catch (e) {}
+      }
       try {
         const serverData = await _dataFetch('/api/data');
         if (!serverData || typeof serverData !== 'object') return null;
