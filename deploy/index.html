@@ -2324,7 +2324,7 @@
           <div class="font-semibold text-[15px] text-zinc-100 tracking-tight recs-section-header">Recommended for you</div>
           <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 recs-chip-scroll">
           <button onclick="refreshRecPool()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Refresh Pool</button>
           <button onclick="loadMoreRecommendations()"
@@ -3144,7 +3144,9 @@
       if (!isMobile) return;
 
       const items = container.querySelectorAll('.library-item');
-      items.forEach((item, index) => {
+      items.forEach((item) => {
+        const itemId = Number(item.dataset.id);
+        const mediaType = item.dataset.mediaType || 'movie';
         let startX = 0;
         let startY = 0;
         let currentX = 0;
@@ -3192,14 +3194,14 @@
             item.style.transform = 'translateX(100%)';
             item.style.opacity = '0';
             setTimeout(() => {
-              handleSwipeRight(listType, index, item);
+              handleSwipeRight(listType, itemId, mediaType, item);
             }, 180);
           } else if (currentX < -threshold) {
             item.style.transition = 'transform 0.2s, opacity 0.2s';
             item.style.transform = 'translateX(-100%)';
             item.style.opacity = '0';
             setTimeout(() => {
-              handleSwipeLeft(listType, index, item);
+              handleSwipeLeft(listType, itemId, mediaType, item);
             }, 180);
           } else {
             // reset
@@ -3217,15 +3219,15 @@
       });
     }
 
-    function handleSwipeRight(listType, index, itemEl) {
+    function handleSwipeRight(listType, id, mediaType, itemEl) {
       if (listType === 'towatch') {
-        markWatchedFromToWatch(index);
+        markWatchedFromToWatch(id, mediaType);
       } else if (listType === 'disliked') {
-        // move disliked back to to watch
-        const item = dislikedList[index];
+        // move disliked back to to watch — addressed by id, immune to re-sort/re-filter
+        const item = dislikedList.find(d => d.id === id && (d._mediaType || 'movie') === mediaType);
         if (item) {
           toWatchList.unshift(item);
-          dislikedList.splice(index, 1);
+          dislikedList = dislikedList.filter(d => d !== item);
           saveToWatch();
           saveDisliked();
           showToast('Moved to To Watch');
@@ -3236,15 +3238,15 @@
       }
     }
 
-    function handleSwipeLeft(listType, index, itemEl) {
+    function handleSwipeLeft(listType, id, mediaType, itemEl) {
       if (listType === 'towatch') {
-        dislikeFromToWatch(index);
+        dislikeFromToWatch(id, mediaType);
       } else if (listType === 'watched') {
-        // from watched to disliked
-        const item = watchedList[index];
+        // from watched to disliked — addressed by id, immune to re-sort/re-filter
+        const item = watchedList.find(w => w.id === id && (w._mediaType || 'movie') === mediaType);
         if (item) {
           dislikedList.unshift(item);
-          watchedList.splice(index, 1);
+          watchedList = watchedList.filter(w => w !== item);
           saveWatched();
           saveDisliked();
           showToast('Moved to Disliked');
@@ -4390,24 +4392,25 @@
         return;
       }
       // Filter + sort across the WHOLE queue, then cap for rendering. Each rendered
-      // item keeps a reference to its index in the original toWatchList so the Rate /
-      // Dislike actions (which take an original-list index) stay correct after sorting.
-      const view = applyLibraryView(toWatchList.map((item, idx) => ({ item, idx })));
+      // row is addressed by item id + media type (not array index), so it stays
+      // correct after sorting/searching and after concurrent swipe/click actions.
+      const view = applyLibraryView(toWatchList);
       if (!view.length) {
         c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your queue</div></div>`;
         return;
       }
       const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      shown.forEach(({ item, idx }) => {
+      shown.forEach(item => {
+        const mediaType = item._mediaType || 'movie';
         const year = (item.release_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled');
         const posterImg = item.poster_path
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
-        html += `<div class="library-item library-item-v2 library-card" data-tw-idx="${idx}" style="position:relative;">
-          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" aria-label="Remove ${itemTitleSafe} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
+        html += `<div class="library-item library-item-v2 library-card" data-id="${item.id}" data-media-type="${mediaType}" style="position:relative;">
+          <button onclick="removeFromToWatch(${item.id}, '${mediaType}')" aria-label="Remove ${itemTitleSafe} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
             <div class="lib-title" style="padding-right:18px;">${itemTitleSafe}</div>
@@ -4416,9 +4419,9 @@
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
             <div class="lib-actions">
-              <button onclick="markWatchedFromToWatch(${idx})" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">Rate</button>
+              <button onclick="markWatchedFromToWatch(${item.id}, '${mediaType}')" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">Rate</button>
               <button id="tw-trailer-${item.id}" class="border border-zinc-700 text-zinc-600 hidden">▶</button>
-              <button onclick="dislikeFromToWatch(${idx})" class="border border-zinc-700 text-zinc-400">👎</button>
+              <button onclick="dislikeFromToWatch(${item.id}, '${mediaType}')" class="border border-zinc-700 text-zinc-400">👎</button>
             </div>
           </div>
         </div>`;
@@ -4427,7 +4430,7 @@
       c.innerHTML = html;
 
       // Async: fetch trailers for each visible To Watch item and show button if found
-      shown.map(s => s.item).forEach(item => {
+      shown.forEach(item => {
         const mediaPath = (item._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
         apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/videos`).then(vdata => {
           const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
@@ -4445,7 +4448,7 @@
 
       // Make poster area clickable to open detail modal
       const toWatchRows = c.querySelectorAll('.library-item');
-      shown.map(s => s.item).forEach((item, i) => {
+      shown.forEach((item, i) => {
         if (i >= toWatchRows.length) return;
         const posterEl = toWatchRows[i].querySelector('.lib-poster');
         if (posterEl && item) {
@@ -4534,14 +4537,13 @@
       setTimeout(() => document.addEventListener('pointerdown', outsideHandler, true), 0);
     }
 
-    function markWatchedFromToWatch(idx) {
-      const item = toWatchList[idx];
+    function markWatchedFromToWatch(id, mediaType = 'movie') {
+      const item = toWatchList.find(x => x.id === id && (x._mediaType || 'movie') === mediaType);
       if (!item) return;
       const container = document.getElementById('to-watch-content');
-      // Look up the row by its data-tw-idx (the item's index in the original toWatchList),
-      // not by DOM position — when search/sort is active, rendered order no longer matches
-      // toWatchList order, so container.children[idx] could grab a different title's row.
-      const row = container ? container.querySelector(`[data-tw-idx="${idx}"]`) : null;
+      // Look up the row by item id (not DOM position or array index) — works
+      // correctly regardless of search/sort order or concurrent list mutation.
+      const row = container ? container.querySelector(`[data-id="${id}"][data-media-type="${mediaType}"]`) : null;
       if (!row) {
         // rare fallback: default to 4 to avoid jarring prompt
         addToWatched(item, 4);
@@ -4554,8 +4556,8 @@
         row.style.opacity = '0.4';
       }, { hideButtons: actionButtons });
     }
-    function dislikeFromToWatch(idx) {
-      const item = toWatchList[idx];
+    function dislikeFromToWatch(id, mediaType = 'movie') {
+      const item = toWatchList.find(x => x.id === id && (x._mediaType || 'movie') === mediaType);
       if (!item) return;
       addToDisliked(item);
     }
@@ -4579,7 +4581,7 @@
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         const stars = item.rating ? `<span class="library-rating text-[10px]">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : '';
-        html += `<div class="library-item library-item-v2 library-card">
+        html += `<div class="library-item library-item-v2 library-card" data-id="${item.id}" data-media-type="${item._mediaType || 'movie'}">
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
             <div class="lib-title">${itemTitleSafe}</div>
@@ -4624,14 +4626,14 @@
       }
       const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
-      shown.forEach((item, idx) => {
+      shown.forEach((item) => {
         const displayTitle = escapeHtml(item.title || item.name || item.original_title || item.original_name || 'Unknown Title');
         const year = (item.release_date || item.first_air_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${displayTitle} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
-        html += `<div class="library-item library-item-v2 library-card" data-disliked-idx="${idx}">
+        html += `<div class="library-item library-item-v2 library-card" data-id="${item.id}" data-media-type="${item._mediaType || 'movie'}">
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
             <div class="lib-title">${displayTitle}</div>
@@ -6745,6 +6747,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         if (status) status.textContent = 'Grounded • streaming via Worker • history kept until explicit clear';
 
       } catch (err) {
+        // Remove typing indicator (may already be removed if the error happened
+        // mid-stream, after the success path's own removal).
+        if (typingDiv && typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
         const box = document.getElementById('curator-messages');
         if (box) {
           const errDiv = document.createElement('div');
