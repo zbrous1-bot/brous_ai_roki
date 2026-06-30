@@ -4167,6 +4167,9 @@
       return Array.from(merged.values());
     }
 
+    let _pushInFlight = null; // promise for the currently-running doPush, or null when idle
+    let _pushQueued = null;   // { force } for one pending re-run requested while a push was in flight
+
     async function pushToServer(immediate = false, force = false) {
       const doPush = async (retried = false, forceThisAttempt = force) => {
         // Build the payload fresh on each attempt so a retry after a merge reflects
@@ -4223,8 +4226,31 @@
           setSyncLabel(e.status === 409 ? 'Conflict — reload' : 'Save failed', '#f87171');
         }
       };
-      if (immediate) { await doPush(); }
-      else { clearTimeout(_syncTimeout); _syncTimeout = setTimeout(doPush, 1200); }
+
+      // Run doPush() serially: if a push is already in flight (its GET-merge-retry
+      // sequence on a 409 can take a few round trips), don't start a second one
+      // concurrently — both would build payloads off the same in-memory lists,
+      // race their own merge-and-retry, and could clobber each other's writes.
+      // Instead, queue at most one follow-up run that fires once the current
+      // push settles (later queue requests just upgrade `force`, no need to stack more).
+      const runSerially = async () => {
+        if (_pushInFlight) {
+          _pushQueued = { force: !!(_pushQueued && _pushQueued.force) || force };
+          return _pushInFlight;
+        }
+        _pushInFlight = (async () => {
+          await doPush();
+          while (_pushQueued) {
+            const next = _pushQueued;
+            _pushQueued = null;
+            await doPush(false, next.force);
+          }
+        })().finally(() => { _pushInFlight = null; });
+        return _pushInFlight;
+      };
+
+      if (immediate) { await runSerially(); }
+      else { clearTimeout(_syncTimeout); _syncTimeout = setTimeout(runSerially, 1200); }
     }
 
     async function syncFromServer() {
@@ -4380,7 +4406,7 @@
         const posterImg = item.poster_path
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
-        html += `<div class="library-item library-item-v2 library-card" style="position:relative;">
+        html += `<div class="library-item library-item-v2 library-card" data-tw-idx="${idx}" style="position:relative;">
           <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" aria-label="Remove ${itemTitleSafe} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
@@ -4512,7 +4538,10 @@
       const item = toWatchList[idx];
       if (!item) return;
       const container = document.getElementById('to-watch-content');
-      const row = container && container.children[idx] ? container.children[idx] : null;
+      // Look up the row by its data-tw-idx (the item's index in the original toWatchList),
+      // not by DOM position — when search/sort is active, rendered order no longer matches
+      // toWatchList order, so container.children[idx] could grab a different title's row.
+      const row = container ? container.querySelector(`[data-tw-idx="${idx}"]`) : null;
       if (!row) {
         // rare fallback: default to 4 to avoid jarring prompt
         addToWatched(item, 4);
