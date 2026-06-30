@@ -4170,13 +4170,39 @@
       return res.json();
     }
 
+    // Snapshot of list contents from the last point where local state was known to
+    // match the server exactly (right after a clean push or pull). Used by
+    // _mergeItemLists to tell "this item is genuinely new from another device" apart
+    // from "I deliberately removed/moved this item locally and the server just
+    // hasn't heard about it yet" — without it, a plain union merge resurrects any
+    // local removal that loses a write race (e.g. a 409 conflict mid-delete).
+    let _syncBaseline = null; // { watched, to_watch, disliked, not_interested } — each a Set of "id:mediaType" keys
+    function _itemKey(w) { return `${w.id}:${w._mediaType || 'movie'}`; }
+    function _captureSyncBaseline() {
+      _syncBaseline = {
+        watched: new Set((watchedList || []).map(_itemKey)),
+        to_watch: new Set((toWatchList || []).map(_itemKey)),
+        disliked: new Set((dislikedList || []).map(_itemKey)),
+        not_interested: new Set((notInterestedList || []).map(_itemKey))
+      };
+    }
+
     // Union-merge two item lists by id+mediaType, preferring the local copy on
     // overlap (local edits like rating/notes are assumed more recent than whatever
     // the server has, since this merge only runs right after a losing race).
-    function _mergeItemLists(localList, serverList) {
-      const key = w => `${w.id}:${w._mediaType || 'movie'}`;
-      const merged = new Map((serverList || []).map(w => [key(w), w]));
-      for (const item of (localList || [])) merged.set(key(item), item);
+    // baselineKeys (optional): keys present the last time local matched the server —
+    // a server-only item whose key is in baselineKeys was deliberately removed
+    // locally since then, so it's excluded instead of resurrected.
+    function _mergeItemLists(localList, serverList, baselineKeys) {
+      const key = _itemKey;
+      const localKeys = new Set((localList || []).map(key));
+      const merged = new Map((localList || []).map(w => [key(w), w]));
+      for (const item of (serverList || [])) {
+        const k = key(item);
+        if (localKeys.has(k)) continue; // local already has it and wins on conflict
+        if (baselineKeys && baselineKeys.has(k)) continue; // deliberately removed locally — don't resurrect
+        merged.set(k, item);
+      }
       return Array.from(merged.values());
     }
 
@@ -4203,19 +4229,22 @@
           _lastServerSyncedAt = r.saved_at || payload.synced_at;
           console.log('[Brous] Cloud save OK:', r);
           setSyncLabel('✓ Saved', '#4ade80');
+          _captureSyncBaseline(); // local now matches server exactly
         } catch (e) {
           if (e.status === 409 && !retried) {
-            // Someone else saved since we last pulled (e.g. another device). Pull their
-            // version, union-merge it with our current in-memory lists by item id so
-            // neither side's additions are lost, then retry the push once.
+            // Someone else saved since we last pulled (e.g. another device, or another
+            // tab of this same app). Pull their version and merge it with our current
+            // in-memory lists so neither side's additions are lost — but anything
+            // present in _syncBaseline that's now missing locally was a deliberate
+            // local removal/move, not data to resurrect, so the merge excludes it.
             console.warn('[Brous] Stale write detected, merging with server before retry...');
             try {
               const serverData = await _dataFetch('/api/data');
               if (serverData && typeof serverData === 'object') {
-                watchedList = _mergeItemLists(watchedList, serverData.watched);
-                toWatchList = _mergeItemLists(toWatchList, serverData.to_watch);
-                dislikedList = _mergeItemLists(dislikedList, serverData.disliked);
-                notInterestedList = _mergeItemLists(notInterestedList, serverData.not_interested);
+                watchedList = _mergeItemLists(watchedList, serverData.watched, _syncBaseline?.watched);
+                toWatchList = _mergeItemLists(toWatchList, serverData.to_watch, _syncBaseline?.to_watch);
+                dislikedList = _mergeItemLists(dislikedList, serverData.disliked, _syncBaseline?.disliked);
+                notInterestedList = _mergeItemLists(notInterestedList, serverData.not_interested, _syncBaseline?.not_interested);
                 localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
                 localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
                 localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
@@ -4296,6 +4325,7 @@
           setSyncLabel('✓ Synced', '#4ade80');
           console.log('[Brous] Cloud load OK ✓');
         }
+        _captureSyncBaseline(); // local now matches server exactly
         return serverData;
       } catch (e) {
         console.warn('[Brous] Cloud sync failed:', e.message);
@@ -4330,11 +4360,12 @@
           setTimeout(() => setSyncLabel('Sync', '#a1a1aa'), 4000);
         } else {
           // Merge back in any local-only items the pull would otherwise have dropped
-          // (e.g. something added in the brief window before this sync ran).
-          watchedList = _mergeItemLists(before.watchedList, watchedList);
-          toWatchList = _mergeItemLists(before.toWatchList, toWatchList);
-          dislikedList = _mergeItemLists(before.dislikedList, dislikedList);
-          notInterestedList = _mergeItemLists(before.notInterestedList, notInterestedList);
+          // (e.g. something added in the brief window before this sync ran). Baseline
+          // keeps this from resurrecting something deliberately removed in that window.
+          watchedList = _mergeItemLists(before.watchedList, watchedList, _syncBaseline?.watched);
+          toWatchList = _mergeItemLists(before.toWatchList, toWatchList, _syncBaseline?.to_watch);
+          dislikedList = _mergeItemLists(before.dislikedList, dislikedList, _syncBaseline?.disliked);
+          notInterestedList = _mergeItemLists(before.notInterestedList, notInterestedList, _syncBaseline?.not_interested);
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           updateAllLibraryRenders(); renderPersonalStats();
           await pushToServer(true);
