@@ -3721,12 +3721,13 @@
       let html = '';
       watchlist.forEach(item => {
         const year = (item.release_date || '').slice(0, 4);
+        const itemTitleSafe = escapeHtml(item.title || 'Untitled');
         html += `
           <div class="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded-2xl p-3">
             <div class="flex items-center gap-3">
-              ${item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-10 h-14 rounded-lg object-cover" alt="${item.title} poster">` : ''}
+              ${item.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" class="w-10 h-14 rounded-lg object-cover" alt="${itemTitleSafe} poster">` : ''}
               <div>
-                <div class="font-medium">${item.title}</div>
+                <div class="font-medium">${itemTitleSafe}</div>
                 <div class="text-xs text-zinc-400">${year} · ${item._mediaType === 'tv' ? 'TV' : 'Movie'}</div>
               </div>
             </div>
@@ -4375,14 +4376,15 @@
       shown.forEach(({ item, idx }) => {
         const year = (item.release_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
+        const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled');
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" style="position:relative;">
-          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" aria-label="Remove ${item.title || item.name || 'title'} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
+          <button onclick="removeFromToWatch(${item.id}, '${item._mediaType}')" aria-label="Remove ${itemTitleSafe} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
-            <div class="lib-title" style="padding-right:18px;">${item.title}</div>
+            <div class="lib-title" style="padding-right:18px;">${itemTitleSafe}</div>
             <div class="lib-meta">
               ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
@@ -4543,21 +4545,22 @@
       shown.forEach((item) => {
         const year = (item.release_date || '').slice(0,4);
         const wGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
+        const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled');
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         const stars = item.rating ? `<span class="library-rating text-[10px]">${'★'.repeat(item.rating)}${'☆'.repeat(5-item.rating)}</span>` : '';
         html += `<div class="library-item library-item-v2 library-card">
           <div class="lib-poster">${posterImg}</div>
           <div class="lib-body flex-1">
-            <div class="lib-title">${item.title}</div>
+            <div class="lib-title">${itemTitleSafe}</div>
             <div class="lib-meta">
               ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${wGenre ? `<span class="library-genre-tag">${wGenre}</span>` : ''}
               ${stars}
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700" aria-label="Remove ${item.title || item.name || 'title'} from Watched" title="Remove from Watched">×</button>
+              <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700" aria-label="Remove ${itemTitleSafe} from Watched" title="Remove from Watched">×</button>
             </div>
           </div>
         </div>`;
@@ -4593,11 +4596,11 @@
       const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
       shown.forEach((item, idx) => {
-        const displayTitle = item.title || item.name || item.original_title || item.original_name || 'Unknown Title';
+        const displayTitle = escapeHtml(item.title || item.name || item.original_title || item.original_name || 'Unknown Title');
         const year = (item.release_date || item.first_air_date || '').slice(0,4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g=>g.id===item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${displayTitle} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" data-disliked-idx="${idx}">
           <div class="lib-poster">${posterImg}</div>
@@ -4608,7 +4611,7 @@
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
             <div class="lib-actions">
-              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked" aria-label="Remove ${item.title || item.name || 'title'} from Disliked">×</button>
+              <button onclick="removeFromDisliked(${item.id}, '${item._mediaType || 'movie'}')" class="text-red-400 border border-zinc-700" title="Remove from disliked" aria-label="Remove ${displayTitle} from Disliked">×</button>
             </div>
           </div>
         </div>`;
@@ -4647,11 +4650,11 @@
       const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
       shown.forEach((item, idx) => {
-        const displayTitle = item.title || item.name || item.original_title || 'Unknown Title';
+        const displayTitle = escapeHtml(item.title || item.name || item.original_title || 'Unknown Title');
         const year = (item.release_date || item.first_air_date || '').slice(0, 4);
         const topGenre = (item.genre_ids && item.genre_ids.length) ? (GENRES.find(g => g.id === item.genre_ids[0])?.name || '') : '';
         const posterImg = item.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${displayTitle} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
         html += `<div class="library-item library-item-v2 library-card" data-ni-idx="${idx}">
           <div class="lib-poster">${posterImg}</div>
@@ -5234,6 +5237,7 @@ function setCuratorPrompt(q) {
 
       items.forEach(m => {
         const title = m.title || m.name || 'Untitled';
+        const titleSafe = escapeHtml(title); // for innerHTML string contexts only; DOM-API uses (textContent/aria-label) use `title` directly and are already safe
         const year = (m.release_date || m.first_air_date || '').slice(0, 4);
         const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
 
@@ -5262,10 +5266,10 @@ function setCuratorPrompt(q) {
         card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow" alt="${title} poster">` : ''}
+            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow" alt="${titleSafe} poster">` : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
-                <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${title}</div>
+                <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${titleSafe}</div>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
                   <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${mediaColor}">${mediaLabel}</span>
                   ${year ? `<span class="text-zinc-400 text-sm">${year}</span>` : ''}
@@ -6200,13 +6204,14 @@ function setCuratorPrompt(q) {
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
         const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
+        const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${item.title} poster">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster">
 </div>
 <div class="mt-2 px-0.5">
-  <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
+  <div class="font-semibold text-sm leading-tight line-clamp-2">${itemTitleSafe}</div>
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
@@ -6217,13 +6222,13 @@ function setCuratorPrompt(q) {
   <div id="wtw-si-${item.id}" class="mt-1"></div>
 </div>
 <div class="mt-2 flex gap-1 items-center" style="position:relative;">
-  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${item.title} to To Watch">+ Watch</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${item.title} as watched">✓</button>
-  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${item.title}" aria-haspopup="true" aria-expanded="false">⋯</button>
-  <button id="trailer-si-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${item.title}">▶</button>
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${itemTitleSafe} to To Watch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${itemTitleSafe} as watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${itemTitleSafe}" aria-haspopup="true" aria-expanded="false">⋯</button>
+  <button id="trailer-si-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${itemTitleSafe}">▶</button>
   <div class="hidden" data-act-menu role="menu" style="position:absolute;bottom:calc(100% + 6px);right:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);">
-    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${item.title}">👎 Dislike</button>
-    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${item.title} — not interested">✕ Not Interested</button>
+    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${itemTitleSafe}">👎 Dislike</button>
+    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${itemTitleSafe} — not interested">✕ Not Interested</button>
   </div>
 </div>`;
         card.querySelector('[data-act="towatch"]').onclick = () => { addToToWatch(item); card.remove(); };
@@ -6254,8 +6259,8 @@ function setCuratorPrompt(q) {
             const pop = document.createElement('div');
             pop.className = 'why-this-pop';
             pop.innerHTML = `
-              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${item._affinityReason || '🎲 Outside your usual taste'}</div>
-              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${gNames.join(', ')}</div>` : ''}
+              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${escapeHtml(item._affinityReason || '🎲 Outside your usual taste')}</div>
+              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${escapeHtml(gNames.join(', '))}</div>` : ''}
               ${item.vote_average ? `<div style="color:#71717a;font-size:11px;margin-top:3px;">TMDB ${item.vote_average.toFixed(1)} / 10</div>` : ''}
               ${item.vote_count ? `<div style="color:#52525b;font-size:10px;margin-top:2px;">${item.vote_count.toLocaleString()} votes</div>` : ''}
             `;
@@ -6357,30 +6362,31 @@ function setCuratorPrompt(q) {
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
         const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
+        const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
 <div class="relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${item.title} poster">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster">
 </div>
 <div class="mt-2 px-0.5">
-  <div class="font-semibold text-sm leading-tight line-clamp-2">${item.title}</div>
+  <div class="font-semibold text-sm leading-tight line-clamp-2">${itemTitleSafe}</div>
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
     <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:9px"></i></a>
     <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
-  <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${matchLabel(item)}</button>
+  <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${escapeHtml(matchLabel(item))}</button>
   <div id="wtw-rec-${item.id}" class="mt-1"></div>
 </div>
 <div class="mt-2 flex gap-1 items-center" style="position:relative;">
-  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${item.title} to To Watch">+ Watch</button>
-  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${item.title} as watched">✓</button>
-  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${item.title}" aria-haspopup="true" aria-expanded="false">⋯</button>
-  <button id="trailer-btn-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${item.title}">▶</button>
+  <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${itemTitleSafe} to To Watch">+ Watch</button>
+  <button class="text-[11px] px-2 py-1.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-medium" data-act="watched" aria-label="Mark ${itemTitleSafe} as watched">✓</button>
+  <button class="text-sm px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400" data-act="more" title="More actions" aria-label="More actions for ${itemTitleSafe}" aria-haspopup="true" aria-expanded="false">⋯</button>
+  <button id="trailer-btn-${item.id}" class="text-[11px] px-2 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden" data-act="trailer" title="Watch Trailer" aria-label="Play trailer for ${itemTitleSafe}">▶</button>
   <div class="hidden" data-act-menu role="menu" style="position:absolute;bottom:calc(100% + 6px);right:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);">
-    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${item.title}">👎 Dislike</button>
-    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${item.title} — not interested">✕ Not Interested</button>
+    <button class="w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800" data-act="dislike" role="menuitem" aria-label="Dislike ${itemTitleSafe}">👎 Dislike</button>
+    <button class="w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800" data-act="notinterested" role="menuitem" aria-label="Hide ${itemTitleSafe} — not interested">✕ Not Interested</button>
   </div>
 </div>
         `;
@@ -6828,16 +6834,17 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       curatorPicks.forEach((p, i) => {
         const row = document.createElement('div');
         row.className = 'curator-pick-row flex items-center gap-2 text-sm bg-zinc-950 border border-zinc-800 rounded-2xl px-2 py-1';
+        const pTitleSafe = escapeHtml(p.title || 'Untitled'); // LLM-sourced — must escape before any innerHTML use
         if (p.type === 'batch') {
           row.innerHTML = `
             <input type="checkbox" class="accent-red-600" checked data-idx="${i}">
-            <span class="flex-1 truncate">${p.title}</span>
+            <span class="flex-1 truncate">${pTitleSafe}</span>
             <span class="text-[11px] text-amber-400">${p.rating || 4}★</span>
             <button class="text-[11px] px-2 py-0.5 rounded-xl bg-emerald-700 text-white" data-apply-batch>Apply</button>
           `;
         } else {
           const posterHtml = p.poster_path
-            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-24 h-36 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="${p.title} poster">`
+            ? `<img src="https://image.tmdb.org/t/p/w185${p.poster_path}" class="w-24 h-36 rounded-lg object-cover flex-shrink-0 border border-zinc-700" alt="${pTitleSafe} poster">`
             : `<div class="w-24 h-36 bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl text-zinc-500">📽️</div>`;
           const pYear = p.year || '';
           const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(p.title + (pYear ? ' ' + pYear : ''))}&s=tt&ttype=ft`;
@@ -6848,7 +6855,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             <div class="flex items-center gap-2.5 flex-1 min-w-0">
               ${posterHtml}
               <div class="flex flex-col min-w-0 gap-1">
-                <span class="truncate font-semibold text-[15px] leading-snug">${p.title}</span>
+                <span class="truncate font-semibold text-[15px] leading-snug">${pTitleSafe}</span>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${yearStr}${voteStr}
                   <a href="${imdbUrl}" target="_blank" rel="noopener"
