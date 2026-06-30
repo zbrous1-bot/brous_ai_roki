@@ -496,6 +496,18 @@
       /* Browse filter: stack rating + decade vertically */
       #rating-decade-row { grid-template-columns: 1fr !important; }
 
+      /* Recs action row (Refresh Pool / More Recs / Surprise Me / Found Footage /
+         Recompute): these are primary actions, not secondary filter chips, so on
+         mobile let them wrap onto multiple lines instead of horizontal-scrolling —
+         a hard mid-word cutoff at the screen edge with no scroll affordance read as
+         a layout bug ("Surp…" with the rest of the row invisible and undiscoverable). */
+      .recs-header-row { flex-wrap: wrap; row-gap: 8px; }
+      .recs-header-row .recs-chip-scroll {
+        flex-wrap: wrap !important;
+        overflow-x: visible !important;
+        flex-basis: 100%;
+      }
+
       /* Browse filter: collapse genre/rating/decade chips behind the FILTER header
          on mobile so they don't add clutter. Tap "Filter" to expand. */
       .filter-chevron { display: inline-block !important; transition: transform 0.2s ease; }
@@ -679,15 +691,14 @@
       /* Curator input */
       #curator-input { font-size: 16px !important; }
       .curator-msg { padding: 6px 9px; font-size: 13px; max-width: 85%; }
-      /* Quick replies: single horizontal-scroll row so they don't wrap to 2 lines */
+      /* Quick replies: wrap onto multiple lines on mobile instead of horizontal-
+         scrolling — a nowrap row here got cut off mid-word at the screen edge with
+         no scroll affordance, reading as a layout bug rather than a hidden row. */
       #curator-quick-replies {
         gap: 5px !important;
         margin-top: 6px !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        scrollbar-width: none;
+        flex-wrap: wrap !important;
       }
-      #curator-quick-replies::-webkit-scrollbar { display: none; }
       #curator-quick-replies button {
         padding: 4px 11px !important;
         font-size: 11px !important;
@@ -2319,7 +2330,7 @@
 <!-- Recommended for you (primary content first) -->
     <div id="section-recs"></div>
     <div class="mb-4">
-      <div class="flex items-center justify-between mb-2 px-1">
+      <div class="flex items-center justify-between mb-2 px-1 recs-header-row">
         <div>
           <div class="font-semibold text-[15px] text-zinc-100 tracking-tight recs-section-header">Recommended for you</div>
           <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
