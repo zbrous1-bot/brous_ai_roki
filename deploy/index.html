@@ -3478,6 +3478,11 @@
       renderDecadeChips();
       const activeFilters = document.getElementById('active-filters');
       if (activeFilters) activeFilters.classList.add('hidden');
+      // Also clear the search box text and cancel any pending search-as-you-type,
+      // so "Clear all" fully resets the page instead of leaving a stale query typed in.
+      clearTimeout(_liveSearchTimer);
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) searchInput.value = '';
       // Clear results and restore the empty state
       const results = document.getElementById('results');
       if (results) results.innerHTML = '';
