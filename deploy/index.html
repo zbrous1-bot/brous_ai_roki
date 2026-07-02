@@ -554,6 +554,12 @@
       .movie-card-v2 { padding: 12px !important; }
       .movie-card-v2 > div { flex-direction: row !important; gap: 12px !important; align-items: flex-start !important; }
       .movie-card-v2 img { width: 104px !important; height: 156px !important; flex-shrink: 0 !important; }
+      /* The poster's wrapper div (added for the library-status badge overlay) is
+         w-full below the sm breakpoint by design for the stacked mobile layout —
+         but this block forces the row layout instead, so without this override the
+         wrapper stays full-width and squeezes the text column (title/badges/action
+         buttons) down to 0 width. */
+      .movie-card-v2 .search-card-poster { width: 104px !important; flex-shrink: 0 !important; }
       .movie-card-v2 .font-semibold { font-size: 14px !important; }
       .movie-card-v2 .flex-1 { padding-top: 0 !important; }
       /* Compact action buttons so all 4 fit on one row beside the poster */
@@ -5492,7 +5498,7 @@ function setCuratorPrompt(q) {
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
             ${poster
-              ? `<div class="relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster">${libraryBadgeOverlay}</div>`
+              ? `<div class="search-card-poster relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster">${libraryBadgeOverlay}</div>`
               : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
