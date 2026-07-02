@@ -2380,8 +2380,8 @@
            genre state via recGenreFilter. -->
       <div id="recs-filter-wrap" class="mb-3">
         <div class="flex items-center gap-2 flex-wrap">
-          <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">All</button>
-          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">🎬 Movies</button>
+          <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">All</button>
+          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">🎬 Movies</button>
           <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">📺 TV</button>
         </div>
         <!-- Genre filtering lives in the Taste Profile card's dropdown (single source).
@@ -5766,7 +5766,7 @@ function setCuratorPrompt(q) {
     // Mood chips UI removed per request. currentMood stays 'All' (no filtering).
 
     let recGenreFilter = null; // null = All, otherwise a genre id (number)
-    let recMediaFilter = 'all'; // 'all' | 'movie' | 'tv' — filters For You recs by media type
+    let recMediaFilter = 'movie'; // 'all' | 'movie' | 'tv' — filters For You recs by media type; defaults to Movies
 
     // Keep the inline "Genre: X ▾" button label in sync with the dropdown's selection.
     function updateRecGenreLabel() {
