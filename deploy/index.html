@@ -1689,6 +1689,7 @@
       margin: 0 0 18px;
     }
     .home-command-card {
+      position: relative;
       text-align: left;
       min-height: 86px;
       border-radius: 18px;
@@ -1700,6 +1701,25 @@
       color: var(--text2);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+    /* "Next up" poster thumbnail on the Queue card — only shown (via .has-thumb,
+       toggled in updateHomeSnapshot) when the queue's first title has a poster. */
+    .home-queue-thumb {
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    }
+    #home-queue-card.has-thumb {
+      padding-right: 58px;
+    }
+    #home-queue-card.has-thumb .home-queue-thumb {
+      display: block;
     }
     .home-command-card:hover {
       transform: translateY(-1px);
@@ -2315,7 +2335,8 @@
         <span class="home-command-value">Fresh pool</span>
         <span class="home-command-note">Pull a wider set of dark cinema picks.</span>
       </button>
-      <button class="home-command-card" onclick="switchMainTab('watched')">
+      <button class="home-command-card" id="home-queue-card" onclick="switchMainTab('watched')">
+        <img id="home-queue-thumb" class="home-queue-thumb" alt="" onerror="this.style.display='none'; document.getElementById('home-queue-card').classList.remove('has-thumb');">
         <span class="home-command-kicker">Queue</span>
         <span class="home-command-value" id="home-queue-count">0 waiting</span>
         <span class="home-command-note" id="home-next-title">Add titles from search or Curator.</span>
@@ -3922,18 +3943,36 @@
       const watchedEl = document.getElementById('home-watched-count');
       const nextEl = document.getElementById('home-next-title');
       const tasteEl = document.getElementById('home-taste-label');
+      const queueCard = document.getElementById('home-queue-card');
+      const queueThumb = document.getElementById('home-queue-thumb');
       if (queueEl) queueEl.textContent = `${toWatchList.length} waiting`;
       if (watchedEl) watchedEl.textContent = `${watchedList.length} rated`;
+      const next = toWatchList[0];
       if (nextEl) {
-        const nextTitle = toWatchList[0]?.title || toWatchList[0]?.name;
+        const nextTitle = next?.title || next?.name;
         nextEl.textContent = nextTitle ? `Next up: ${nextTitle}` : 'Add titles from search or Curator.';
+      }
+      if (queueCard && queueThumb) {
+        if (next && next.poster_path) {
+          queueThumb.style.display = ''; // clear any display:none an earlier onerror set, so a fresh poster can show
+          queueThumb.src = `https://image.tmdb.org/t/p/w92${next.poster_path}`;
+          queueThumb.alt = `${next.title || next.name || ''} poster`;
+          queueCard.classList.add('has-thumb');
+        } else {
+          queueThumb.src = '';
+          queueCard.classList.remove('has-thumb');
+        }
       }
       if (tasteEl) {
         const genreCounts = {};
         watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
         const topGenreId = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0];
         const topGenre = topGenreId ? (GENRES.find(g => g.id == topGenreId)?.name || '') : '';
-        const labelText = topGenre ? `Leaning ${topGenre.toLowerCase()} lately.` : 'Taste profile is warming up.';
+        const rated = watchedList.filter(it => typeof it.rating === 'number' && it.rating > 0);
+        const avgRating = rated.length ? (rated.reduce((sum, it) => sum + it.rating, 0) / rated.length) : null;
+        const avgText = avgRating !== null ? `${avgRating.toFixed(1)}★ avg` : '';
+        const genreText = topGenre ? `Leaning ${topGenre.toLowerCase()}` : '';
+        const labelText = [avgText, genreText].filter(Boolean).join(' · ') || 'Taste profile is warming up.';
         tasteEl.innerHTML = `${labelText}<span class="taste-chevron">▼</span>`;
       }
     }
