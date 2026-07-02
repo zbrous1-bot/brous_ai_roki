@@ -2976,6 +2976,12 @@
     // Use composite key to safely handle movie vs tv with potentially overlapping numeric ids
     let watchedIds = new Set(watchlist.map(w => `${w.id}:${w._mediaType || 'movie'}`));
     let lastRenderedItems = [];
+    // Remembers the opts renderResults was last called with (e.g. { keepLibraryItems: true }
+    // for a title search) so a post-action refresh (removeFromCurrentResults) re-renders
+    // in the same mode instead of silently reverting to Discover's default of hiding
+    // every title already in the library — which made search results look like they'd
+    // changed to different movies whenever one was already watched/queued/etc.
+    let lastRenderedOpts = {};
 
     // === Horror Roki full personal state (from Streamlit current setup) ===
     // Stored only in browser (localStorage). Matches backup/restore contract (lists + chat_history + llm_config no secrets).
@@ -3782,8 +3788,11 @@
       // Re-render whatever is actually on screen now (search OR discover).
       // lastRenderedItems always reflects the current view, so use it — preferring
       // currentDiscoverResults here was switching a search view back to stale discover.
+      // Reuse lastRenderedOpts too, so a search's keepLibraryItems mode survives this
+      // refresh instead of reverting to Discover's default (hide anything in the
+      // library), which made other, unrelated search results vanish after one click.
       if (lastRenderedItems.length > 0) {
-        renderResults(lastRenderedItems);
+        renderResults(lastRenderedItems, lastRenderedOpts);
       }
       // keep recs grid fresh
       if (document.getElementById('recs-grid')) {
@@ -5417,6 +5426,7 @@ function setCuratorPrompt(q) {
       const services = getUserServices();
 
       lastRenderedItems = items;
+      lastRenderedOpts = opts;
 
       // Filter out watched / to-watch / disliked using full exclusion (carries the "disappear" fix)
       // — except when keepLibraryItems is set (direct title search), where a title
