@@ -2379,16 +2379,10 @@
           <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
         </div>
         <div class="flex items-center gap-2 recs-chip-scroll">
-          <button onclick="refreshRecPool()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Refresh Pool</button>
           <button onclick="loadMoreRecommendations()"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">More Recs</button>
-          <button onclick="surpriseMe()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-amber-400 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn" title="Pick something outside your usual genres">🎲 Surprise Me</button>
-          <button onclick="loadFoundFootage()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn" title="Load found-footage films (Blair Witch, [REC], Cloverfield…)">🎥 Found Footage</button>
-          <button onclick="recomputeRecommendations()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Recompute</button>
+          <button onclick="toggleRecsActionsMenu(event)" id="recs-more-btn" aria-haspopup="true" aria-expanded="false" title="More options"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">⋯</button>
         </div>
       </div>
 
@@ -5882,6 +5876,39 @@ function setCuratorPrompt(q) {
     let _dislikedPersonScores = {};   // personId -> penalty weight (positive number = how disliked)
     let _dislikedKeywordScores = {};  // keywordId -> penalty weight
     let _dislikedPenaltyIds = new Set(); // "id:movie" keys from strongly-disliked directors' filmographies
+
+    // "⋯" overflow menu for the less-common recs actions (Refresh Pool / Surprise Me /
+    // Found Footage) — appended to body and positioned via getBoundingClientRect,
+    // same pattern as the why-this-pop / wtw-popup elsewhere, so it can't get clipped
+    // by the action row's own horizontal-scroll container.
+    function toggleRecsActionsMenu(e) {
+      e.stopPropagation();
+      const existing = document.getElementById('recs-actions-menu');
+      const btn = document.getElementById('recs-more-btn');
+      if (existing) { closeRecsActionsMenu(); return; }
+      const menu = document.createElement('div');
+      menu.id = 'recs-actions-menu';
+      menu.setAttribute('role', 'menu');
+      menu.style.cssText = 'position:fixed;z-index:50;background:#18181b;border:1px solid #3f3f46;border-radius:14px;padding:4px;min-width:170px;box-shadow:0 12px 24px rgba(0,0,0,0.4);';
+      menu.innerHTML = `
+        <button onclick="refreshRecPool(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800" role="menuitem">Refresh Pool</button>
+        <button onclick="surpriseMe(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-amber-400 hover:bg-zinc-800" role="menuitem">🎲 Surprise Me</button>
+        <button onclick="loadFoundFootage(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800" role="menuitem">🎥 Found Footage</button>
+      `;
+      document.body.appendChild(menu);
+      const rect = btn.getBoundingClientRect();
+      const mw = 170;
+      menu.style.left = Math.min(rect.left, window.innerWidth - mw - 8) + 'px';
+      menu.style.top = (rect.bottom + 6) + 'px';
+      btn.setAttribute('aria-expanded', 'true');
+      setTimeout(() => document.addEventListener('click', closeRecsActionsMenu, { once: true }), 10);
+    }
+    function closeRecsActionsMenu() {
+      const m = document.getElementById('recs-actions-menu');
+      if (m) m.remove();
+      const btn = document.getElementById('recs-more-btn');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
 
     async function refreshRecPool(options = {}) {
       if (_recPoolLoading) return; // prevent double-fire / infinite loop
