@@ -2433,7 +2433,8 @@
             <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" style="font-size:13px;"></i>
             <input id="search-input" type="text" placeholder="Title, director, actor, vibe..."
                    class="search-input w-full bg-zinc-950 border border-zinc-700 pl-9 pr-3 py-2.5 rounded-2xl text-base outline-none placeholder:text-zinc-500"
-                   onkeypress="if (event.key === 'Enter') performSearch()">
+                   oninput="handleSearchInput()"
+                   onkeypress="if (event.key === 'Enter') { clearTimeout(_liveSearchTimer); performSearch(); }">
           </div>
           <button onclick="performSearch()" class="search-action-btn inline-flex items-center justify-center gap-2 flex-shrink-0" style="padding:10px 18px;">
             <i class="fa-solid fa-arrow-right" style="font-size:12px;"></i>
@@ -2942,6 +2943,26 @@
     let minRating = 0;
     let selectedDecade = null; // {label, gte, lte} or null
     let currentSearchType = 'movie';
+    let _liveSearchTimer = null; // debounce for search-as-you-type
+    let _searchGen = 0; // bumped on every performSearch call so a slow/stale response can't clobber a newer one's results
+
+    // Fires on every keystroke in the search box. Debounced so we don't fire a full
+    // search (which also does similar/providers/external_ids lookups per result) on
+    // every single character — only after typing pauses for a moment.
+    function handleSearchInput() {
+      clearTimeout(_liveSearchTimer);
+      const query = document.getElementById('search-input').value.trim();
+      if (query.length === 0) {
+        // Box cleared — reset back to the initial empty state instead of leaving stale results up.
+        const container = document.getElementById('results');
+        const initial = document.getElementById('initial-state');
+        if (container) container.innerHTML = '';
+        if (initial) initial.style.display = '';
+        return;
+      }
+      if (query.length < 2) return; // too short to bother searching yet
+      _liveSearchTimer = setTimeout(performSearch, 450);
+    }
     let currentDiscoverPage = 1;
     let currentDiscoverResults = [];
 
@@ -5200,6 +5221,12 @@
       const query = document.getElementById('search-input').value.trim();
       if (!query) return;
 
+      // Search-as-you-type means several of these can be in flight at once (each
+      // doing multiple TMDB round-trips) — tag this call and bail out at each
+      // display point if a newer call has since started, so a slow older response
+      // can't land after and clobber what the user's now typing/seeing.
+      const myGen = ++_searchGen;
+
       if (initial) initial.style.display = 'none';
       showSkeletons('results', 8);
 
@@ -5209,6 +5236,7 @@
 
       try {
         const searchData = await apiFetch(`/api/tmdb/3/search/${searchEndpoint}?query=${encodeURIComponent(query)}`);
+        if (myGen !== _searchGen) return;
 
         if (searchData.success === false) {
           container.innerHTML = `<div class="text-center py-6 text-red-400">TMDB error: ${searchData.status_message}</div>`;
@@ -5264,11 +5292,13 @@
             return { ...item, providers: null, imdb_id: null, _mediaType: currentSearchType };
           }
         }));
+        if (myGen !== _searchGen) return;
 
         renderResults(enriched, { keepLibraryItems: true });
         const activeFilters = document.getElementById('active-filters');
         if (activeFilters) activeFilters.classList.add('hidden');
       } catch (e) {
+        if (myGen !== _searchGen) return;
         console.error('[Horror Roki] Search failed:', e);
         let displayMsg;
         if (e.status === 401 || e.message.includes('Unauthorized') || e.message.includes('password')) {
