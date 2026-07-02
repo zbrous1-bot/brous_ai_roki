@@ -2909,7 +2909,12 @@
     let currentDiscoverResults = [];
 
     // Watchlist (legacy quick list, kept working for existing search/discover "My List" flows)
-    let watchlist = JSON.parse(localStorage.getItem('brous_watchlist') || '[]');
+    let watchlist = [];
+    try {
+      watchlist = JSON.parse(localStorage.getItem('brous_watchlist') || '[]');
+    } catch (e) {
+      console.warn('brous_watchlist parse failed (data may be corrupted or cleared):', e);
+    }
     // Use composite key to safely handle movie vs tv with potentially overlapping numeric ids
     let watchedIds = new Set(watchlist.map(w => `${w.id}:${w._mediaType || 'movie'}`));
     let lastRenderedItems = [];
@@ -3133,7 +3138,7 @@
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.innerHTML = `
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
       `;
       container.appendChild(toast);
       // Auto dismiss
@@ -4983,7 +4988,7 @@
         overviewEl.textContent = detail.overview || 'No overview available.';
 
         genresEl.innerHTML = (detail.genres || []).map(g =>
-          `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl modal-genre-chip">${g.name}</span>`
+          `<span class="text-xs px-2.5 py-1 bg-zinc-800 rounded-2xl modal-genre-chip">${escapeHtml(g.name)}</span>`
         ).join('');
 
         // Backdrop banner — prefer the wide backdrop, fall back to the poster.
@@ -5031,7 +5036,7 @@
           items.forEach(p => {
             const name = getProviderName(p);
             const colorClass = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-            allHtml += `<span class="inline-flex items-center px-1.5 py-px text-[9px] rounded-2xl ${colorClass} border border-white/10 mr-1 mb-0.5" title="${type}">${short}: ${name}</span>`;
+            allHtml += `<span class="inline-flex items-center px-1.5 py-px text-[9px] rounded-2xl ${colorClass} border border-white/10 mr-1 mb-0.5" title="${type}">${short}: ${escapeHtml(name)}</span>`;
           });
         });
         const wrap = document.getElementById('modal-availability-wrap');
@@ -5274,7 +5279,7 @@ function setCuratorPrompt(q) {
           <div>${g.items.map(p => {
             const name = getProviderName(p);
             const cc = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
-            return `<span class="wtw-provider-pill ${cc}">${name}</span>`;
+            return `<span class="wtw-provider-pill ${cc}">${escapeHtml(name)}</span>`;
           }).join('')}</div>
         `).join('');
       }
@@ -5333,7 +5338,7 @@ function setCuratorPrompt(q) {
           if (streamProviders.length) {
             const pills = streamProviders.slice(0, 4).map(p => {
               const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
-              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${p.provider_name}</span>`;
+              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${escapeHtml(p.provider_name)}</span>`;
             }).join('');
             return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
           }
@@ -6525,8 +6530,8 @@ function setCuratorPrompt(q) {
             const pop = document.createElement('div');
             pop.className = 'why-this-pop';
             pop.innerHTML = `
-              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${item._affinityReason || '✨ Picked for you'}</div>
-              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${gNames.join(', ')}</div>` : ''}
+              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${escapeHtml(item._affinityReason || '✨ Picked for you')}</div>
+              ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${escapeHtml(gNames.join(', '))}</div>` : ''}
               ${item.vote_average ? `<div style="color:#71717a;font-size:11px;margin-top:3px;">TMDB ${item.vote_average.toFixed(1)} / 10</div>` : ''}
               ${item.vote_count ? `<div style="color:#52525b;font-size:10px;margin-top:2px;">${item.vote_count.toLocaleString()} votes</div>` : ''}
             `;

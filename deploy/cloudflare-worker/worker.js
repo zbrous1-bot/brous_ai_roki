@@ -139,7 +139,7 @@ export default {
 
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
     if (pathname === '/api/llm' || pathname === '/api/llm/') {
-      if (env.PASSWORD && !isAuthenticated(request, env)) {
+      if (env.PASSWORD && !(await isAuthenticated(request, env))) {
         return jsonError('Unauthorized (wrong or missing password)', 401, request);
       }
       if (request.method !== 'POST') {
@@ -203,7 +203,7 @@ export default {
     // GET  /api/data/check   check whether shared data exists
     // GET  /api/data/backup  recover the previous snapshot
     if (pathname === '/api/data' || pathname === '/api/data/check' || pathname === '/api/data/backup') {
-      if (env.PASSWORD && !isAuthenticated(request, env)) {
+      if (env.PASSWORD && !(await isAuthenticated(request, env))) {
         return jsonError('Unauthorized (wrong or missing password)', 401, request);
       }
       if (!env.DATA_KV) {
@@ -300,7 +300,24 @@ export default {
 
 // ===================== Helpers =====================
 
-function isAuthenticated(request, env) {
+// Hashes both sides with SHA-256 before comparing so neither the password length
+// nor a byte-by-byte early exit can leak timing information to a network attacker.
+async function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const [digestA, digestB] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ]);
+  const bytesA = new Uint8Array(digestA);
+  const bytesB = new Uint8Array(digestB);
+  let diff = 0;
+  for (let i = 0; i < bytesA.length; i++) {
+    diff |= bytesA[i] ^ bytesB[i];
+  }
+  return diff === 0;
+}
+
+async function isAuthenticated(request, env) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Basic ')) {
     return false;
@@ -311,7 +328,7 @@ function isAuthenticated(request, env) {
     const credentials = atob(base64Credentials);
     const [, password] = credentials.split(':');
 
-    return password === env.PASSWORD;
+    return await timingSafeEqual(password || '', env.PASSWORD);
   } catch (err) {
     return false;
   }
