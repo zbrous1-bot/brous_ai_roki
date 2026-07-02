@@ -1486,6 +1486,34 @@
     .library-card:hover {
       transform: translateX(2px) !important;
     }
+    /* To Watch gets a larger poster than Watched/Disliked — it's the list you're
+       actively choosing from, so a bigger, more recognizable poster carries more
+       weight there. Also the anchor point for the IMDb/RT badge overlay below. */
+    #to-watch-content .lib-poster {
+      width: 152px;
+      height: 228px;
+      position: relative;
+    }
+    .lib-poster-links {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      right: 5px;
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+    .lib-poster-links a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-decoration: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
     .library-card .lib-poster {
       width: 112px;
       height: 168px;
@@ -4467,9 +4495,16 @@
         const posterImg = item.poster_path
           ? `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" alt="${itemTitleSafe} poster" style="width:100%;height:100%;object-fit:cover;display:block;">`
           : `🎬`;
+        const itemTitle = item.title || item.name || '';
+        const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(itemTitle + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
+        const rtSearchUrl = rtUrl(itemTitle, mediaType);
+        const posterLinks = `<div class="lib-poster-links">
+            <a href="${imdbSearchUrl}" target="_blank" rel="noopener" title="Find on IMDb" aria-label="Find ${itemTitleSafe} on IMDb" class="bg-[#f5c518] text-black"><i class="fa-brands fa-imdb"></i></a>
+            <a href="${rtSearchUrl}" target="_blank" rel="noopener" title="Find on Rotten Tomatoes" aria-label="Find ${itemTitleSafe} on Rotten Tomatoes" class="bg-[#fa320a] text-white">RT</a>
+          </div>`;
         html += `<div class="library-item library-item-v2 library-card" data-id="${item.id}" data-media-type="${mediaType}" style="position:relative;">
           <button onclick="removeFromToWatch(${item.id}, '${mediaType}')" aria-label="Remove ${itemTitleSafe} from To Watch" title="Remove from To Watch" style="position:absolute;top:7px;right:8px;width:18px;height:18px;font-size:11px;line-height:1;background:rgba(39,39,42,0.85);border:1px solid #3f3f46;border-radius:50%;color:#f87171;display:flex;align-items:center;justify-content:center;z-index:1;">×</button>
-          <div class="lib-poster">${posterImg}</div>
+          <div class="lib-poster">${posterImg}${posterLinks}</div>
           <div class="lib-body flex-1">
             <div class="lib-title" style="padding-right:18px;">${itemTitleSafe}</div>
             <div class="lib-meta">
@@ -4512,7 +4547,11 @@
         if (posterEl && item) {
           posterEl.style.cursor = 'pointer';
           posterEl.title = 'View details';
-          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+          posterEl.onclick = (e) => {
+            if (e.target.closest('a')) return; // let the IMDb/RT badge links navigate instead of opening the modal
+            e.stopPropagation();
+            openModal(item).catch(()=>{});
+          };
         }
       });
 
