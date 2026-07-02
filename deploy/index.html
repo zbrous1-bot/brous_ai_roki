@@ -496,6 +496,12 @@
       /* Browse filter: stack rating + decade vertically */
       #rating-decade-row { grid-template-columns: 1fr !important; }
 
+      /* Browse filter: collapse genre/rating/decade chips behind the FILTER header
+         on mobile so they don't add clutter. Tap "Filter" to expand. */
+      .filter-chevron { display: inline-block !important; transition: transform 0.2s ease; }
+      #section-discover.filters-collapsed #filter-body { display: none !important; }
+      #section-discover.filters-collapsed .filter-chevron { transform: rotate(-90deg); }
+
       /* Recs action row (Refresh Pool / More Recs / Surprise Me / Found Footage /
          Recompute): these are primary actions, not secondary filter chips, so on
          mobile let them wrap onto multiple lines instead of horizontal-scrolling —
@@ -507,12 +513,6 @@
         overflow-x: visible !important;
         flex-basis: 100%;
       }
-
-      /* Browse filter: collapse genre/rating/decade chips behind the FILTER header
-         on mobile so they don't add clutter. Tap "Filter" to expand. */
-      .filter-chevron { display: inline-block !important; transition: transform 0.2s ease; }
-      #section-discover.filters-collapsed #filter-body { display: none !important; }
-      #section-discover.filters-collapsed .filter-chevron { transform: rotate(-90deg); }
 
       /* For You recs: collapse the genre filter chips behind a "Genre" toggle on
          mobile so they don't take a big block above the recommendations. */
@@ -2459,9 +2459,9 @@
 
     <!-- Discover -->
     <div id="section-discover" class="mb-4 filters-collapsed" onkeydown="if(event.key==='Enter'){event.preventDefault();performDiscover();}">
-      <div class="discover-panel" style="border-radius:18px;padding:14px 16px;">
+      <div class="discover-panel" style="border-radius:18px;padding:11px 14px;">
         <!-- Header (tap to expand/collapse on mobile) -->
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-2">
           <button onclick="toggleMobileFilters()" class="filter-toggle-btn flex items-center gap-2" style="background:none;border:none;padding:0;cursor:pointer;">
             <span class="text-[13px] font-bold text-red-400 uppercase" style="letter-spacing:0.1em;">Filter</span>
             <span id="filter-active-count" class="hidden text-[10px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5 leading-none"></span>
@@ -2472,26 +2472,26 @@
 
         <div id="filter-body">
           <!-- Genre chips -->
-          <div class="mb-3">
-            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Genre</div>
-            <div id="genre-chips" class="flex flex-wrap gap-1.5"></div>
+          <div class="mb-2">
+            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Genre</div>
+            <div id="genre-chips" class="flex flex-wrap gap-1"></div>
           </div>
 
           <!-- Rating + Decade side-by-side -->
-          <div id="rating-decade-row" class="grid grid-cols-2 gap-3 mb-3">
+          <div id="rating-decade-row" class="grid grid-cols-2 gap-2 mb-2">
             <div>
-              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Min Rating</div>
-              <div id="rating-chips" class="flex flex-wrap gap-1.5"></div>
+              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Min Rating</div>
+              <div id="rating-chips" class="flex flex-wrap gap-1"></div>
             </div>
             <div>
-              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1.5">Decade</div>
-              <div id="decade-chips" class="flex flex-wrap gap-1.5"></div>
+              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Decade</div>
+              <div id="decade-chips" class="flex flex-wrap gap-1"></div>
             </div>
           </div>
         </div>
 
         <!-- Bottom controls -->
-        <div class="flex items-center gap-2 pt-2.5 border-t border-zinc-800/70">
+        <div class="flex items-center gap-2 pt-2 border-t border-zinc-800/70">
           <select id="discover-sort" onchange="performDiscover()"
                   class="bg-zinc-950 border border-zinc-700 rounded-xl px-2.5 py-1.5 text-sm text-zinc-200 outline-none flex-shrink-0">
             <option value="popularity.desc">Popular</option>
