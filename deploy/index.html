@@ -2990,6 +2990,18 @@
       return keys;
     }
 
+    // Which list (if any) a title is already in — used to badge search results that
+    // would otherwise just be silently excluded (see renderResults' keepLibraryItems).
+    function getLibraryStatusBadge(id, mediaType) {
+      const key = `${id}:${mediaType || 'movie'}`;
+      const has = list => list.some(w => `${w.id}:${w._mediaType || 'movie'}` === key);
+      if (has(watchedList)) return { label: '✓ Watched', cls: 'bg-emerald-700 text-white' };
+      if (has(toWatchList)) return { label: '📌 In Queue', cls: 'bg-indigo-700 text-white' };
+      if (has(dislikedList)) return { label: '👎 Disliked', cls: 'bg-red-900 text-red-200' };
+      if (has(notInterestedList)) return { label: '✕ Hidden', cls: 'bg-zinc-700 text-zinc-300' };
+      return null;
+    }
+
     // === Password for Cloudflare Worker (Basic Auth) ===
     // The Worker requires a shared password on all /api/tmdb and /api/llm calls.
     // We store it in localStorage (per-browser). Username is ignored by the Worker.
@@ -5253,7 +5265,7 @@
           }
         }));
 
-        renderResults(enriched);
+        renderResults(enriched, { keepLibraryItems: true });
         const activeFilters = document.getElementById('active-filters');
         if (activeFilters) activeFilters.classList.add('hidden');
       } catch (e) {
@@ -5362,7 +5374,7 @@ function setCuratorPrompt(q) {
       setTimeout(() => document.addEventListener('pointerdown', close, true), 10);
     }
 
-    function renderResults(items) {
+    function renderResults(items, opts = {}) {
       const container = document.getElementById('results');
       const initial = document.getElementById('initial-state');
       if (initial) initial.style.display = 'none';
@@ -5372,12 +5384,17 @@ function setCuratorPrompt(q) {
       lastRenderedItems = items;
 
       // Filter out watched / to-watch / disliked using full exclusion (carries the "disappear" fix)
+      // — except when keepLibraryItems is set (direct title search), where a title
+      // already in the library should still show up, just badged as such, rather
+      // than silently vanishing from the results the user explicitly searched for.
       const excluded = getExcludedKeys();
       items = items.filter(m => {
         const key = `${m.id}:${m._mediaType || 'movie'}`;
         const year = parseInt((m.release_date || m.first_air_date || '').slice(0, 4));
-        return !excluded.has(key) && m.original_language === 'en' && !m.adult
+        const passesContentFilters = m.original_language === 'en' && !m.adult
           && !(m.genre_ids || []).includes(16) && (!year || year >= 1960);
+        if (!passesContentFilters) return false;
+        return opts.keepLibraryItems || !excluded.has(key);
       });
 
       if (!items.length) {
@@ -5416,14 +5433,25 @@ function setCuratorPrompt(q) {
 
         const mediaLabel = (m._mediaType || 'movie') === 'tv' ? 'TV' : 'Movie';
         const mediaColor = (m._mediaType || 'movie') === 'tv' ? 'bg-sky-900 text-sky-400' : 'bg-violet-900 text-violet-400';
+        const libraryBadge = getLibraryStatusBadge(m.id, m._mediaType);
+        const libraryBadgeOverlay = libraryBadge
+          ? `<span class="absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-1 rounded-full shadow ${libraryBadge.cls}">${libraryBadge.label}</span>`
+          : '';
+        // No poster to overlay onto — show the same badge as a plain inline pill instead.
+        const libraryBadgeInline = libraryBadge
+          ? `<span class="inline-block text-[10px] font-bold px-2 py-1 rounded-full mb-2 ${libraryBadge.cls}">${libraryBadge.label}</span>`
+          : '';
 
         const card = document.createElement('div');
         card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster ? `<img src="${poster}" class="w-full sm:w-36 h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 flex-shrink-0 shadow" alt="${titleSafe} poster">` : ''}
+            ${poster
+              ? `<div class="relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster">${libraryBadgeOverlay}</div>`
+              : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>
+                ${!poster ? libraryBadgeInline : ''}
                 <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${titleSafe}</div>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
                   <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${mediaColor}">${mediaLabel}</span>
