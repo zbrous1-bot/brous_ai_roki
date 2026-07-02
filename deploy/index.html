@@ -2302,11 +2302,6 @@
       <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
       <a class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</a>
       <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
-      <!-- Theme toggle -->
-      <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode" aria-label="Toggle light / dark mode"
-        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
-        🌙 Dark
-      </button>
       <button id="pass-btn" onclick="managePassword()" title="Set the shared Worker password" aria-label="Set the shared Worker password"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         🔐 Pass
@@ -3190,29 +3185,6 @@
         }
       }
     });
-
-    // ── Theme toggle ──
-    let _isLight = localStorage.getItem('brous_theme') === 'light';
-    function applyTheme() {
-      const html = document.documentElement;
-      const btn = document.getElementById('theme-toggle-btn');
-      if (_isLight) {
-        html.classList.add('light');
-        if (btn) btn.innerHTML = '☀️ Light';
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f4f4f5');
-      } else {
-        html.classList.remove('light');
-        if (btn) btn.innerHTML = '🌙 Dark';
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#18181b');
-      }
-    }
-    function toggleTheme() {
-      _isLight = !_isLight;
-      localStorage.setItem('brous_theme', _isLight ? 'light' : 'dark');
-      applyTheme();
-    }
-    // Apply on load
-    applyTheme();
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
