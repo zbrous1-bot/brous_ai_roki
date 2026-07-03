@@ -5250,45 +5250,70 @@
     // Search by director/writer/actor name: TMDB's title search only matches
     // movie/show titles, never person names, so a query like "Ari Aster" returns
     // nothing from it. This resolves the query to a person via /search/person, then
-    // pulls their directing/writing/acting credits from /person/{id}/movie_credits
-    // or tv_credits (depending on the active Movies/TV toggle) and merges them into
-    // one recency-sorted list, capped at 20 — a prolific actor's full filmography
-    // can run into the hundreds, so this always shows their most recent work first
-    // rather than every credit they've ever had.
-    async function searchPersonCredits(query, mediaType) {
+    // pulls their directing/writing/acting credits from BOTH movie_credits and
+    // tv_credits (a person search should surface their whole body of work — e.g.
+    // Stephen King's "The Langoliers" is a TV miniseries and would otherwise never
+    // appear while the Movies toggle is active), merges same-title credits into one
+    // entry, and sorts by popularity rather than recency — a prolific person can
+    // have 400+ credits, and sorting by date alone buries well-known classics (e.g.
+    // "The Mist") under a flood of recent, lower-profile work. Capped at 20.
+    //
+    // person.name must match the query fairly closely (see isCloseNameMatch) before
+    // any of this is used: TMDB's person search is fuzzy and will happily return an
+    // unrelated adult-content title for a query like "The Mist" (matching on "mist"
+    // as a substring) — without this gate, that false match would hijack a search
+    // for an actual movie titled "The Mist" and hide the real, correct title match.
+    function isCloseNameMatch(query, name) {
+      const norm = s => s.toLowerCase().trim().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ');
+      return norm(query) === norm(name);
+    }
+
+    async function searchPersonCredits(query) {
       try {
         const personData = await apiFetch(`/api/tmdb/3/search/person?query=${encodeURIComponent(query)}`);
-        const person = (personData.results || [])[0];
+        const person = (personData.results || []).find(p => isCloseNameMatch(query, p.name));
         if (!person) return null;
 
-        const creditsPath = mediaType === 'tv' ? 'tv_credits' : 'movie_credits';
-        const credits = await apiFetch(`/api/tmdb/3/person/${person.id}/${creditsPath}`);
-        const directorJobs = new Set(mediaType === 'tv' ? ['Director', 'Creator'] : ['Director']);
+        const [movieCredits, tvCredits] = await Promise.all([
+          apiFetch(`/api/tmdb/3/person/${person.id}/movie_credits`),
+          apiFetch(`/api/tmdb/3/person/${person.id}/tv_credits`),
+        ]);
+        const directorJobs = new Set(['Director', 'Creator']);
         const writerJobs = new Set(['Writer', 'Screenplay', 'Novel', 'Story']);
 
-        const roleById = new Map(); // credit id -> { item, isDirector, isWriter, isActor }
-        (credits.crew || []).forEach(c => {
+        const roleById = new Map(); // "id:mediaType" -> { item, isDirector, isWriter, isActor }
+        const addCrew = (list, itemMediaType) => (list || []).forEach(c => {
           if (!directorJobs.has(c.job) && !writerJobs.has(c.job)) return;
           if (!c.id || !(c.title || c.name)) return;
-          const r = roleById.get(c.id) || { item: c, isDirector: false, isWriter: false, isActor: false };
+          const key = `${c.id}:${itemMediaType}`;
+          const r = roleById.get(key) || { item: c, mediaType: itemMediaType, isDirector: false, isWriter: false, isActor: false };
           if (directorJobs.has(c.job)) r.isDirector = true;
           if (writerJobs.has(c.job)) r.isWriter = true;
-          roleById.set(c.id, r);
+          roleById.set(key, r);
         });
-        (credits.cast || []).forEach(c => {
+        const addCast = (list, itemMediaType) => (list || []).forEach(c => {
           if (!c.id || !(c.title || c.name)) return;
-          const r = roleById.get(c.id) || { item: c, isDirector: false, isWriter: false, isActor: false };
+          const key = `${c.id}:${itemMediaType}`;
+          const r = roleById.get(key) || { item: c, mediaType: itemMediaType, isDirector: false, isWriter: false, isActor: false };
           r.isActor = true;
-          roleById.set(c.id, r);
+          roleById.set(key, r);
         });
+        addCrew(movieCredits.crew, 'movie');
+        addCrew(tvCredits.crew, 'tv');
+        addCast(movieCredits.cast, 'movie');
+        addCast(tvCredits.cast, 'tv');
 
         const items = [...roleById.values()].map(r => {
           const roleParts = [];
           if (r.isDirector) roleParts.push('Directed');
           if (r.isWriter) roleParts.push('Written');
           if (r.isActor) roleParts.push(roleParts.length ? 'Acted in' : 'Starring');
-          return { ...r.item, _personRole: `${roleParts.join(' & ')} by ${person.name}`.replace('Starring by', 'Starring') };
-        }).sort((a, b) => (b.release_date || b.first_air_date || '').localeCompare(a.release_date || a.first_air_date || ''));
+          return {
+            ...r.item,
+            _mediaType: r.mediaType,
+            _personRole: `${roleParts.join(' & ')} by ${person.name}`.replace('Starring by', 'Starring'),
+          };
+        }).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
         return { person, items };
       } catch (e) {
@@ -5327,7 +5352,7 @@
         // fixes that.
         const [searchData, personResult] = await Promise.all([
           apiFetch(`/api/tmdb/3/search/${searchEndpoint}?query=${encodeURIComponent(query)}`),
-          searchPersonCredits(query, currentSearchType),
+          searchPersonCredits(query),
         ]);
         if (myGen !== _searchGen) return;
 
@@ -5372,21 +5397,27 @@
           return;
         }
         const enriched = await Promise.all(top.map(async item => {
+          // Person-credit results can mix movie and TV items regardless of the
+          // active toggle (see searchPersonCredits) — use each item's own type if
+          // it has one, instead of forcing every item to match the toggle, which
+          // would fetch the wrong provider/external-id endpoint for half of them.
+          const itemMediaType = item._mediaType || currentSearchType;
+          const itemMediaPath = itemMediaType === 'tv' ? 'tv' : 'movie';
           try {
             const [provData, extData] = await Promise.all([
-              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/watch/providers`),
-              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/external_ids`)
+              apiFetch(`/api/tmdb/3/${itemMediaPath}/${item.id}/watch/providers`),
+              apiFetch(`/api/tmdb/3/${itemMediaPath}/${item.id}/external_ids`)
             ]);
             const providers = provData.results?.US || null;
             const external = extData;
-            return { 
-              ...item, 
-              providers, 
+            return {
+              ...item,
+              providers,
               imdb_id: external.imdb_id || null,
-              _mediaType: currentSearchType
+              _mediaType: itemMediaType
             };
           } catch {
-            return { ...item, providers: null, imdb_id: null, _mediaType: currentSearchType };
+            return { ...item, providers: null, imdb_id: null, _mediaType: itemMediaType };
           }
         }));
         if (myGen !== _searchGen) return;
