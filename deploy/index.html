@@ -5254,9 +5254,13 @@
     // tv_credits (a person search should surface their whole body of work — e.g.
     // Stephen King's "The Langoliers" is a TV miniseries and would otherwise never
     // appear while the Movies toggle is active), merges same-title credits into one
-    // entry, and sorts by popularity rather than recency — a prolific person can
-    // have 400+ credits, and sorting by date alone buries well-known classics (e.g.
-    // "The Mist") under a flood of recent, lower-profile work. Capped at 20.
+    // entry, and sorts writing/directing credits (their primary, defining
+    // contribution) ahead of pure-acting credits, popularity descending within each
+    // group. Capped generously at 40 — a prolific person can have 400+ credits, and
+    // even after this sorting, a straight top-20 cut still missed well-known films
+    // (verified live: Stephen King's "The Mist", "Misery", "Carrie", and "Doctor
+    // Sleep" all sit between rank 20-40, behind higher-popularity-but-more-tangential
+    // credits like a talk-show appearance's host show).
     //
     // person.name must match the query fairly closely (see isCloseNameMatch) before
     // any of this is used: TMDB's person search is fuzzy and will happily return an
@@ -5266,6 +5270,19 @@
     function isCloseNameMatch(query, name) {
       const norm = s => s.toLowerCase().trim().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ');
       return norm(query) === norm(name);
+    }
+
+    // TMDB cast credits include talk-show/game-show/news guest appearances (playing
+    // "Self"), which can have a very high popularity score from the HOST SHOW's fame
+    // (e.g. The Daily Show, Jeopardy!) even though the appearance itself says nothing
+    // about the person's actual body of work — these otherwise crowd out their real
+    // acting/writing/directing credits when sorting by popularity.
+    function isSelfCameo(credit, personName) {
+      const character = (credit.character || '').toLowerCase().trim();
+      if (!character) return true; // no character name at all — almost always an interview/clip appearance, not a real role
+      if (character.startsWith('self')) return true;
+      const stripped = character.split('(')[0].trim();
+      return stripped === personName.toLowerCase().trim();
     }
 
     async function searchPersonCredits(query) {
@@ -5293,6 +5310,7 @@
         });
         const addCast = (list, itemMediaType) => (list || []).forEach(c => {
           if (!c.id || !(c.title || c.name)) return;
+          if (isSelfCameo(c, person.name)) return;
           const key = `${c.id}:${itemMediaType}`;
           const r = roleById.get(key) || { item: c, mediaType: itemMediaType, isDirector: false, isWriter: false, isActor: false };
           r.isActor = true;
@@ -5311,9 +5329,16 @@
           return {
             ...r.item,
             _mediaType: r.mediaType,
+            _isWriterOrDirector: r.isDirector || r.isWriter,
             _personRole: `${roleParts.join(' & ')} by ${person.name}`.replace('Starring by', 'Starring'),
           };
-        }).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+        }).sort((a, b) => {
+          // Writing/directing credits first (the person's primary contribution),
+          // then popularity within each group — see comment above for why.
+          const tierDiff = (b._isWriterOrDirector ? 1 : 0) - (a._isWriterOrDirector ? 1 : 0);
+          if (tierDiff !== 0) return tierDiff;
+          return (b.popularity || 0) - (a.popularity || 0);
+        }).map(({ _isWriterOrDirector, ...item }) => item); // internal sort key only, not needed downstream
 
         return { person, items };
       } catch (e) {
@@ -5364,7 +5389,10 @@
         let top = [];
 
         if (personResult && personResult.items.length) {
-          top = personResult.items.slice(0, 20);
+          // Capped more generously than a title search's 20 — a prolific person's
+          // well-known work is easily spread across ranks 20-40 by popularity (see
+          // searchPersonCredits' comment), so 20 alone still missed real titles.
+          top = personResult.items.slice(0, 40);
         } else if (searchData.results?.length) {
           const directMatches = searchData.results
             .filter(item => item && (item.title || item.name))
