@@ -5247,6 +5247,55 @@
     // getUserServices now always returns empty so no provider filtering happens.
     function getUserServices() { return {}; }
 
+    // Search by director/writer/actor name: TMDB's title search only matches
+    // movie/show titles, never person names, so a query like "Ari Aster" returns
+    // nothing from it. This resolves the query to a person via /search/person, then
+    // pulls their directing/writing/acting credits from /person/{id}/movie_credits
+    // or tv_credits (depending on the active Movies/TV toggle) and merges them into
+    // one recency-sorted list, capped at 20 — a prolific actor's full filmography
+    // can run into the hundreds, so this always shows their most recent work first
+    // rather than every credit they've ever had.
+    async function searchPersonCredits(query, mediaType) {
+      try {
+        const personData = await apiFetch(`/api/tmdb/3/search/person?query=${encodeURIComponent(query)}`);
+        const person = (personData.results || [])[0];
+        if (!person) return null;
+
+        const creditsPath = mediaType === 'tv' ? 'tv_credits' : 'movie_credits';
+        const credits = await apiFetch(`/api/tmdb/3/person/${person.id}/${creditsPath}`);
+        const directorJobs = new Set(mediaType === 'tv' ? ['Director', 'Creator'] : ['Director']);
+        const writerJobs = new Set(['Writer', 'Screenplay', 'Novel', 'Story']);
+
+        const roleById = new Map(); // credit id -> { item, isDirector, isWriter, isActor }
+        (credits.crew || []).forEach(c => {
+          if (!directorJobs.has(c.job) && !writerJobs.has(c.job)) return;
+          if (!c.id || !(c.title || c.name)) return;
+          const r = roleById.get(c.id) || { item: c, isDirector: false, isWriter: false, isActor: false };
+          if (directorJobs.has(c.job)) r.isDirector = true;
+          if (writerJobs.has(c.job)) r.isWriter = true;
+          roleById.set(c.id, r);
+        });
+        (credits.cast || []).forEach(c => {
+          if (!c.id || !(c.title || c.name)) return;
+          const r = roleById.get(c.id) || { item: c, isDirector: false, isWriter: false, isActor: false };
+          r.isActor = true;
+          roleById.set(c.id, r);
+        });
+
+        const items = [...roleById.values()].map(r => {
+          const roleParts = [];
+          if (r.isDirector) roleParts.push('Directed');
+          if (r.isWriter) roleParts.push('Written');
+          if (r.isActor) roleParts.push(roleParts.length ? 'Acted in' : 'Starring');
+          return { ...r.item, _personRole: `${roleParts.join(' & ')} by ${person.name}`.replace('Starring by', 'Starring') };
+        }).sort((a, b) => (b.release_date || b.first_air_date || '').localeCompare(a.release_date || a.first_air_date || ''));
+
+        return { person, items };
+      } catch (e) {
+        return null;
+      }
+    }
+
     // TMDB
     async function performSearch() {
       const container = document.getElementById('results');
@@ -5275,37 +5324,49 @@
           container.innerHTML = `<div class="text-center py-6 text-red-400">TMDB error: ${searchData.status_message}</div>`;
           return;
         }
+
+        let top = [];
+
         if (!searchData.results?.length) {
-          container.innerHTML = `
-            <div class="text-center py-10 text-zinc-400">
-              <i class="fa-solid fa-search text-3xl mb-3 opacity-50"></i>
-              <p>No results found for that search.</p>
-              <p class="text-xs mt-1">Try a different title or adjust your filters.</p>
-            </div>`;
-          return;
-        }
+          // No title matches — the query might be a director/writer's name instead
+          // (TMDB's title search never matches on person names), so try resolving
+          // it to a person and pulling their directing/writing credits before
+          // giving up and showing "no results".
+          const personResult = await searchPersonCredits(query, currentSearchType);
+          if (myGen !== _searchGen) return;
+          if (personResult && personResult.items.length) {
+            top = personResult.items.slice(0, 20);
+          } else {
+            container.innerHTML = `
+              <div class="text-center py-10 text-zinc-400">
+                <i class="fa-solid fa-search text-3xl mb-3 opacity-50"></i>
+                <p>No results found for that search.</p>
+                <p class="text-xs mt-1">Try a different title, or a director/writer's full name.</p>
+              </div>`;
+            return;
+          }
+        } else {
+          const directMatches = searchData.results
+            .filter(item => item && (item.title || item.name))
+            .slice(0, 10);
 
-        const directMatches = searchData.results
-          .filter(item => item && (item.title || item.name))
-          .slice(0, 10);
+          // Broaden the search: pull titles similar to the best match so the user
+          // sees related films in the same vein, not just exact-name results.
+          let similar = [];
+          const best = directMatches[0];
+          if (best && best.id) {
+            try {
+              const sim = await apiFetch(`/api/tmdb/3/${mediaPath}/${best.id}/similar?page=1`);
+              similar = (sim.results || []).filter(i => i && (i.title || i.name) && i.poster_path);
+            } catch (e) { /* similar is best-effort */ }
+          }
 
-        // Broaden the search: pull titles similar to the best match so the user
-        // sees related films in the same vein, not just exact-name results.
-        let similar = [];
-        const best = directMatches[0];
-        if (best && best.id) {
-          try {
-            const sim = await apiFetch(`/api/tmdb/3/${mediaPath}/${best.id}/similar?page=1`);
-            similar = (sim.results || []).filter(i => i && (i.title || i.name) && i.poster_path);
-          } catch (e) { /* similar is best-effort */ }
-        }
-
-        // Merge direct matches (first, most relevant) + similar, dedupe by id
-        const seenIds = new Set();
-        const top = [];
-        for (const it of [...directMatches, ...similar]) {
-          if (it && it.id && !seenIds.has(it.id)) { seenIds.add(it.id); top.push(it); }
-          if (top.length >= 20) break;
+          // Merge direct matches (first, most relevant) + similar, dedupe by id
+          const seenIds = new Set();
+          for (const it of [...directMatches, ...similar]) {
+            if (it && it.id && !seenIds.has(it.id)) { seenIds.add(it.id); top.push(it); }
+            if (top.length >= 20) break;
+          }
         }
         const enriched = await Promise.all(top.map(async item => {
           try {
@@ -5517,6 +5578,7 @@ function setCuratorPrompt(q) {
               <div>
                 ${!poster ? libraryBadgeInline : ''}
                 <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${titleSafe}</div>
+                ${m._personRole ? `<div class="text-xs text-indigo-400 mt-0.5">🎬 ${escapeHtml(m._personRole)}</div>` : ''}
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
                   <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${mediaColor}">${mediaLabel}</span>
                   ${year ? `<span class="text-zinc-400 text-sm">${year}</span>` : ''}
