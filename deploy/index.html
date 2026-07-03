@@ -2333,8 +2333,8 @@
     <div class="home-command-grid" id="home-command-grid">
       <button class="home-command-card primary" onclick="refreshRecPool()">
         <span class="home-command-kicker">Recommendations</span>
-        <span class="home-command-value">Fresh pool</span>
-        <span class="home-command-note">Pull a wider set of dark cinema picks.</span>
+        <span class="home-command-value" id="home-rec-pool-count">Fresh pool</span>
+        <span class="home-command-note" id="home-rec-pool-note">Pull a wider set of dark cinema picks.</span>
       </button>
       <button class="home-command-card" id="home-queue-card" onclick="switchMainTab('watched')">
         <img id="home-queue-thumb" class="home-queue-thumb" alt="" onerror="this.style.display='none'; document.getElementById('home-queue-card').classList.remove('has-thumb');">
@@ -2349,8 +2349,8 @@
       </button>
       <button class="home-command-card" onclick="switchMainTab('curator')">
         <span class="home-command-kicker">Curator</span>
-        <span class="home-command-value">Ask next</span>
-        <span class="home-command-note">Use your library to pick tonight.</span>
+        <span class="home-command-value" id="home-curator-value">Ask next</span>
+        <span class="home-command-note" id="home-curator-note">Use your library to pick tonight.</span>
       </button>
     </div>
 
@@ -3003,6 +3003,7 @@
       console.warn('localStorage parse failed (data may be corrupted or cleared):', e);
     }
     let currentRecPool = [];
+    let _recPoolLastRefreshed = null; // Date of the last full pool load — shown on the home dashboard's Recommendations card
     let recPageCursor = 1;
     let currentMood = 'All';
     let curatorPicks = []; // parsed SUGGESTED for cards + optional BATCH_RATE items
@@ -3957,6 +3958,19 @@
       }
     }
 
+    // Short relative-time label for dashboard snapshots (e.g. "2h ago", "just now").
+    function timeAgo(date) {
+      if (!date) return '';
+      const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    }
+
     function updateHomeSnapshot() {
       const queueEl = document.getElementById('home-queue-count');
       const watchedEl = document.getElementById('home-watched-count');
@@ -3993,6 +4007,33 @@
         const genreText = topGenre ? `Leaning ${topGenre.toLowerCase()}` : '';
         const labelText = [avgText, genreText].filter(Boolean).join(' · ') || 'Taste profile is warming up.';
         tasteEl.innerHTML = `${labelText}<span class="taste-chevron">▼</span>`;
+      }
+
+      const recCountEl = document.getElementById('home-rec-pool-count');
+      const recNoteEl = document.getElementById('home-rec-pool-note');
+      if (recCountEl && recNoteEl) {
+        if (currentRecPool.length) {
+          recCountEl.textContent = `${currentRecPool.length} picks`;
+          recNoteEl.textContent = _recPoolLastRefreshed ? `Refreshed ${timeAgo(_recPoolLastRefreshed)}` : 'Tap to pull fresh picks.';
+        } else {
+          recCountEl.textContent = 'Fresh pool';
+          recNoteEl.textContent = 'Pull a wider set of dark cinema picks.';
+        }
+      }
+
+      const curatorValueEl = document.getElementById('home-curator-value');
+      const curatorNoteEl = document.getElementById('home-curator-note');
+      if (curatorValueEl && curatorNoteEl) {
+        if (curatorPicks.length) {
+          curatorValueEl.textContent = `${curatorPicks.length} pick${curatorPicks.length === 1 ? '' : 's'} ready`;
+          curatorNoteEl.textContent = `Top pick: ${curatorPicks[0].title}`;
+        } else if (chatHistory.some(m => m.role === 'assistant')) {
+          curatorValueEl.textContent = 'In conversation';
+          curatorNoteEl.textContent = 'Pick up where you left off.';
+        } else {
+          curatorValueEl.textContent = 'Ask next';
+          curatorNoteEl.textContent = 'Use your library to pick tonight.';
+        }
       }
     }
 
@@ -6314,6 +6355,8 @@ function setCuratorPrompt(q) {
         });
         currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
         recPageCursor = startPage + pageCount;
+        _recPoolLastRefreshed = new Date();
+        if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
 
         console.log('[Recs] Pool size:', currentRecPool.length);
         if (!currentRecPool.length) {
@@ -6389,6 +6432,8 @@ function setCuratorPrompt(q) {
           return;
         }
         currentRecPool = mapped;
+        _recPoolLastRefreshed = new Date();
+        if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
         recGenreFilter = null;      // found-footage pool spans many genres; don't pre-filter
         recMediaFilter = 'all';
         setRecMediaFilter('all');   // resets toggle styling + triggers recompute/render
