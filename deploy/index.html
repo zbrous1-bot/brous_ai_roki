@@ -3151,19 +3151,23 @@
     // We store it in localStorage (per-browser). Username is ignored by the Worker.
     let apiPassword = Store.getItem('brous_password') || '';
 
-    // Optional: Custom API base for direct Worker access (useful for local testing or tunnels).
-    // Example: 'https://your-worker.your-account.workers.dev'
-    // Leave empty (default) to use relative /api paths (works when Worker route is attached to your Pages domain).
-    // Default Worker URL — pre-configured so cloud sync works without manual setup
+    // Optional: Custom API base for direct Worker access (useful for local testing, tunnels,
+    // or falling back to the standalone horror-roki Worker if the Pages Function ever needs
+    // to be bypassed). Example: 'https://your-worker.your-account.workers.dev'
+    // DEFAULT_WORKER_URL is kept only as a manual escape hatch via ?apiBase= (below) — it is
+    // NOT the default anymore. As of the Worker+Pages consolidation, /api/* is served by
+    // deploy/functions/api/[[path]].js on this SAME domain, so the default is relative paths
+    // (apiBase = ''), which is both simpler and avoids CORS entirely (same-origin).
     const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
-    // Always use the Worker URL directly. Clear any stale overrides from localStorage.
+    // Clear any stale overrides from localStorage so a relative-path default actually applies
+    // for everyone, not just new browsers.
     Store.removeItem('brous_api_base');
     // NOTE: do NOT remove 'brous_password' here. This line previously wiped the saved
     // password on every page load — the password was read into apiPassword above (line
     // ~2943) and then immediately deleted from storage, so it never survived a reload.
     // That silently broke cloud sync (every save/load 401'd) and caused devices to drift
     // apart. The password must persist across loads for sync to work.
-    let apiBase = DEFAULT_WORKER_URL;
+    let apiBase = '';
     Store.removeItem('brous_cloud_pin');
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
@@ -3456,8 +3460,10 @@
       if (options.body && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
       }
-      // Always route through the Worker — pages.dev has no /api/* binding
-      const base = (apiBase || DEFAULT_WORKER_URL).replace(/\/+$/, '');
+      // apiBase is '' by default (relative /api/* on this same domain, via Pages
+      // Functions) — only non-empty if overridden via ?apiBase= for the standalone
+      // Worker fallback.
+      const base = apiBase.replace(/\/+$/, '');
       const p = path.startsWith('/') ? path : '/' + path;
       const url = base + p;
       const fetchOptions = {
@@ -4400,8 +4406,9 @@
     let _syncTimeout = null;
     let _lastServerSyncedAt = null; // server's synced_at as of our last successful pull — used to detect stale writes
 
-    // Always use the Worker URL directly for data sync — pages.dev has no /api/* route binding.
-    const SYNC_URL = 'https://horror-roki.zbrous1.workers.dev';
+    // Relative — /api/* is now served on this same domain via Pages Functions
+    // (deploy/functions/api/[[path]].js), so no separate Worker origin is needed.
+    const SYNC_URL = '';
 
     async function _dataFetch(path, options = {}) {
       const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } };
@@ -8263,8 +8270,8 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       const entered = prompt('Enter the shared password (matches your Worker PASSWORD secret):');
       if (!entered) return; // cancelled or empty — leave state untouched, no false "saved" message
 
-      // Verify against the live Worker before claiming success, so a typo is never silently treated as correct.
-      const base = (apiBase || DEFAULT_WORKER_URL).replace(/\/+$/, '');
+      // Verify against the live backend before claiming success, so a typo is never silently treated as correct.
+      const base = apiBase.replace(/\/+$/, '');
       let verifyRes;
       try {
         verifyRes = await fetch(base + '/api/data/check', {
