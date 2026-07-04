@@ -2868,6 +2868,33 @@
   <div id="toast-container"></div>
 
   <script>
+    // ============================================================================
+    // TABLE OF CONTENTS — search for the "// ===== NAME =====" heading to jump in.
+    //   Store              single point of access for localStorage (key naming,
+    //                       one-time migration, per-key JSON parse safety)
+    //   UI Helpers          overflow menus, toasts, skeletons, swipe gestures,
+    //                       the shared apiFetch() TMDB wrapper
+    //   Discover + Filters  Browse tab's genre/rating/decade chips + Discover feed
+    //   Watchlist           legacy quick-add "My List" (search/discover context)
+    //   Full Library        To Watch / Watched / Disliked / Not Interested lists
+    //   Server Sync         cross-device sync against the Worker's /api/data
+    //   Main Page Tabs      For You / Curator / Browse / Library tab switching
+    //   Modal               the detail modal (poster, overview, availability)
+    //   Search              title search, director/writer/actor name fallback
+    //   Horror Roki Recs + Taste   taste profile, scoring, the recs grid
+    //   The Curator         chat history, streaming /api/llm, SUGGESTED parsing
+    //   Device Transfer     QR/link-based data transfer (no server needed)
+    // Settings, boot/init, and password management follow after Device Transfer
+    // and aren't individually labeled below this line.
+    // ============================================================================
+
+    // Single source of truth for the frontend's version marker — shown in the
+    // footer and logged on boot. Previously the footer text was just a hardcoded
+    // string with no relationship to anything else; update this one constant
+    // instead (the footer's static fallback text below should still match it,
+    // in case JS hasn't finished booting when someone checks).
+    const APP_VERSION = 'v2026-07';
+
     // Global error catcher to show genuine init failures visibly.
     window.addEventListener('error', function(e) {
       console.error('Global JS error:', e);
@@ -2883,6 +2910,85 @@
       if (document.body) document.body.insertBefore(banner, document.body.firstChild);
       else document.addEventListener('DOMContentLoaded', function() { document.body.insertBefore(banner, document.body.firstChild); });
     });
+
+    // ===================== Store: single point of access for localStorage =====================
+    // This app accumulated three inconsistent key-naming schemes over time
+    // (brous_*, horror_roki_*, and two bare names — tasteProfileCollapsed,
+    // roki_rec_tune). Store maps every one of them to a single consistent
+    // brous_* name internally, and every localStorage.getItem/setItem/removeItem
+    // call in the file goes through Store instead so there's one place that
+    // understands the actual key names in use. On first load after this change,
+    // migrate() copies each old key's value forward (if the new key doesn't
+    // already have one) and removes the old key, guarded by brous_migrated_v1 so
+    // it only ever runs once per browser. Existing call sites keep using the OLD
+    // key string as the argument — Store resolves it to the real, migrated key —
+    // so this was a drop-in swap (localStorage. -> Store.) with no call sites
+    // needing to change their key names.
+    const Store = (() => {
+      const KEY_MAP = {
+        'brous_password': 'brous_password',
+        'brous_watchlist': 'brous_watchlist',
+        'brous_api_base': 'brous_api_base',
+        'brous_cloud_pin': 'brous_cloud_pin',
+        'horror_roki_towatch': 'brous_towatch',
+        'horror_roki_watched': 'brous_watched',
+        'horror_roki_disliked': 'brous_disliked',
+        'horror_roki_not_interested': 'brous_not_interested',
+        'horror_roki_chat': 'brous_chat',
+        'horror_roki_llm': 'brous_llm_config',
+        'horror_roki_lists_collapsed': 'brous_lists_collapsed',
+        'tasteProfileCollapsed': 'brous_taste_profile_collapsed',
+        'roki_rec_tune': 'brous_rec_tune',
+      };
+
+      function resolve(key) {
+        return KEY_MAP[key] || key; // unrecognized keys pass through unchanged
+      }
+
+      function migrate() {
+        try {
+          if (localStorage.getItem('brous_migrated_v1')) return;
+        } catch (e) { return; } // localStorage unavailable (private mode, etc.) — nothing to migrate
+        try {
+          Object.entries(KEY_MAP).forEach(([oldKey, newKey]) => {
+            if (oldKey === newKey) return; // already the canonical name
+            try {
+              if (localStorage.getItem(newKey) === null) {
+                const oldVal = localStorage.getItem(oldKey);
+                if (oldVal !== null) localStorage.setItem(newKey, oldVal);
+              }
+              localStorage.removeItem(oldKey);
+            } catch (e) {
+              console.warn(`[Store] migrating ${oldKey} -> ${newKey} failed:`, e);
+            }
+          });
+        } finally {
+          try { localStorage.setItem('brous_migrated_v1', '1'); } catch (e) {}
+        }
+      }
+      migrate();
+
+      return {
+        getItem(key) {
+          try { return localStorage.getItem(resolve(key)); }
+          catch (e) { console.warn(`[Store] getItem(${key}) failed:`, e); return null; }
+        },
+        setItem(key, value) {
+          try { localStorage.setItem(resolve(key), value); }
+          catch (e) { console.warn(`[Store] setItem(${key}) failed:`, e); }
+        },
+        removeItem(key) {
+          try { localStorage.removeItem(resolve(key)); }
+          catch (e) { console.warn(`[Store] removeItem(${key}) failed:`, e); }
+        },
+      };
+    })();
+
+    // ===================== UI HELPERS =====================
+    // Generic, cross-feature UI plumbing: overflow menus, toasts, skeleton loading
+    // states, swipe gestures, and the shared apiFetch() wrapper used by every TMDB
+    // call in the file. Genre/provider/curator-mood constants also live here since
+    // several of the helpers below reference them.
 
     // Shared overflow-menu wiring for movie cards: toggles the [data-act-menu] panel
     // open/closed via the [data-act="more"] button, and closes it on outside click.
@@ -2970,7 +3076,7 @@
     // Watchlist (legacy quick list, kept working for existing search/discover "My List" flows)
     let watchlist = [];
     try {
-      watchlist = JSON.parse(localStorage.getItem('brous_watchlist') || '[]');
+      watchlist = JSON.parse(Store.getItem('brous_watchlist') || '[]');
     } catch (e) {
       console.warn('brous_watchlist parse failed (data may be corrupted or cleared):', e);
     }
@@ -2992,16 +3098,25 @@
     let notInterestedList = [];
     let chatHistory = [];
     let llmConfig = { provider: 'xAI', base_url: 'https://api.x.ai/v1', model: 'grok-4.3', max_history_turns: 12, max_response_tokens: 900 };
-    try {
-      toWatchList = JSON.parse(localStorage.getItem('horror_roki_towatch') || '[]');
-      watchedList = JSON.parse(localStorage.getItem('horror_roki_watched') || '[]');
-      dislikedList = JSON.parse(localStorage.getItem('horror_roki_disliked') || '[]');
-      notInterestedList = JSON.parse(localStorage.getItem('horror_roki_not_interested') || '[]');
-      chatHistory = JSON.parse(localStorage.getItem('horror_roki_chat') || '[]');
-      llmConfig = JSON.parse(localStorage.getItem('horror_roki_llm') || JSON.stringify(llmConfig));
-    } catch(e) {
-      console.warn('localStorage parse failed (data may be corrupted or cleared):', e);
+    // Each key gets its own try/catch — previously these shared one, so a single
+    // corrupted key (e.g. horror_roki_disliked) would throw partway through and
+    // silently leave every key AFTER it in the list at its empty default, even
+    // though those keys' own data was perfectly fine.
+    function loadJSON(key, fallback) {
+      try {
+        const raw = Store.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch (e) {
+        console.warn(`[Store] ${key} parse failed (data may be corrupted), using default:`, e);
+        return fallback;
+      }
     }
+    toWatchList = loadJSON('horror_roki_towatch', []);
+    watchedList = loadJSON('horror_roki_watched', []);
+    dislikedList = loadJSON('horror_roki_disliked', []);
+    notInterestedList = loadJSON('horror_roki_not_interested', []);
+    chatHistory = loadJSON('horror_roki_chat', []);
+    llmConfig = loadJSON('horror_roki_llm', llmConfig);
     let currentRecPool = [];
     let _recPoolLastRefreshed = null; // Date of the last full pool load — shown on the home dashboard's Recommendations card
     let recPageCursor = 1;
@@ -3034,7 +3149,7 @@
     // === Password for Cloudflare Worker (Basic Auth) ===
     // The Worker requires a shared password on all /api/tmdb and /api/llm calls.
     // We store it in localStorage (per-browser). Username is ignored by the Worker.
-    let apiPassword = localStorage.getItem('brous_password') || '';
+    let apiPassword = Store.getItem('brous_password') || '';
 
     // Optional: Custom API base for direct Worker access (useful for local testing or tunnels).
     // Example: 'https://your-worker.your-account.workers.dev'
@@ -3042,21 +3157,21 @@
     // Default Worker URL — pre-configured so cloud sync works without manual setup
     const DEFAULT_WORKER_URL = 'https://horror-roki.zbrous1.workers.dev';
     // Always use the Worker URL directly. Clear any stale overrides from localStorage.
-    localStorage.removeItem('brous_api_base');
+    Store.removeItem('brous_api_base');
     // NOTE: do NOT remove 'brous_password' here. This line previously wiped the saved
     // password on every page load — the password was read into apiPassword above (line
     // ~2943) and then immediately deleted from storage, so it never survived a reload.
     // That silently broke cloud sync (every save/load 401'd) and caused devices to drift
     // apart. The password must persist across loads for sync to work.
     let apiBase = DEFAULT_WORKER_URL;
-    localStorage.removeItem('brous_cloud_pin');
+    Store.removeItem('brous_cloud_pin');
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
     const urlParams = new URLSearchParams(window.location.search);
     const urlApiBase = urlParams.get('apiBase');
     if (urlApiBase) {
       apiBase = urlApiBase;
-      localStorage.setItem('brous_api_base', apiBase); // persist for this visitor too
+      Store.setItem('brous_api_base', apiBase); // persist for this visitor too
       console.log('[Horror Roki] apiBase overridden from URL param:', apiBase);
     }
     console.log('[Horror Roki] Current apiBase at load:', apiBase || '(relative)');
@@ -3367,7 +3482,7 @@
       if (res.status === 401) {
         // Only wipe password for non-data routes.
         if (!isDataPath) {
-          localStorage.removeItem('brous_password');
+          Store.removeItem('brous_password');
           apiPassword = '';
         }
         const err = new Error('Unauthorized (wrong or missing password)');
@@ -3405,6 +3520,10 @@
       }
       return res;
     }
+
+    // ===================== DISCOVER + FILTERS =====================
+    // The "Browse" tab's genre/rating/decade filter chips and the Discover feed
+    // itself (TMDB /discover/movie or /tv, driven by whichever chips are active).
 
     const RATING_OPTIONS = [0, 6, 7, 7.5, 8];
     const DECADES = [
@@ -3714,7 +3833,7 @@
     // ===================== WATCHLIST =====================
 
     function saveWatchlist() {
-      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      Store.setItem('brous_watchlist', JSON.stringify(watchlist));
       // keep top counts in sync if legacy path used
       try { updateLibraryCounts(); } catch(e){}
     }
@@ -3824,7 +3943,7 @@
     // Also syncs a bit with legacy watchlist for the old My List accordion.
 
     function saveToWatch() {
-      localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+      Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
       updateLibraryCounts();
       renderToWatch();
       // also refresh legacy quick list if desired
@@ -3832,7 +3951,7 @@
       pushToServer(); // server sync (debounced)
     }
     function saveWatched() {
-      localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+      Store.setItem('horror_roki_watched', JSON.stringify(watchedList));
       updateLibraryCounts();
       renderWatched();
       // Recompute recs when library changes (taste changed)
@@ -3840,7 +3959,7 @@
       pushToServer();
     }
     function saveDisliked() {
-      localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+      Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
       updateLibraryCounts();
       renderDisliked();
       if (currentRecPool.length) recomputeRecommendations();
@@ -3911,7 +4030,7 @@
 
       const GENRE_COLORS = ['bg-red-600','bg-orange-500','bg-violet-600','bg-sky-600','bg-emerald-600'];
 
-      const isCollapsed = localStorage.getItem('tasteProfileCollapsed') === 'true';
+      const isCollapsed = Store.getItem('tasteProfileCollapsed') === 'true';
       el.innerHTML = `
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
           <button onclick="toggleTasteProfile()" class="flex items-center justify-between w-full" style="background:none;border:none;cursor:pointer;padding:0;text-align:left;">
@@ -3949,12 +4068,12 @@
         body.style.maxHeight = '200px';
         body.style.opacity = '1';
         if (chevron) chevron.style.transform = 'rotate(0deg)';
-        localStorage.setItem('tasteProfileCollapsed', 'false');
+        Store.setItem('tasteProfileCollapsed', 'false');
       } else {
         body.style.maxHeight = '0';
         body.style.opacity = '0';
         if (chevron) chevron.style.transform = 'rotate(-90deg)';
-        localStorage.setItem('tasteProfileCollapsed', 'true');
+        Store.setItem('tasteProfileCollapsed', 'true');
       }
     }
 
@@ -4166,7 +4285,7 @@
       const legacyExists = watchlist.some(w => w.id === rec.id && w._mediaType === rec._mediaType);
       if (!legacyExists) {
         watchlist.unshift({...rec});
-        localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+        Store.setItem('brous_watchlist', JSON.stringify(watchlist));
         watchedIds.add(key);
       }
       saveToWatch();
@@ -4180,7 +4299,7 @@
       // remove from to watch / quick list first (the "disappear" fix)
       toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
       watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
-      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      Store.setItem('brous_watchlist', JSON.stringify(watchlist));
       watchedIds.delete(key);
 
       const existsIdx = watchedList.findIndex(w => `${w.id}:${w._mediaType||'movie'}` === key);
@@ -4203,7 +4322,7 @@
       const key = `${item.id}:${item._mediaType || 'movie'}`;
       toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
       watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
-      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      Store.setItem('brous_watchlist', JSON.stringify(watchlist));
       watchedIds.delete(key);
 
       const exists = dislikedList.some(d => `${d.id}:${d._mediaType||'movie'}` === key);
@@ -4224,7 +4343,7 @@
       const key = `${id}:${mediaType}`;
       toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
       watchlist = watchlist.filter(w => !(w.id === id && (w._mediaType||'movie') === mediaType));
-      localStorage.setItem('brous_watchlist', JSON.stringify(watchlist));
+      Store.setItem('brous_watchlist', JSON.stringify(watchlist));
       watchedIds.delete(key);
       saveToWatch();
     }
@@ -4257,7 +4376,7 @@
     }
 
     function saveNotInterested() {
-      localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
+      Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
       updateLibraryCounts();
       renderNotInterested();
       if (currentRecPool.length) recomputeRecommendations();
@@ -4371,10 +4490,10 @@
                 toWatchList = _mergeItemLists(toWatchList, serverData.to_watch, _syncBaseline?.to_watch);
                 dislikedList = _mergeItemLists(dislikedList, serverData.disliked, _syncBaseline?.disliked);
                 notInterestedList = _mergeItemLists(notInterestedList, serverData.not_interested, _syncBaseline?.not_interested);
-                localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
-                localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
-                localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
-                localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
+                Store.setItem('horror_roki_watched', JSON.stringify(watchedList));
+                Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+                Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+                Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
                 watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
                 if (serverData.synced_at) _lastServerSyncedAt = serverData.synced_at;
                 updateAllLibraryRenders(); renderPersonalStats();
@@ -4438,11 +4557,11 @@
         if (!serverData || typeof serverData !== 'object') return null;
         if (serverData.synced_at) _lastServerSyncedAt = serverData.synced_at;
         let changed = false;
-        if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
-        if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
-        if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
-        if (Array.isArray(serverData.not_interested)) { notInterestedList = serverData.not_interested; localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); changed = true; }
-        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
+        if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
+        if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
+        if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
+        if (Array.isArray(serverData.not_interested)) { notInterestedList = serverData.not_interested; Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); changed = true; }
+        if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; Store.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
         if (changed) {
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           updateAllLibraryRenders(); renderPersonalStats();
@@ -4977,11 +5096,11 @@
 
     // Master collapse for all three personal list panes (To Watch / Watched / Disliked).
     // Persisted so it remembers across reloads. Single toggle for all at once.
-    let listsCollapsed = localStorage.getItem('horror_roki_lists_collapsed') === 'true';
+    let listsCollapsed = Store.getItem('horror_roki_lists_collapsed') === 'true';
 
     function toggleAllLists() {
       listsCollapsed = !listsCollapsed;
-      localStorage.setItem('horror_roki_lists_collapsed', listsCollapsed);
+      Store.setItem('horror_roki_lists_collapsed', listsCollapsed);
       applyListsCollapse();
     }
 
@@ -5246,6 +5365,12 @@
     // My Services UI and filtering removed (user no longer wants to see subscribed services visually).
     // getUserServices now always returns empty so no provider filtering happens.
     function getUserServices() { return {}; }
+
+    // ===================== SEARCH =====================
+    // The Browse tab's title search: direct TMDB title matches, a "similar titles"
+    // broadening pass, and the director/writer/actor name fallback (which resolves
+    // a query like "Stephen King" to a person and pulls their credits when a plain
+    // title search comes up empty). renderResults() below is shared with Discover.
 
     // Search by director/writer/actor name: TMDB's title search only matches
     // movie/show titles, never person names, so a query like "Ari Aster" returns
@@ -5897,11 +6022,11 @@ function setCuratorPrompt(q) {
     const RECTUNE_DEFAULTS = { qualityBaseline: 0.78, genreAffinity: 4.0, exploration: 0.6 };
     let recTune = { ...RECTUNE_DEFAULTS };
     try {
-      const saved = JSON.parse(localStorage.getItem('roki_rec_tune') || 'null');
+      const saved = JSON.parse(Store.getItem('roki_rec_tune') || 'null');
       if (saved && typeof saved === 'object') recTune = { ...RECTUNE_DEFAULTS, ...saved };
     } catch (_) {}
     function saveRecTune() {
-      try { localStorage.setItem('roki_rec_tune', JSON.stringify(recTune)); } catch (_) {}
+      try { Store.setItem('roki_rec_tune', JSON.stringify(recTune)); } catch (_) {}
     }
 
     function scoreItem(item, profile, poolStats) {
@@ -6740,13 +6865,33 @@ function setCuratorPrompt(q) {
       const display = recGenreFilter !== null ? scored.slice(0, 40) : diversify(scored, 40);
 
       // Build a label explaining why each card matched
-      const { genreScores, decadeCounts, totalPos, totalDecade } = profile;
+      const { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos } = profile;
+      // Mirrors scoreItem's genre-combo bonus exactly: only surfaces a pairing when
+      // that SPECIFIC combination (not just each genre alone) has a positive score
+      // in the user's taste profile — same genrePairScores lookup scoreItem uses.
+      function bestGenrePair(gids) {
+        if (!gids || gids.length < 2 || !genrePairScores || !totalPairPos) return null;
+        let best = null, bestScore = 0;
+        for (let i = 0; i < gids.length; i++) {
+          for (let j = i + 1; j < gids.length; j++) {
+            const key = gids[i] < gids[j] ? `${gids[i]},${gids[j]}` : `${gids[j]},${gids[i]}`;
+            const pairScore = genrePairScores[key];
+            if (pairScore > 0 && pairScore > bestScore) { bestScore = pairScore; best = [gids[i], gids[j]]; }
+          }
+        }
+        if (!best) return null;
+        const n1 = GENRES.find(g => g.id === best[0])?.name;
+        const n2 = GENRES.find(g => g.id === best[1])?.name;
+        return (n1 && n2) ? `${n1} + ${n2}` : null;
+      }
       function matchLabel(item) {
         const gids = item.genre_ids || [];
         const topGenreId = gids.find(g => (genreScores[g] || 0) > 0);
         const topGenreName = topGenreId ? GENRES.find(g => g.id === topGenreId)?.name : null;
         const year = parseInt((item.release_date || '').slice(0, 4));
         const decade = year ? Math.floor(year / 10) * 10 : null;
+        const decadeFits = decade && decadeCounts[decade] > 0;
+        const comboNames = bestGenrePair(gids);
         const isHiddenGem = (item.vote_average || 0) >= poolStats.gemVoteAvgMin && (item.popularity || 0) < poolStats.gemPopularityMax && (item.vote_count || 0) >= poolStats.gemVoteCountMin;
         // Affinity labels take priority — they're the most specific signal
         if (item._affinityReason) {
@@ -6754,9 +6899,10 @@ function setCuratorPrompt(q) {
         }
         if (isHiddenGem && topGenreName) return `💎 Hidden gem · ${topGenreName}`;
         if (isHiddenGem) return `💎 Quality hidden gem`;
-        if (topGenreName && decade && decadeCounts[decade]) return `✨ ${topGenreName} · ${decade}s`;
+        if (comboNames) return `✨ ${comboNames} combo you love`;
+        if (topGenreName && decadeFits) return `✨ ${topGenreName} · ${decade}s`;
         if (topGenreName) return `✨ Matches your ${topGenreName} taste`;
-        if (decade && decadeCounts[decade]) return `✨ Fits your ${decade}s preference`;
+        if (decadeFits) return `✨ Fits your ${decade}s preference`;
         return `✨ Picked for your taste profile`;
       }
 
@@ -6846,11 +6992,21 @@ function setCuratorPrompt(q) {
             e.stopPropagation();
             document.querySelectorAll('.why-this-pop').forEach(p => p.remove());
             const gNames = (item.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean);
+            // Same decade/combo facts matchLabel uses for the button text, shown here
+            // as their own detail lines — previously this popover just repeated
+            // _affinityReason (or a generic fallback) and never surfaced the
+            // decade-fit or genre-combo reasoning scoreItem actually used to rank it.
+            const year = parseInt((item.release_date || '').slice(0, 4));
+            const decade = year ? Math.floor(year / 10) * 10 : null;
+            const decadeFits = decade && decadeCounts[decade] > 0;
+            const comboNames = bestGenrePair(item.genre_ids || []);
             const pop = document.createElement('div');
             pop.className = 'why-this-pop';
             pop.innerHTML = `
-              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${escapeHtml(item._affinityReason || '✨ Picked for you')}</div>
+              <div style="color:#e4e4e7;font-weight:600;margin-bottom:6px;">${escapeHtml(matchLabel(item))}</div>
               ${gNames.length ? `<div style="color:#71717a;font-size:11px;">Genres: ${escapeHtml(gNames.join(', '))}</div>` : ''}
+              ${comboNames ? `<div style="color:#a78bfa;font-size:11px;margin-top:2px;">Combo match: ${escapeHtml(comboNames)}</div>` : ''}
+              ${decadeFits ? `<div style="color:#71717a;font-size:11px;margin-top:2px;">Fits your ${decade}s taste</div>` : ''}
               ${item.vote_average ? `<div style="color:#71717a;font-size:11px;margin-top:3px;">TMDB ${item.vote_average.toFixed(1)} / 10</div>` : ''}
               ${item.vote_count ? `<div style="color:#52525b;font-size:10px;margin-top:2px;">${item.vote_count.toLocaleString()} votes</div>` : ''}
             `;
@@ -6876,7 +7032,7 @@ function setCuratorPrompt(q) {
     // ===================== THE CURATOR (full port: history, context, grounding, streaming /api/llm, SUGGESTED + BATCH_RATE) =====================
 
     function saveChat() {
-      localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory.slice(-20)));
+      Store.setItem('horror_roki_chat', JSON.stringify(chatHistory.slice(-20)));
       // Light push for chat (debounced)
       pushToServer();
     }
@@ -7372,7 +7528,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
     function clearCuratorChat() {
       if (!confirm('Clear entire chat history?')) return;
       chatHistory = [];
-      localStorage.removeItem('horror_roki_chat');
+      Store.removeItem('horror_roki_chat');
       const box = document.getElementById('curator-messages');
       if (box) box.innerHTML = '';
       refreshCuratorQuickReplies();
@@ -7527,7 +7683,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       const saveConfigBtn = document.getElementById('settings-save-config');
       if (saveConfigBtn) saveConfigBtn.onclick = () => {
         if (modelInput) llmConfig.model = modelInput.value.trim() || 'grok-4.3';
-        localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig));
+        Store.setItem('horror_roki_llm', JSON.stringify(llmConfig));
         setCloudStatus('\u2713 Config saved', '#4ade80');
       };
 
@@ -7551,12 +7707,12 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           const txt = ev.target.result || '';
           try {
             const data = JSON.parse(txt);
-            if (data.watched) { watchedList = data.watched; localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
-            if (data.to_watch) { toWatchList = data.to_watch; localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); }
-            if (data.disliked) { dislikedList = data.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
-            if (data.not_interested) { notInterestedList = data.not_interested; localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); }
-            if (data.chat_history) { chatHistory = data.chat_history; localStorage.setItem('horror_roki_chat', JSON.stringify(chatHistory)); }
-            if (data.llm_config) { llmConfig = data.llm_config; localStorage.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
+            if (data.watched) { watchedList = data.watched; Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
+            if (data.to_watch) { toWatchList = data.to_watch; Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); }
+            if (data.disliked) { dislikedList = data.disliked; Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
+            if (data.not_interested) { notInterestedList = data.not_interested; Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); }
+            if (data.chat_history) { chatHistory = data.chat_history; Store.setItem('horror_roki_chat', JSON.stringify(chatHistory)); }
+            if (data.llm_config) { llmConfig = data.llm_config; Store.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
             updateAllLibraryRenders();
             renderCuratorMessages();
             modal.classList.add('hidden');
@@ -7825,21 +7981,21 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
         if (data.watched && data.watched.length)  {
           watchedList = data.watched;
-          localStorage.setItem('horror_roki_watched', JSON.stringify(watchedList));
+          Store.setItem('horror_roki_watched', JSON.stringify(watchedList));
           count += data.watched.length;
         }
         if (data.to_watch && data.to_watch.length) {
           toWatchList = data.to_watch;
-          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+          Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
           count += data.to_watch.length;
         }
         if (data.disliked && data.disliked.length) {
           dislikedList = data.disliked;
-          localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
+          Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
         }
         if (data.not_interested && data.not_interested.length) {
           notInterestedList = data.not_interested;
-          localStorage.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
+          Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
         }
 
         watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
@@ -7904,9 +8060,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           const raw = JSON.parse(json);
           const data = expandPayload(raw);
           let count = 0;
-          if (data.watched.length)  { watchedList  = data.watched;  localStorage.setItem('horror_roki_watched',  JSON.stringify(watchedList));  count += data.watched.length; }
-          if (data.to_watch.length) { toWatchList  = data.to_watch; localStorage.setItem('horror_roki_towatch',  JSON.stringify(toWatchList));  count += data.to_watch.length; }
-          if (data.disliked.length) { dislikedList = data.disliked; localStorage.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
+          if (data.watched.length)  { watchedList  = data.watched;  Store.setItem('horror_roki_watched',  JSON.stringify(watchedList));  count += data.watched.length; }
+          if (data.to_watch.length) { toWatchList  = data.to_watch; Store.setItem('horror_roki_towatch',  JSON.stringify(toWatchList));  count += data.to_watch.length; }
+          if (data.disliked.length) { dislikedList = data.disliked; Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));
           if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
           if (typeof renderPersonalStats === 'function') renderPersonalStats();
@@ -8024,7 +8180,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         // One-time seed: if new lists empty but legacy watchlist has data, treat legacy as To Watch
         if ((!toWatchList || toWatchList.length === 0) && watchlist && watchlist.length > 0) {
           toWatchList = watchlist.map(x => ({...x}));
-          localStorage.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
+          Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
         }
         // Re-sync legacy exclusion set from all lists (watched disappear fix)
         watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...notInterestedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
@@ -8051,7 +8207,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
         // Hide the beginner help note once password is set
         const helpNote = document.getElementById('first-time-help');
-        if (helpNote && localStorage.getItem('brous_password')) {
+        if (helpNote && Store.getItem('brous_password')) {
           helpNote.style.display = 'none';
         }
 
@@ -8069,13 +8225,15 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         renderTasteStats();
 
         // Helpful console note for first-time setup (password is required for the Worker)
-        if (!localStorage.getItem('brous_password')) {
+        if (!Store.getItem('brous_password')) {
           console.log('%c[Horror Roki] No API password set yet. Click the 🔐 Pass button or ⚙︎ Settings. (On live site with routes, leave API Endpoint Base empty.)', 'color:#f59e0b');
         }
 
         // Visible confirmation that JS booted successfully
         window.__appInitialized = true;
-        console.log('%c[Brous Movie Engine] Boot completed successfully. UI should be interactive.', 'color:#4ade80');
+        console.log(`%c[Brous Movie Engine] Boot completed successfully (${APP_VERSION}). UI should be interactive.`, 'color:#4ade80');
+        const footerVersionEl = document.getElementById('app-version-footer');
+        if (footerVersionEl) footerVersionEl.textContent = APP_VERSION;
       } catch(e) {
         console.error('Error in boot():', e);
         var banner = document.createElement('div');
@@ -8093,10 +8251,10 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
     };
 
     async function managePassword() {
-      const current = localStorage.getItem('brous_password');
+      const current = Store.getItem('brous_password');
       if (current) {
         if (confirm('Password is currently set. Clear it and enter a new one?')) {
-          localStorage.removeItem('brous_password');
+          Store.removeItem('brous_password');
           apiPassword = '';
         } else {
           return;
@@ -8127,7 +8285,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       }
 
       apiPassword = entered;
-      localStorage.setItem('brous_password', apiPassword);
+      Store.setItem('brous_password', apiPassword);
       const btn = document.getElementById('pass-btn');
       if (btn) {
         btn.textContent = '🔐 OK';
@@ -8173,7 +8331,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
     // Password button hint
     const passBtn = document.getElementById('pass-btn');
-    if (passBtn && localStorage.getItem('brous_password')) {
+    if (passBtn && Store.getItem('brous_password')) {
       passBtn.textContent = '🔐 OK';
       passBtn.title = 'Password saved for this browser. Click to change or clear.';
     }
@@ -8214,7 +8372,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
 
   <div class="max-w-7xl mx-auto px-5 pb-6 text-center" style="font-size:9px;color:#3f3f46;opacity:0.55;line-height:1.5;">
     Movies &amp; TV data by <a href="https://www.themoviedb.org" target="_blank" style="color:#52525b;text-decoration:underline;">TMDB</a> · Curator via xAI · Not affiliated with any service · Data stays local
-    <span style="margin-left:6px;opacity:0.5">v2024-06</span>
+    <span id="app-version-footer" style="margin-left:6px;opacity:0.5">v2026-07</span>
   </div>
   <!-- Mobile overrides appended after Tailwind CDN so they win the cascade -->
   <style>

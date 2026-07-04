@@ -139,8 +139,14 @@ export default {
 
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
     if (pathname === '/api/llm' || pathname === '/api/llm/') {
-      if (env.PASSWORD && !(await isAuthenticated(request, env))) {
-        return jsonError('Unauthorized (wrong or missing password)', 401, request);
+      if (env.PASSWORD) {
+        if (await isRateLimited(request, env)) {
+          return jsonError('Too many failed attempts. Try again in a few minutes.', 429, request);
+        }
+        if (!(await isAuthenticated(request, env))) {
+          await recordFailedAttempt(request, env);
+          return jsonError('Unauthorized (wrong or missing password)', 401, request);
+        }
       }
       if (request.method !== 'POST') {
         return jsonError('Method not allowed for /api/llm; use POST with chat.completions payload', 405, request);
@@ -203,8 +209,14 @@ export default {
     // GET  /api/data/check   check whether shared data exists
     // GET  /api/data/backup  recover the previous snapshot
     if (pathname === '/api/data' || pathname === '/api/data/check' || pathname === '/api/data/backup') {
-      if (env.PASSWORD && !(await isAuthenticated(request, env))) {
-        return jsonError('Unauthorized (wrong or missing password)', 401, request);
+      if (env.PASSWORD) {
+        if (await isRateLimited(request, env)) {
+          return jsonError('Too many failed attempts. Try again in a few minutes.', 429, request);
+        }
+        if (!(await isAuthenticated(request, env))) {
+          await recordFailedAttempt(request, env);
+          return jsonError('Unauthorized (wrong or missing password)', 401, request);
+        }
       }
       if (!env.DATA_KV) {
         return jsonResponse({
@@ -331,6 +343,45 @@ async function isAuthenticated(request, env) {
     return await timingSafeEqual(password || '', env.PASSWORD);
   } catch (err) {
     return false;
+  }
+}
+
+// Per-IP rate limiting on failed password attempts, backed by the same DATA_KV
+// namespace already required for data sync — no separate setup needed. Only
+// FAILED attempts count against the limit; a correct password never gets
+// penalized, and past attempts age out automatically via KV's expirationTtl
+// (no cleanup job needed). This is a soft limit, not a hard guarantee — Workers
+// KV is eventually consistent, so a burst of near-simultaneous requests from the
+// same IP could each read the same pre-increment count before any write lands.
+// That's an acceptable gap for slowing down casual brute-forcing of a single
+// shared password; it isn't meant to be airtight.
+const RATE_LIMIT_MAX_ATTEMPTS = 8;
+const RATE_LIMIT_WINDOW_SECONDS = 300; // 5 minutes
+
+function rateLimitKeyFor(request) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  return `ratelimit_${ip}`;
+}
+
+async function isRateLimited(request, env) {
+  if (!env.DATA_KV) return false; // no KV bound — fail open, same posture as the rest of this file when DATA_KV is missing
+  try {
+    const record = await env.DATA_KV.get(rateLimitKeyFor(request), { type: 'json' });
+    return !!(record && record.count >= RATE_LIMIT_MAX_ATTEMPTS);
+  } catch (e) {
+    return false; // KV read failure shouldn't lock everyone out
+  }
+}
+
+async function recordFailedAttempt(request, env) {
+  if (!env.DATA_KV) return;
+  try {
+    const key = rateLimitKeyFor(request);
+    const record = await env.DATA_KV.get(key, { type: 'json' });
+    const count = (record && record.count || 0) + 1;
+    await env.DATA_KV.put(key, JSON.stringify({ count }), { expirationTtl: RATE_LIMIT_WINDOW_SECONDS });
+  } catch (e) {
+    // best-effort — a failed write here shouldn't block returning the 401 to the client
   }
 }
 
