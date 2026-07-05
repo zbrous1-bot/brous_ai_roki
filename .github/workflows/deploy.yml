@@ -28,11 +28,14 @@ jobs:
         run: npm ci || npm install
 
       # --- Frontend (Cloudflare Pages) ---
-      # Mirrors `npm run build:pages`: stages the static files into .pages-dist,
-      # then deploys that directory to the brous-movie-engine Pages project.
+      # Stages the static files (index.html, manifest.json, js/, styles.css) into
+      # .pages-dist, then deploys that directory to the brous-movie-engine Pages
+      # project. Calls the same package.json script used for local manual deploys
+      # (npm run deploy:pages) so there's one place to update the file list, not
+      # two copies of the same command that can drift out of sync.
       - name: Build Pages output
         working-directory: deploy
-        run: mkdir -p .pages-dist && cp index.html manifest.json .pages-dist/
+        run: npm run build:pages
 
       - name: Deploy Pages frontend
         working-directory: deploy
