@@ -735,7 +735,22 @@
     // the tag. Instead we fetch films tagged with the found-footage keywords directly,
     // replace the rec pool with them, and reuse recomputeRecommendations() so they get
     // scored by the user's taste and rendered with all the normal card wiring.
-    // Keywords: 163053 found footage · 342857 found footage horror · 340385 found footage story.
+    //
+    // Keyword set verified against TMDB's actual keyword search (search/keyword?query=...):
+    // 163053 found footage · 342857 found footage horror · 340385 found footage story ·
+    // 345179 found footage mystery · 365923 found footage adjacent · 357207 foundfootage ·
+    // 322394 horror mockumentary · 272745 screenlife · 376138 screenlife horror ·
+    // 272686 screen life · 11665 handheld camera · 365784 faux documentary ·
+    // 160517 fake documentary. Deliberately excludes plain "mockumentary"/"point of view" —
+    // checked those too, but they're dominated by non-horror comedy/wildlife content that
+    // would dilute this pool rather than expand it.
+    //
+    // The vote_count floor was the real limiter, not the keyword list: querying TMDB
+    // directly showed this keyword set has ~4,000 movies total, but the old
+    // vote_count.gte=50 floor cut that down to under 300 — found-footage is dominated by
+    // low-budget/indie titles that naturally have few ratings. Lowered to vote_count.gte=8
+    // (still filters out zero-vote noise) for the main pull, while keeping a separate
+    // stricter vote_count.gte=200 pass so well-known, highly-rated titles still surface.
     let _foundFootageLoading = false;
     async function loadFoundFootage() {
       if (_foundFootageLoading) return;
@@ -745,20 +760,29 @@
       if (empty) empty.classList.add('hidden');
       if (grid) { grid.innerHTML = ''; showSkeletons('recs-grid', 8); }
       try {
-        const kw = '163053|342857|340385';
-        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=50&sort_by=popularity.desc`;
-        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=20&sort_by=popularity.desc`;
+        const kw = '163053|342857|340385|345179|365923|357207|322394|272745|376138|272686|11665|365784|160517';
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=8&sort_by=popularity.desc`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=3&sort_by=popularity.desc`;
         const urls = [
           { url: `${base}&page=1`, type: 'movie' },
           { url: `${base}&page=2`, type: 'movie' },
           { url: `${base}&page=3`, type: 'movie' },
+          { url: `${base}&page=4`, type: 'movie' },
+          { url: `${base}&page=5`, type: 'movie' },
           { url: `${base}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, type: 'movie' },
           { url: `${tvBase}&page=1`, type: 'tv' },
+          { url: `${tvBase}&page=2`, type: 'tv' },
         ];
+        // Fetch all pages in parallel instead of one-at-a-time — these are independent
+        // requests, and awaiting them sequentially just adds up their latencies for no
+        // reason (this alone used to make the button noticeably slower as page count grew).
+        const results = await Promise.allSettled(urls.map(({ url }) => apiFetch(url)));
         let raw = [];
-        for (const { url, type } of urls) {
-          try { const d = await apiFetch(url); raw = raw.concat((d.results || []).map(r => ({ ...r, _mediaType: type }))); } catch (_) {}
-        }
+        results.forEach((res, i) => {
+          if (res.status !== 'fulfilled') return;
+          const { type } = urls[i];
+          raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
+        });
         // Dedupe by id:mediaType, tag with a reason, drop animation + excluded items.
         const excluded = getExcludedKeys();
         const seen = new Set();
