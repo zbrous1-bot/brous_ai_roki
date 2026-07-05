@@ -42,8 +42,12 @@ jobs:
         run: npx wrangler pages deploy .pages-dist --project-name brous-movie-engine --branch main --commit-dirty=true
 
       # --- Worker (horror-roki) ---
-      # Uses deploy/wrangler.toml (name = "horror-roki"). --keep-vars preserves the
-      # secrets/vars already configured on the Worker (TMDB_TOKEN, XAI_TOKEN, PASSWORD).
+      # Uses deploy/cloudflare-worker/wrangler.toml (name = "horror-roki"). Kept in its
+      # own subdirectory so its wrangler.toml doesn't collide with the Pages project's
+      # deploy/wrangler.toml — Pages only auto-detects a config file named exactly
+      # "wrangler.toml" in the deploy directory, so the two can't share a filename.
+      # --keep-vars preserves the secrets/vars already configured on the Worker
+      # (TMDB_TOKEN, XAI_TOKEN, PASSWORD).
       - name: Deploy Worker
         working-directory: deploy
-        run: npx wrangler deploy --keep-vars
+        run: npx wrangler deploy --keep-vars --config cloudflare-worker/wrangler.toml

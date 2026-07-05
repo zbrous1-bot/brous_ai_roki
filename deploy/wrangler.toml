@@ -1,7 +1,10 @@
-name = "horror-roki"
-main = "cloudflare-worker/worker.js"
+name = "brous-movie-engine"
+pages_build_output_dir = ".pages-dist"
 compatibility_date = "2026-06-11"
 
+# Same namespace ID as the standalone horror-roki Worker (deploy/cloudflare-worker/wrangler.toml) —
+# both read/write the same underlying data, so combining onto Pages Functions
+# doesn't require a data migration or cause a split-brain between the two.
 [[kv_namespaces]]
 binding = "DATA_KV"
 id = "dc0743eee387436f85af1aa92561fdda"

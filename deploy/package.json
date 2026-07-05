@@ -6,7 +6,7 @@
   "scripts": {
     "build:pages": "mkdir -p .pages-dist && cp index.html manifest.json .pages-dist/ && cp -R js .pages-dist/ && cp styles.css .pages-dist/",
     "deploy:pages": "npm run build:pages && wrangler pages deploy .pages-dist --project-name brous-movie-engine --branch main --commit-dirty=true",
-    "deploy:worker": "wrangler deploy --keep-vars"
+    "deploy:worker": "wrangler deploy --keep-vars --config cloudflare-worker/wrangler.toml"
   },
   "keywords": [],
   "author": "",
