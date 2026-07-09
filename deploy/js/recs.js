@@ -834,13 +834,24 @@
           14,    // Fantasy
           10765, // Sci-Fi & Fantasy (TV)
         ]);
+        // Manual denylist for specific mockumentary/shaky-cam titles that clear the genre gate
+        // (they carry Crime/Drama/Action) but aren't fictional found footage. Keyed by
+        // `id:mediaType` because TMDB movie and TV IDs share a numeric space. Kept deliberately
+        // small and title-commented — this is a curated exception list, not a heuristic. Add an
+        // entry only for a clear, recurring false positive that can't be excluded by genre
+        // without also dropping genuine found footage.
+        const FF_DENYLIST = new Set([
+          '73126:tv',    // American Vandal — mockumentary comedy-crime, not found footage
+          '1999:tv',     // The Comeback — showbiz mockumentary sitcom
+          '347375:movie',// Mile 22 — shaky-cam action thriller, not found footage
+        ]);
         const excluded = getExcludedKeys();
         const seen = new Set();
         const mapped = [];
         for (const r of raw) {
           const mt = r._mediaType || 'movie';
           const key = `${r.id}:${mt}`;
-          if (seen.has(key) || excluded.has(key)) continue;
+          if (seen.has(key) || excluded.has(key) || FF_DENYLIST.has(key)) continue;
           const gids = r.genre_ids || [];
           if (!r.poster_path || gids.includes(16)) continue;
           // Drop real documentaries and anything carrying no found-footage-plausible genre.
