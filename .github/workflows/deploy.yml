@@ -41,6 +41,41 @@ jobs:
         working-directory: deploy
         run: npx wrangler pages deploy .pages-dist --project-name brous-movie-engine --branch main --commit-dirty=true
 
+      # Cloudflare's edge can take a few seconds (occasionally longer) to fully
+      # propagate a new deployment. Until it does, some PoPs serve the SPA
+      # fallback (index.html, HTTP 200) for asset paths that genuinely exist in
+      # the deployment — indistinguishable from a real 200 without checking the
+      # body. This caught a real incident where /js/watchlist.js (and other
+      # assets) served index.html for 20+ hours after a deploy that otherwise
+      # uploaded all files correctly, silently breaking the app until someone
+      # noticed the JS error by hand. Retries with backoff to absorb normal
+      # propagation lag, then fails the build if it's still broken.
+      - name: Verify live assets aren't serving the SPA fallback
+        run: |
+          check() {
+            local path="$1"
+            local url="https://brous-movie-engine.pages.dev${path}?smoketest=${GITHUB_RUN_ID}-${RANDOM}"
+            local body
+            body=$(curl -s --max-time 10 "$url")
+            [[ "$body" != "<!DOCTYPE"* ]]
+          }
+          for path in /js/watchlist.js /js/store.js /js/transfer.js /styles.css; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              if check "$path"; then
+                ok=1
+                break
+              fi
+              echo "$path still serving the SPA fallback (attempt $attempt/5), retrying..."
+              sleep 5
+            done
+            if [[ "$ok" -ne 1 ]]; then
+              echo "::error::$path is serving index.html instead of its real content after 5 attempts"
+              exit 1
+            fi
+            echo "$path OK"
+          done
+
       # --- Worker (horror-roki) ---
       # Uses deploy/cloudflare-worker/wrangler.toml (name = "horror-roki"). Kept in its
       # own subdirectory so its wrangler.toml doesn't collide with the Pages project's
