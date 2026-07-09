@@ -336,6 +336,13 @@
       border-radius: 8px;
       overflow: hidden;
     }
+    /* rec-card and search-result posters use the larger Tailwind radius (rounded-2xl)
+       on the <img> itself; match it on the wrapper so its overflow:hidden clip mask
+       lines up with the image's own rounded corners instead of clipping them square. */
+    .rec-card .poster-wrap,
+    .search-card-poster.poster-wrap {
+      border-radius: 1rem;
+    }
     .poster-wrap img {
       transition: opacity 0.3s ease;
     }

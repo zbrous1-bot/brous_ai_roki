@@ -391,7 +391,7 @@ function setCuratorPrompt(q) {
         card.innerHTML = `
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
             ${poster
-              ? `<div class="search-card-poster relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster">${libraryBadgeOverlay}</div>`
+              ? `<div class="search-card-poster poster-wrap loading relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster" onload="this.parentNode.classList.remove('loading')" onerror="this.onerror=null;this.src='${FALLBACK_POSTER}';this.parentNode.classList.remove('loading')">${libraryBadgeOverlay}</div>`
               : ''}
             <div class="flex-1 min-w-0 pt-1">
               <div>

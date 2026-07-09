@@ -1,5 +1,9 @@
     // ===================== HORROR ROKI RECS + TASTE =====================
 
+    // Shared placeholder for missing/failed poster art (also used as the onerror
+    // fallback below, so a broken TMDB image URL doesn't show as a broken-image icon).
+    const FALLBACK_POSTER = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
+
     // Simple genre prefs used by the Curator for context (kept for compatibility)
     function getUserGenrePrefs() {
       const counts = {};
@@ -769,7 +773,16 @@
           { url: `${base}&page=3`, type: 'movie' },
           { url: `${base}&page=4`, type: 'movie' },
           { url: `${base}&page=5`, type: 'movie' },
+          // Top-tier quality pass: the well-known, heavily-voted found-footage titles.
           { url: `${base}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, type: 'movie' },
+          // Mid-tier quality pass (NEW): acclaimed indie found-footage lives in the 50–200
+          // vote range (Lake Mungo, Noroi, Grave Encounters territory) — too few votes for
+          // the gte=200 pass, and buried by flashier junk in the popularity pass. Pulling it
+          // by rating at a gte=50 floor is where most of the genuinely good, lesser-seen
+          // found footage surfaces. Client-side weighted scoring below keeps the handful of
+          // near-zero-vote 10.0-average flukes this sort can return from floating to the top.
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=1`, type: 'movie' },
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=2`, type: 'movie' },
           { url: `${tvBase}&page=1`, type: 'tv' },
           { url: `${tvBase}&page=2`, type: 'tv' },
         ];
@@ -783,7 +796,44 @@
           const { type } = urls[i];
           raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
         });
+        // Found-footage-calibrated quality boost. The generic scorer's bayesianRating uses
+        // m=800 min-votes-for-trust, which flattens this pool: found footage is overwhelmingly
+        // low-vote indie, so nearly every title gets pulled to the ~6.5 prior and the good ones
+        // can't separate from the noise — final order ends up dominated by genre affinity (near
+        // identical, they're all Horror) plus serendipity jitter, i.e. close to random. This
+        // recomputes a weighted rating with a prior tuned to found footage's actual vote reality
+        // (m=60, and a slightly-lower C=6.0 since the subgenre skews rougher than the global
+        // mean), then maps the distance from that prior into the existing _affinityBoost hook so
+        // canonical/acclaimed titles (REC, Lake Mungo, Creep, Host) get a genuine lift and the
+        // 10-vote junk gets pushed down — without letting it overpower the user's own taste,
+        // hence the clamp keeping the boost in roughly the same range as the other affinity tags.
+        const ffQualityBoost = (voteAvg, voteCount) => {
+          const FF_M = 60, FF_C = 6.0, K = 1.6;
+          const weighted = ((voteCount || 0) * (voteAvg || 0) + FF_M * FF_C) / ((voteCount || 0) + FF_M);
+          return Math.max(-1.5, Math.min(2.0, (weighted - 6.6) * K));
+        };
         // Dedupe by id:mediaType, tag with a reason, drop animation + excluded items.
+        // Genre gate to remove keyword false-positives. The broad tags needed for recall
+        // ("faux documentary", "fake documentary", "handheld camera", "screenlife") also
+        // catch things that aren't fictional found footage: real documentaries (For Sama),
+        // mockumentary sitcoms (Arrested Development), news/reality TV. We drop anything
+        // tagged Documentary, and require at least one "narrative fiction" genre that found
+        // footage actually inhabits — this keeps genuine FF across horror/thriller/sci-fi/
+        // crime/action (so e.g. End of Watch and Cloverfield still qualify) while cutting the
+        // non-fiction and pure-comedy noise. Animation (16) stays excluded as before.
+        const DOC_GENRE = 99;
+        const FF_NARRATIVE_GENRES = new Set([
+          27,    // Horror
+          53,    // Thriller
+          9648,  // Mystery
+          878,   // Science Fiction
+          80,    // Crime
+          28,    // Action
+          18,    // Drama
+          10752, // War
+          14,    // Fantasy
+          10765, // Sci-Fi & Fantasy (TV)
+        ]);
         const excluded = getExcludedKeys();
         const seen = new Set();
         const mapped = [];
@@ -791,14 +841,18 @@
           const mt = r._mediaType || 'movie';
           const key = `${r.id}:${mt}`;
           if (seen.has(key) || excluded.has(key)) continue;
-          if (!r.poster_path || (r.genre_ids || []).includes(16)) continue;
+          const gids = r.genre_ids || [];
+          if (!r.poster_path || gids.includes(16)) continue;
+          // Drop real documentaries and anything carrying no found-footage-plausible genre.
+          if (gids.includes(DOC_GENRE)) continue;
+          if (!gids.some(g => FF_NARRATIVE_GENRES.has(g))) continue;
           seen.add(key);
           mapped.push({
             id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,
             poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || '') : (r.release_date || ''),
             vote_average: r.vote_average, vote_count: r.vote_count || 0,
             genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
-            _affinityReason: '🎥 Found footage', _affinityBoost: 0
+            _affinityReason: '🎥 Found footage', _affinityBoost: ffQualityBoost(r.vote_average, r.vote_count)
           });
         }
         if (!mapped.length) {
@@ -856,7 +910,7 @@
       picks.forEach(item => {
         const card = document.createElement('div');
         card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl flex flex-col';
-        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
+        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : FALLBACK_POSTER;
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
@@ -864,9 +918,9 @@
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
-<div class="relative overflow-hidden rounded-2xl">
+<div class="poster-wrap loading relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster" onload="this.parentNode.classList.remove('loading')" onerror="this.onerror=null;this.src='${FALLBACK_POSTER}';this.parentNode.classList.remove('loading')">
 </div>
 <div class="mt-2 px-0.5">
   <div class="font-semibold text-sm leading-tight line-clamp-2">${itemTitleSafe}</div>
@@ -1035,7 +1089,7 @@
       display.forEach(item => {
         const card = document.createElement('div');
         card.className = 'movie-card rec-card bg-zinc-900 border border-zinc-700 rounded-3xl flex flex-col';
-        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27180%27%3E%3Crect fill=%27%2327272a%27 width=%27120%27 height=%27180%27/%3E%3C/svg%27';
+        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w342${item.poster_path}` : FALLBACK_POSTER;
         const year = (item.release_date || '').slice(0,4);
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
@@ -1043,9 +1097,9 @@
         const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
-<div class="relative overflow-hidden rounded-2xl">
+<div class="poster-wrap loading relative overflow-hidden rounded-2xl">
   <div class="swipe-overlay absolute inset-0 rounded-2xl flex items-center justify-center text-white font-bold text-lg opacity-0 pointer-events-none z-10" style="transition:opacity 0.12s;"></div>
-  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster">
+  <img src="${poster}" class="w-full aspect-[2/3] object-cover" loading="lazy" alt="${itemTitleSafe} poster" onload="this.parentNode.classList.remove('loading')" onerror="this.onerror=null;this.src='${FALLBACK_POSTER}';this.parentNode.classList.remove('loading')">
 </div>
 <div class="mt-2 px-0.5">
   <div class="font-semibold text-sm leading-tight line-clamp-2">${itemTitleSafe}</div>
