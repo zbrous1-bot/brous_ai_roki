@@ -13,6 +13,32 @@
 
 Converted from the rich Streamlit Brous Movie Dashboard + Curator to this immersive static experience matching the superior look & feel.
 
+## Project layout
+
+```
+brous_ai_roki/
+├── deploy/          # App + Cloudflare config (what gets deployed)
+│   ├── index.html, styles.css, manifest.json, js/
+│   ├── cloudflare-worker/   # API proxy (TMDB + LLM + auth)
+│   ├── functions/           # Pages Functions adapter → worker
+│   ├── package.json         # npm run build:pages / deploy:pages / deploy:worker
+│   └── wrangler.toml
+├── docs/
+│   ├── user/        # How to use, mobile, network notes
+│   ├── hosting/     # Hosting, tunnel, local-run guides
+│   └── archive/     # Older one-off guides + scratch helpers
+├── scripts/         # Local Mac launchers (Start/Stop Roki)
+└── .github/workflows/deploy.yml
+```
+
+| Want to… | Go here |
+|----------|---------|
+| Edit the app | `deploy/` |
+| User guides | `docs/user/` |
+| Hosting / tunnel | `docs/hosting/` |
+| Run locally on Mac | `scripts/Start-Roki.command` |
+| Deploy | `cd deploy && npm run deploy:pages` (and `deploy:worker`) |
+
 ## Features
 
 - **Recommended for you** — client-side taste boost from Watched (with rating love weighting) + mood filters

@@ -1,22 +1,18 @@
 #!/bin/bash
 
-# Get the absolute path to the directory containing this script
+# Serve the app from deploy/ (this script lives in scripts/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/../deploy" && pwd)"
 
 echo "========================================"
 echo " ROKI LAUNCHER"
 echo "========================================"
 echo ""
 echo "Script location: $SCRIPT_DIR"
-echo "Changing to that directory..."
-cd "$SCRIPT_DIR"
-
+echo "Serving app from: $APP_DIR"
 echo ""
-echo "Current working directory:"
-pwd
-echo ""
-echo "Files in this directory:"
-ls -1
+echo "Files in app directory:"
+ls -1 "$APP_DIR"
 echo ""
 
 # Kill any previous server on port 8000
@@ -24,9 +20,9 @@ echo "Stopping any old Roki server..."
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 sleep 1
 
-# Start the server, explicitly serving this directory
-echo "Starting server from: $SCRIPT_DIR"
-python3 -m http.server 8000 --directory "$SCRIPT_DIR" > /dev/null 2>&1 &
+# Start the server on the deploy/ app root
+echo "Starting server from: $APP_DIR"
+python3 -m http.server 8000 --directory "$APP_DIR" > /dev/null 2>&1 &
 
 sleep 2
 
@@ -53,7 +49,7 @@ echo "========================================"
 osascript -e "
 display dialog \"Roki server is running from:
 
-$SCRIPT_DIR
+$APP_DIR
 
 On your iPhone go to:
 

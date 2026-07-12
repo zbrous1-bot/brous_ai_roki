@@ -21,7 +21,7 @@ echo "   http://$IP:8000"
 echo ""
 echo "The server will keep running even after you close this window."
 echo ""
-echo "To stop it later, double-click Stop-Roki-Background.command"
+echo "To stop it later, double-click scripts/Stop-Roki-Background.command"
 echo "========================================"
 
 osascript -e "
