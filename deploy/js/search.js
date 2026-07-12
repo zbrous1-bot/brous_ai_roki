@@ -189,20 +189,23 @@
           const itemMediaType = item._mediaType || currentSearchType;
           const itemMediaPath = itemMediaType === 'tv' ? 'tv' : 'movie';
           try {
-            const [provData, extData] = await Promise.all([
-              apiFetch(`/api/tmdb/3/${itemMediaPath}/${item.id}/watch/providers`),
-              apiFetch(`/api/tmdb/3/${itemMediaPath}/${item.id}/external_ids`)
-            ]);
-            const providers = provData.results?.US || null;
-            const external = extData;
+            // Combined into one details call (append_to_response) instead of two
+            // separate watch/providers + external_ids requests — also gets us
+            // origin_country for free (movie list results don't carry it, only
+            // movie *details* do; TV list results already have it but details
+            // repeats it harmlessly) for the American-titles content filter below.
+            const details = await apiFetch(`/api/tmdb/3/${itemMediaPath}/${item.id}?append_to_response=watch/providers,external_ids`);
+            const providers = details['watch/providers']?.results?.US || null;
+            const imdbId = details.imdb_id || details.external_ids?.imdb_id || null;
             return {
               ...item,
               providers,
-              imdb_id: external.imdb_id || null,
+              imdb_id: imdbId,
+              origin_country: details.origin_country || item.origin_country || [],
               _mediaType: itemMediaType
             };
           } catch {
-            return { ...item, providers: null, imdb_id: null, _mediaType: itemMediaType };
+            return { ...item, providers: null, imdb_id: null, origin_country: item.origin_country || null, _mediaType: itemMediaType };
           }
         }));
         if (myGen !== _searchGen) return;
@@ -335,7 +338,11 @@ function setCuratorPrompt(q) {
       items = items.filter(m => {
         const key = `${m.id}:${m._mediaType || 'movie'}`;
         const year = parseInt((m.release_date || m.first_air_date || '').slice(0, 4));
-        const passesContentFilters = m.original_language === 'en' && !m.adult
+        // origin_country is fetched per-item alongside providers/imdb_id (see enrichment
+        // above) — null means that fetch failed/hasn't run, so fail open rather than
+        // hiding a title just because a details lookup errored.
+        const isAmerican = m.origin_country == null || m.origin_country.includes('US');
+        const passesContentFilters = m.original_language === 'en' && isAmerican && !m.adult
           && !(m.genre_ids || []).includes(16) && (!year || year >= 1960);
         if (!passesContentFilters) return false;
         return opts.keepLibraryItems || !excluded.has(key);

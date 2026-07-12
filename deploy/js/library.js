@@ -264,9 +264,10 @@
       container.innerHTML = '';
 
       const allBtn = document.createElement('button');
-      allBtn.className = `taste-genre-chip${recGenreFilter === null ? ' active' : ''}`;
+      allBtn.className = `taste-genre-chip${(!foundFootageActive && recGenreFilter === null) ? ' active' : ''}`;
       allBtn.innerHTML = 'All genres';
       allBtn.onclick = () => {
+        exitFoundFootageMode();
         recGenreFilter = null;
         renderRecGenreChips();
         updateRecGenreLabel();
@@ -279,9 +280,10 @@
       genreList.forEach(g => {
         const score = genreScores[g.id] || 0;
         const btn = document.createElement('button');
-        btn.className = `taste-genre-chip${recGenreFilter === g.id ? ' active' : ''}`;
+        btn.className = `taste-genre-chip${(!foundFootageActive && recGenreFilter === g.id) ? ' active' : ''}`;
         btn.innerHTML = `${g.name} ${dotsHtml(score)}`;
         btn.onclick = () => {
+          exitFoundFootageMode();
           recGenreFilter = recGenreFilter === g.id ? null : g.id;
           renderRecGenreChips();
           updateRecGenreLabel();
@@ -293,8 +295,26 @@
       });
 
       if (!genreList.length) {
-        container.innerHTML = '<span style="font-size:12px;color:var(--text4)">Rate some movies to unlock genre filters.</span>';
+        const hint = document.createElement('span');
+        hint.style.cssText = 'font-size:12px;color:var(--text4)';
+        hint.textContent = 'Rate some movies to unlock genre filters.';
+        container.appendChild(hint);
       }
+
+      // Found Footage isn't a real TMDB genre (it's a keyword search — see
+      // toggleFoundFootageGenre in recs.js), so it doesn't come from genreScores and
+      // stays available even when the taste-profile genre list above is empty.
+      const ffBtn = document.createElement('button');
+      ffBtn.className = `taste-genre-chip${foundFootageActive ? ' active' : ''}`;
+      ffBtn.innerHTML = '🎥 Found Footage';
+      ffBtn.onclick = () => {
+        toggleFoundFootageGenre();
+        renderTasteDropdownGenres();
+        updateRecGenreLabel();
+        switchMainTab('foryou');
+        closeTasteDropdown();
+      };
+      container.appendChild(ffBtn);
     }
 
     // Build a best-effort DIRECT Rotten Tomatoes movie/TV URL instead of a search page.

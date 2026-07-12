@@ -64,18 +64,18 @@
         <span class="home-command-value" id="home-rec-pool-count">Fresh pool</span>
         <span class="home-command-note" id="home-rec-pool-note">Pull a wider set of dark cinema picks.</span>
       </button>
-      <button class="home-command-card" id="home-queue-card" onclick="switchMainTab('watched')">
+      <button class="home-command-card card-queue" id="home-queue-card" onclick="switchMainTab('watched')">
         <img id="home-queue-thumb" class="home-queue-thumb" alt="" onerror="this.style.display='none'; document.getElementById('home-queue-card').classList.remove('has-thumb');">
         <span class="home-command-kicker">Queue</span>
         <span class="home-command-value" id="home-queue-count">0 waiting</span>
         <span class="home-command-note" id="home-next-title">Add titles from search or Curator.</span>
       </button>
-      <button class="home-command-card" id="taste-profile-card" onclick="toggleTasteDropdown(event)">
+      <button class="home-command-card card-taste" id="taste-profile-card" onclick="toggleTasteDropdown(event)">
         <span class="home-command-kicker">Taste Profile</span>
         <span class="home-command-value" id="home-watched-count">0 rated</span>
         <span class="home-command-note" id="home-taste-label">Taste profile is warming up.<span class="taste-chevron">▼</span></span>
       </button>
-      <button class="home-command-card" onclick="switchMainTab('curator')">
+      <button class="home-command-card card-curator" onclick="switchMainTab('curator')">
         <span class="home-command-kicker">Curator</span>
         <span class="home-command-value" id="home-curator-value">Ask next</span>
         <span class="home-command-note" id="home-curator-note">Use your library to pick tonight.</span>
@@ -124,9 +124,9 @@
            genre state via recGenreFilter. -->
       <div id="recs-filter-wrap" class="mb-3">
         <div class="flex items-center gap-2 flex-wrap">
-          <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">All</button>
-          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-red-700 border-red-600 text-white">🎬 Movies</button>
-          <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-colors bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500">📺 TV</button>
+          <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip">All</button>
+          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-all type-toggle-active">🎬 Movies</button>
+          <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip">📺 TV</button>
         </div>
         <!-- Genre filtering lives in the Taste Profile card's dropdown (single source).
              #recs-genre-chips kept (hidden) for renderRecGenreChips()/recompute references. -->
@@ -231,7 +231,7 @@
 
           <div class="inline-flex rounded-xl bg-zinc-800/80 border border-zinc-700 p-0.5 flex-shrink-0">
             <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all bg-zinc-100 text-zinc-900">Movies</button>
+                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all type-toggle-active">Movies</button>
             <button onclick="setDiscoverType('tv')" id="type-tv"
                     class="px-3 py-1 rounded-lg text-sm font-semibold transition-all text-zinc-400 hover:text-zinc-200">TV</button>
           </div>

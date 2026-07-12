@@ -953,6 +953,36 @@
       color: #fff;
     }
 
+    /* Unselected genre/rating/decade filter chips — warm themed instead of flat zinc */
+    .filter-chip {
+      background: linear-gradient(150deg, rgba(185,28,28,0.06), rgba(24,24,27,0.9));
+      border-color: rgba(113,113,122,0.45);
+      color: #d4d4d8;
+    }
+    .filter-chip:hover {
+      background: linear-gradient(150deg, rgba(185,28,28,0.16), rgba(24,24,27,0.95));
+      border-color: rgba(248,113,113,0.55);
+      color: #fecaca;
+    }
+
+    /* Movies/TV type toggle — themed gradient instead of stark white */
+    .type-toggle-active {
+      background: linear-gradient(135deg, #991b1b, #6d28d9) !important;
+      color: #fff !important;
+      box-shadow: 0 0 10px rgba(185,28,28,0.3);
+    }
+
+    /* Sort dropdown — themed border to match the rest of the Browse panel */
+    #discover-sort {
+      border-color: rgba(185,28,28,0.25) !important;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    #discover-sort:hover,
+    #discover-sort:focus {
+      border-color: rgba(185,28,28,0.5) !important;
+      box-shadow: 0 0 0 1px rgba(185,28,28,0.15);
+    }
+
     /* Recommended section header — red left accent bar */
     .recs-section-header {
       position: relative;
@@ -1001,10 +1031,11 @@
       color: #fca5a5 !important;
     }
 
-    /* Refresh Pool / Recompute buttons — subtle gradient */
+    /* Refresh Pool / Recompute buttons — subtle warm gradient, matching the
+       filter-chip treatment used on Browse instead of flat zinc. */
     .pool-btn {
-      background: linear-gradient(135deg, #27272a, #1c1c1f) !important;
-      border-color: #52525b !important;
+      background: linear-gradient(150deg, rgba(185,28,28,0.08), #1c1c1f) !important;
+      border-color: rgba(113,113,122,0.5) !important;
       transition: all 0.2s ease !important;
     }
     .pool-btn:hover {
@@ -1582,7 +1613,7 @@
       font-size: 2.5rem;
       margin-bottom: 0.75rem;
       display: block;
-      filter: grayscale(0.3);
+      filter: grayscale(0.3) drop-shadow(0 0 14px rgba(185,28,28,0.25));
     }
 
     /* Improved Curator message bubbles */
@@ -1745,6 +1776,29 @@
     .home-command-card.primary:hover {
       border-color: rgba(248,113,113,0.65);
       box-shadow: 0 12px 28px rgba(185,28,28,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* Distinct accent per command card so the row is scannable at a glance
+       instead of all four looking identical on hover. */
+    .home-command-card.card-queue { border-top: 2px solid rgba(45,212,191,0.32); }
+    .home-command-card.card-queue .home-command-kicker { color: rgba(45,212,191,0.75); }
+    .home-command-card.card-queue:hover {
+      border-color: rgba(45,212,191,0.5);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(45,212,191,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .home-command-card.card-taste { border-top: 2px solid rgba(245,158,11,0.32); }
+    .home-command-card.card-taste .home-command-kicker { color: rgba(245,158,11,0.8); }
+    .home-command-card.card-taste:hover {
+      border-color: rgba(245,158,11,0.5);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(245,158,11,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .home-command-card.card-curator { border-top: 2px solid rgba(168,85,247,0.32); }
+    .home-command-card.card-curator .home-command-kicker { color: rgba(196,132,252,0.8); }
+    .home-command-card.card-curator:hover {
+      border-color: rgba(168,85,247,0.5);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22), 0 0 0 1px rgba(168,85,247,0.14), inset 0 1px 0 rgba(255,255,255,0.05);
     }
     @media (max-width: 820px) {
       .home-command-grid {
@@ -2230,6 +2284,26 @@
       background: linear-gradient(160deg, #fdf0e0 0%, #f5e6d0 100%) !important;
       border-color: rgba(180,120,60,0.2) !important;
       box-shadow: none !important;
+    }
+    /* Unselected filter chips + sort dropdown */
+    html.light .filter-chip {
+      background: linear-gradient(150deg, rgba(185,28,28,0.05), #fdf8f2) !important;
+      border-color: rgba(180,120,60,0.3) !important;
+      color: #6b4c2a !important;
+    }
+    html.light .filter-chip:hover {
+      background: linear-gradient(150deg, rgba(185,28,28,0.12), #fdf8f2) !important;
+      border-color: rgba(185,28,28,0.4) !important;
+      color: #7a1f1f !important;
+    }
+    html.light #discover-sort {
+      border-color: rgba(180,120,60,0.3) !important;
+      background: var(--input-bg) !important;
+      color: var(--text) !important;
+    }
+    html.light #discover-sort:hover,
+    html.light #discover-sort:focus {
+      border-color: rgba(185,28,28,0.45) !important;
     }
     /* Library sub-tabs */
     html.light .watch-sub-tab {

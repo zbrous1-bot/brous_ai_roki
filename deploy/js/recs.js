@@ -247,10 +247,45 @@
     let recGenreFilter = null; // null = All, otherwise a genre id (number)
     let recMediaFilter = 'movie'; // 'all' | 'movie' | 'tv' — filters For You recs by media type; defaults to Movies
 
+    // Found Footage is a keyword search (TMDB has no such genre), not a real genre id,
+    // so it can't be filtered client-side out of the normal pool the way a genre chip
+    // filters currentRecPool by genre_ids — it needs its own fetched pool (see
+    // loadFoundFootage below). It's presented as a genre-style chip (see
+    // renderTasteDropdownGenres in library.js) that swaps the whole pool in/out instead
+    // of filtering the existing one. _ffPoolSnapshot remembers what was showing before
+    // Found Footage was turned on, so turning it back off restores it instantly.
+    let foundFootageActive = false;
+    let _ffPoolSnapshot = null; // { pool, mediaFilter } or null
+
+    // Toggle Found Footage mode on/off — mirrors clicking a genre chip, but swaps in/out
+    // a dedicated keyword-fetched pool instead of filtering the current one.
+    function toggleFoundFootageGenre() {
+      if (foundFootageActive) { exitFoundFootageMode(); return; }
+      _ffPoolSnapshot = { pool: currentRecPool, mediaFilter: recMediaFilter };
+      foundFootageActive = true;
+      recGenreFilter = null;
+      loadFoundFootage();
+    }
+
+    // Restore whatever pool/media-filter was active before Found Footage was turned on.
+    // Called both when the Found Footage chip is toggled off directly and when a real
+    // genre chip is picked while Found Footage is active (see library.js).
+    function exitFoundFootageMode() {
+      if (!foundFootageActive) return;
+      foundFootageActive = false;
+      if (_ffPoolSnapshot) {
+        currentRecPool = _ffPoolSnapshot.pool;
+        const restoreMediaFilter = _ffPoolSnapshot.mediaFilter;
+        _ffPoolSnapshot = null;
+        setRecMediaFilter(restoreMediaFilter); // restores toggle styling + recomputes
+      }
+    }
+
     // Keep the inline "Genre: X ▾" button label in sync with the dropdown's selection.
     function updateRecGenreLabel() {
       const el = document.getElementById('rec-genre-filter-label');
       if (!el) return;
+      if (foundFootageActive) { el.textContent = 'Genre: Found Footage'; return; }
       if (recGenreFilter === null) { el.textContent = 'Genre: All'; return; }
       const g = (typeof GENRES !== 'undefined') ? GENRES.find(x => x.id === recGenreFilter) : null;
       el.textContent = 'Genre: ' + (g ? g.name : '…');
@@ -258,12 +293,14 @@
 
     function setRecMediaFilter(val) {
       recMediaFilter = val;
-      // Update the toggle buttons' active styling
+      // Update the toggle buttons' active styling — shares the same filter-chip /
+      // type-toggle-active classes as the Browse tab's Movies/TV toggle so both
+      // read as the same control instead of two different-looking widgets.
       ['all', 'movie', 'tv'].forEach(v => {
         const b = document.getElementById('rec-media-' + v);
         if (b) {
           const active = v === val;
-          b.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${active ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+          b.className = `text-xs px-3 py-1.5 rounded-full border transition-all ${active ? 'type-toggle-active' : 'filter-chip'}`;
         }
       });
       recomputeRecommendations();
@@ -279,24 +316,32 @@
 
       const allBtn = document.createElement('button');
       allBtn.textContent = 'All';
-      allBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${recGenreFilter === null ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
-      allBtn.onclick = () => { recGenreFilter = null; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
+      allBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!foundFootageActive && recGenreFilter === null) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+      allBtn.onclick = () => { exitFoundFootageMode(); recGenreFilter = null; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
       wrap.innerHTML = '';
       wrap.appendChild(allBtn);
 
       available.forEach(g => {
         const btn = document.createElement('button');
         btn.textContent = g.name;
-        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${recGenreFilter === g.id ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
-        btn.onclick = () => { recGenreFilter = recGenreFilter === g.id ? null : g.id; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
+        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!foundFootageActive && recGenreFilter === g.id) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+        btn.onclick = () => { exitFoundFootageMode(); recGenreFilter = recGenreFilter === g.id ? null : g.id; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
         wrap.appendChild(btn);
       });
+
+      // Found Footage — dedicated keyword-fetched pool (see toggleFoundFootageGenre),
+      // presented as a genre-style chip alongside the real genres above.
+      const ffBtn = document.createElement('button');
+      ffBtn.textContent = '🎥 Found Footage';
+      ffBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${foundFootageActive ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+      ffBtn.onclick = () => { collapseRecsGenreFilter(); toggleFoundFootageGenre(); };
+      wrap.appendChild(ffBtn);
 
       // Update the collapsed-header label to show the active genre
       const label = document.getElementById('recs-filter-current');
       if (label) {
         const active = GENRES.find(g => g.id === recGenreFilter);
-        label.textContent = active ? active.name : 'All';
+        label.textContent = foundFootageActive ? 'Found Footage' : (active ? active.name : 'All');
       }
       // Keep the inline "Genre: X ▾" button in sync as well
       updateRecGenreLabel();
@@ -339,7 +384,6 @@
       menu.innerHTML = `
         <button onclick="refreshRecPool(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800" role="menuitem">Refresh Pool</button>
         <button onclick="surpriseMe(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-amber-400 hover:bg-zinc-800" role="menuitem">🎲 Surprise Me</button>
-        <button onclick="loadFoundFootage(); closeRecsActionsMenu();" class="w-full text-left text-sm px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800" role="menuitem">🎥 Found Footage</button>
       `;
       document.body.appendChild(menu);
       const rect = btn.getBoundingClientRect();
@@ -360,6 +404,11 @@
       if (_recPoolLoading) return; // prevent double-fire / infinite loop
       _recPoolLoading = true;
       const append = !!options.append;
+
+      // A full rebuild replaces currentRecPool outright, so a stale Found Footage
+      // snapshot (see toggleFoundFootageGenre) would no longer have anything sensible
+      // to restore later — drop it rather than let the chip lie about being active.
+      if (foundFootageActive) { foundFootageActive = false; _ffPoolSnapshot = null; }
 
       const grid = document.getElementById('recs-grid');
       const empty = document.getElementById('recs-empty');
@@ -453,7 +502,7 @@
                 .filter(([, p]) => p.type === 'director' && p.score >= 3)
                 .sort((a, b) => b[1].score - a[1].score).slice(0, 3)
                 .forEach(([id, p]) => {
-                  const base2 = `/api/tmdb/3/discover/movie?with_crew=${id}&sort_by=vote_average.desc&vote_count.gte=200`;
+                  const base2 = `/api/tmdb/3/discover/movie?with_crew=${id}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=200`;
                   affinityUrls.push({ url: `${base2}&page=1`, reason: `Directed by ${p.name}`, boost: 2.0 });
                   affinityUrls.push({ url: `${base2}&page=2`, reason: `Directed by ${p.name}`, boost: 2.0 });
                 });
@@ -461,12 +510,12 @@
                 .filter(([, p]) => p.type === 'actor' && p.score >= 1.5)
                 .sort((a, b) => b[1].score - a[1].score).slice(0, 3)
                 .forEach(([id, p]) => {
-                  affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_cast=${id}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, reason: `Stars ${p.name}`, boost: 1.2 });
+                  affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_cast=${id}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=200&page=1`, reason: `Stars ${p.name}`, boost: 1.2 });
                 });
               if (topKeywordIds.length) {
                 const kwStr = topKeywordIds.slice(0, 5).join('|');
-                affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_keywords=${kwStr}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, reason: `Matches your themes`, boost: 0.8 });
-                affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_keywords=${kwStr}&sort_by=vote_average.desc&vote_count.gte=200&page=2`, reason: `Matches your themes`, boost: 0.8 });
+                affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_keywords=${kwStr}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=200&page=1`, reason: `Matches your themes`, boost: 0.8 });
+                affinityUrls.push({ url: `/api/tmdb/3/discover/movie?with_keywords=${kwStr}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=200&page=2`, reason: `Matches your themes`, boost: 0.8 });
               }
 
               // Fetch affinity URLs sequentially (small set, need to tag results)
@@ -516,11 +565,11 @@
                 .filter(([, p]) => p.type === 'actor' && p.score >= 1.5)
                 .sort((a, b) => b[1].score - a[1].score).slice(0, 3)
                 .forEach(([id, p]) => {
-                  tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_cast=${id}&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Stars ${p.name}`, boost: 1.2 });
+                  tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_cast=${id}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Stars ${p.name}`, boost: 1.2 });
                 });
               if (topTvKeywordIds.length) {
                 const kwStr = topTvKeywordIds.slice(0, 5).join('|');
-                tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_keywords=${kwStr}&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Matches your themes`, boost: 0.8 });
+                tvAffinityUrls.push({ url: `/api/tmdb/3/discover/tv?with_keywords=${kwStr}&with_origin_country=US&sort_by=vote_average.desc&vote_count.gte=100&page=1`, reason: `Matches your themes`, boost: 0.8 });
               }
 
               for (const { url, reason, boost } of tvAffinityUrls) {
@@ -596,8 +645,8 @@
         // Each entry carries its own media type so every fetched item can be tagged
         // correctly at the source — movie and TV ids can collide, so dedupe/scoring
         // downstream needs `${id}:${mediaType}` keys rather than id alone.
-        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
-        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&without_genres=16&first_air_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&first_air_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
         const pageCount = 10;
         const startPage = append ? recPageCursor : (1 + Math.floor(Math.random() * 20));
         const urls = []; // { url, type }
@@ -624,6 +673,19 @@
           const page = Math.min(startPage + i, 480);
           urls.push({ url: `/api/tmdb/3/tv/popular?language=en-US&page=${page}`, type: 'tv' });
           urls.push({ url: `/api/tmdb/3/tv/top_rated?language=en-US&page=${page}`, type: 'tv' });
+        }
+        // Dedicated horror pass. The broad pool above skews toward whatever's popular
+        // across ALL genres, so horror is naturally a thin slice of it — once a user's
+        // watched/excluded list grows, filtering the feed down to Horror runs dry fast.
+        // Pull a much deeper, lower-vote-floor horror-specific slice (indie/lesser-known
+        // horror carries far fewer votes than mainstream genres, same reasoning as the
+        // Found Footage pool's quality pass below) so Horror always has a real pool to
+        // draw from instead of whatever scraps survive the generic discover queries.
+        const horrorBase = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&with_genres=27&without_genres=16&vote_count.gte=25&vote_average.gte=4.3`;
+        for (let i = 0; i < 8; i++) {
+          const page = Math.min(startPage + i, 480);
+          urls.push({ url: `${horrorBase}&sort_by=popularity.desc&page=${page}`, type: 'movie' });
+          urls.push({ url: `${horrorBase}&sort_by=vote_average.desc&page=${page}`, type: 'movie' });
         }
         // Similar/recommendations from top-rated watches (movie + TV, each via its own endpoint)
         if (!append && watchedList.length) {
@@ -684,8 +746,19 @@
           // TV uses first_air_date / name; movies use release_date / title.
           const dateStr = mt === 'tv' ? (r.first_air_date || '') : (r.release_date || '');
           const year = parseInt(dateStr.slice(0, 4));
-          return !excluded.has(key) && (r.vote_average || 0) >= 4.8 && r.poster_path
-            && r.original_language === 'en' && !r.adult && !(r.genre_ids || []).includes(16)
+          // Horror carries a lower vote-average floor than the rest of the pool — the
+          // dedicated horror pass above already gates on vote_count.gte=25, and indie
+          // horror naturally scores lower than mainstream genres, so holding it to the
+          // generic 4.8 floor would throw away most of what that pass just pulled in.
+          const isHorror = (r.genre_ids || []).includes(27);
+          const ratingFloor = isHorror ? 4.0 : 4.8;
+          // TV list objects always carry origin_country, so it's checked directly here;
+          // movie list objects don't (confirmed against the live API — only movie
+          // *details* responses include it), so movies rely on with_origin_country=US
+          // already applied at each discover URL above instead of a client-side check.
+          const isAmerican = mt !== 'tv' || (r.origin_country || []).includes('US');
+          return !excluded.has(key) && (r.vote_average || 0) >= ratingFloor && r.poster_path
+            && r.original_language === 'en' && isAmerican && !r.adult && !(r.genre_ids || []).includes(16)
             && (!year || year >= 1960);
         });
 
@@ -765,17 +838,26 @@
       if (grid) { grid.innerHTML = ''; showSkeletons('recs-grid', 8); }
       try {
         const kw = '163053|342857|340385|345179|365923|357207|322394|272745|376138|272686|11665|365784|160517';
-        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=8&sort_by=popularity.desc`;
-        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_keywords=${kw}&vote_count.gte=3&sort_by=popularity.desc`;
+        // vote_count floor dropped further (8 → 5) and page depth roughly doubled across
+        // every tier below — the keyword set already covers ~4,000 titles (see comment
+        // above), the old page counts were only skimming the front of that, and found
+        // footage's naturally low vote counts mean deeper pages still hold real titles
+        // rather than trailing off into junk the way a mainstream-genre pool would.
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&with_keywords=${kw}&vote_count.gte=5&sort_by=popularity.desc`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&with_keywords=${kw}&vote_count.gte=3&sort_by=popularity.desc`;
         const urls = [
           { url: `${base}&page=1`, type: 'movie' },
           { url: `${base}&page=2`, type: 'movie' },
           { url: `${base}&page=3`, type: 'movie' },
           { url: `${base}&page=4`, type: 'movie' },
           { url: `${base}&page=5`, type: 'movie' },
+          { url: `${base}&page=6`, type: 'movie' },
+          { url: `${base}&page=7`, type: 'movie' },
+          { url: `${base}&page=8`, type: 'movie' },
           // Top-tier quality pass: the well-known, heavily-voted found-footage titles.
           { url: `${base}&sort_by=vote_average.desc&vote_count.gte=200&page=1`, type: 'movie' },
-          // Mid-tier quality pass (NEW): acclaimed indie found-footage lives in the 50–200
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=200&page=2`, type: 'movie' },
+          // Mid-tier quality pass: acclaimed indie found-footage lives in the 50–200
           // vote range (Lake Mungo, Noroi, Grave Encounters territory) — too few votes for
           // the gte=200 pass, and buried by flashier junk in the popularity pass. Pulling it
           // by rating at a gte=50 floor is where most of the genuinely good, lesser-seen
@@ -783,8 +865,18 @@
           // near-zero-vote 10.0-average flukes this sort can return from floating to the top.
           { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=1`, type: 'movie' },
           { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=2`, type: 'movie' },
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=3`, type: 'movie' },
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=50&page=4`, type: 'movie' },
+          // Low-tier quality pass (NEW): the true deep cuts — barely-voted found footage
+          // that a popularity sort would bury for pages. Rating-sorted at the same floor
+          // as the main pull so genuinely well-regarded obscurities surface instead of
+          // only ever showing up if someone happens to page far enough by popularity.
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=5&page=1`, type: 'movie' },
+          { url: `${base}&sort_by=vote_average.desc&vote_count.gte=5&page=2`, type: 'movie' },
           { url: `${tvBase}&page=1`, type: 'tv' },
           { url: `${tvBase}&page=2`, type: 'tv' },
+          { url: `${tvBase}&page=3`, type: 'tv' },
+          { url: `${tvBase}&page=4`, type: 'tv' },
         ];
         // Fetch all pages in parallel instead of one-at-a-time — these are independent
         // requests, and awaiting them sequentially just adds up their latencies for no
@@ -938,8 +1030,8 @@
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
-    <a id="imdb-si-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:9px"></i></a>
-    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
+    <a id="imdb-si-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:12px"></i></a>
+    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
   <button class="why-this-btn text-[10px] text-amber-400/80 mt-1.5 text-left w-full truncate hover:text-amber-300 transition-colors" title="Why this recommendation?">🎲 Outside your usual taste</button>
   <div id="wtw-si-${item.id}" class="mt-1"></div>
@@ -1117,8 +1209,8 @@
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
-    <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:9px"></i></a>
-    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
+    <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:12px"></i></a>
+    <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
   <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${escapeHtml(matchLabel(item))}</button>
   <div id="wtw-rec-${item.id}" class="mt-1"></div>

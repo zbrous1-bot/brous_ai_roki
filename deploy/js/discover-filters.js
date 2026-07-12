@@ -39,7 +39,7 @@
         btn.textContent = g.name;
         btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
           ? 'filter-chip-active' 
-          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+          : 'filter-chip'}`;
         btn.onclick = () => {
           if (selectedGenres.has(g.id)) selectedGenres.delete(g.id);
           else selectedGenres.add(g.id);
@@ -83,7 +83,7 @@
         btn.textContent = label;
         btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
           ? 'filter-chip-active' 
-          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+          : 'filter-chip'}`;
         btn.onclick = () => {
           minRating = val;
           renderRatingChips();
@@ -103,7 +103,7 @@
       anyBtn.textContent = 'Any';
       anyBtn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${!selectedDecade 
         ? 'filter-chip-active' 
-        : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+        : 'filter-chip'}`;
       anyBtn.onclick = () => {
         selectedDecade = null;
         renderDecadeChips();
@@ -116,7 +116,7 @@
         btn.textContent = d.label;
         btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${isSelected 
           ? 'filter-chip-active' 
-          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`;
+          : 'filter-chip'}`;
         btn.onclick = () => {
           selectedDecade = d;
           renderDecadeChips();
@@ -132,14 +132,14 @@
       const tvBtn = document.getElementById('type-tv');
       if (movieBtn && tvBtn) {
         if (type === 'movie') {
-          movieBtn.classList.add('bg-white', 'text-black');
+          movieBtn.classList.add('type-toggle-active');
           movieBtn.classList.remove('text-zinc-300');
-          tvBtn.classList.remove('bg-white', 'text-black');
+          tvBtn.classList.remove('type-toggle-active');
           tvBtn.classList.add('text-zinc-300');
         } else {
-          tvBtn.classList.add('bg-white', 'text-black');
+          tvBtn.classList.add('type-toggle-active');
           tvBtn.classList.remove('text-zinc-300');
-          movieBtn.classList.remove('bg-white', 'text-black');
+          movieBtn.classList.remove('type-toggle-active');
           movieBtn.classList.add('text-zinc-300');
         }
       }
@@ -178,7 +178,7 @@
       const genreIds = Array.from(selectedGenres);
 
       const sortValue = document.getElementById('discover-sort')?.value || 'popularity.desc';
-      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&without_genres=16&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
+      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
       if (genreIds.length > 0) {
         url += `&with_genres=${genreIds.join(',')}`;
       }
@@ -205,23 +205,25 @@
         }
 
         const enriched = await Promise.all(data.results.map(async item => {
-          const isMovie = currentDiscoverType === 'movie';
-          const mediaPath = isMovie ? 'movie' : 'tv';
+          const mediaPath = currentDiscoverType === 'movie' ? 'movie' : 'tv';
           try {
-            const [provData, extData] = await Promise.all([
-              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/watch/providers`),
-              apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}/external_ids`)
-            ]);
-            const providers = provData.results?.US || null;
-            const external = extData;
-            return { 
-              ...item, 
-              providers, 
-              imdb_id: external.imdb_id || null,
+            // Combined into one details call (append_to_response) instead of two
+            // separate watch/providers + external_ids requests — also gets us
+            // origin_country for free (movie list results don't carry it, only
+            // movie *details* do; TV list results already have it but details
+            // repeats it harmlessly) for the American-titles content filter below.
+            const details = await apiFetch(`/api/tmdb/3/${mediaPath}/${item.id}?append_to_response=watch/providers,external_ids`);
+            const providers = details['watch/providers']?.results?.US || null;
+            const imdbId = details.imdb_id || details.external_ids?.imdb_id || null;
+            return {
+              ...item,
+              providers,
+              imdb_id: imdbId,
+              origin_country: details.origin_country || item.origin_country || [],
               _mediaType: currentDiscoverType
             };
           } catch {
-            return { ...item, providers: null, imdb_id: null, _mediaType: currentDiscoverType };
+            return { ...item, providers: null, imdb_id: null, origin_country: item.origin_country || null, _mediaType: currentDiscoverType };
           }
         }));
 
