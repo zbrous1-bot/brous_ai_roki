@@ -185,12 +185,46 @@
     Store.removeItem('brous_cloud_pin');
     // Support URL param for shareable links (e.g. ?apiBase=https://your-worker.workers.dev)
     // This "bakes" the endpoint into the shared URL so others don't need to set it manually.
+    //
+    // SECURITY: this param repoints every API call — including the Authorization
+    // header that carries the shared password — at whatever origin it names. An
+    // unrestricted value means a crafted link (?apiBase=https://evil.example) can
+    // silently exfiltrate the password to an attacker's server and persist that
+    // redirect. So we hard-allowlist the hosts we actually deploy to / develop
+    // against, and require an explicit user confirm before persisting anything.
+    const ALLOWED_API_HOSTS = [
+      'horror-roki.pages.dev',
+      'brous-movie-engine.pages.dev',
+      'horror-roki.zbrous1.workers.dev',
+      'localhost',
+      '127.0.0.1',
+    ];
+    function isAllowedApiBase(candidate) {
+      try {
+        const u = new URL(candidate, window.location.origin);
+        // Only https (or http on localhost for dev) to an allowlisted host.
+        const hostOk = ALLOWED_API_HOSTS.includes(u.hostname);
+        const schemeOk = u.protocol === 'https:' ||
+          (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1'));
+        return hostOk && schemeOk;
+      } catch (e) {
+        return false;
+      }
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const urlApiBase = urlParams.get('apiBase');
     if (urlApiBase) {
-      apiBase = urlApiBase;
-      Store.setItem('brous_api_base', apiBase); // persist for this visitor too
-      console.log('[Horror Roki] apiBase overridden from URL param:', apiBase);
+      if (!isAllowedApiBase(urlApiBase)) {
+        console.warn('[Horror Roki] Ignoring ?apiBase — not an allowlisted host:', urlApiBase);
+      } else if (window.confirm(
+          'This link wants to point the app at a different API endpoint:\n\n' +
+          urlApiBase + '\n\nOnly continue if you trust the source of this link. Use it?')) {
+        apiBase = urlApiBase;
+        Store.setItem('brous_api_base', apiBase); // persist for this visitor too
+        console.log('[Horror Roki] apiBase overridden from URL param:', apiBase);
+      } else {
+        console.log('[Horror Roki] User declined ?apiBase override.');
+      }
     }
     console.log('[Horror Roki] Current apiBase at load:', apiBase || '(relative)');
 

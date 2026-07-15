@@ -33,9 +33,10 @@
       box.scrollTop = box.scrollHeight;
     }
 
-    function escapeHtml(s) {
-      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
+    // escapeHtml is now defined once, canonically, in store.js (first script
+    // loaded) and attached to window so every module shares one implementation.
+    // The local definition that used to live here was removed to avoid two
+    // copies drifting apart.
 
     async function sendToCurator() {
       const input = document.getElementById('curator-input');

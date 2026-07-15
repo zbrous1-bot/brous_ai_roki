@@ -26,10 +26,10 @@
   <nav id="sticky-nav">
     <button class="nav-brand" onclick="switchMainTab('foryou')" style="background:none;border:none;cursor:pointer;padding:0;">BROUS <span>●</span> MOVIE ENGINE</button>
     <div class="nav-links">
-      <a class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</a>
-      <a class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</a>
-      <a class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</a>
-      <a class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</a>
+      <button type="button" class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</button>
+      <button type="button" class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</button>
+      <button type="button" class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</button>
+      <button type="button" class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</button>
       <button id="pass-btn" onclick="managePassword()" title="Set the shared Worker password" aria-label="Set the shared Worker password"
         style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
         🔐 Pass
@@ -43,18 +43,18 @@
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
     <!-- ═══ MAIN PAGE TAB BAR ═══ -->
-    <div class="main-tab-bar">
-      <button class="main-tab-btn active" onclick="switchMainTab('foryou')" id="mtab-foryou">
-        <span class="tab-icon">🎬</span> For You
+    <div class="main-tab-bar" role="tablist" aria-label="Main sections">
+      <button class="main-tab-btn active" onclick="switchMainTab('foryou')" id="mtab-foryou" role="tab" aria-selected="true" aria-controls="panel-foryou">
+        <span class="tab-icon" aria-hidden="true">🎬</span> For You
       </button>
-      <button class="main-tab-btn" onclick="switchMainTab('curator')" id="mtab-curator">
-        <span class="tab-icon">👻</span> Curator
+      <button class="main-tab-btn" onclick="switchMainTab('curator')" id="mtab-curator" role="tab" aria-selected="false" aria-controls="panel-curator">
+        <span class="tab-icon" aria-hidden="true">👻</span> Curator
       </button>
-      <button class="main-tab-btn" onclick="switchMainTab('browse')" id="mtab-browse">
-        <span class="tab-icon">🔍</span> Browse
+      <button class="main-tab-btn" onclick="switchMainTab('browse')" id="mtab-browse" role="tab" aria-selected="false" aria-controls="panel-browse">
+        <span class="tab-icon" aria-hidden="true">🔍</span> Browse
       </button>
-      <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched">
-        <span class="tab-icon">👁</span> My Library
+      <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched" role="tab" aria-selected="false" aria-controls="panel-watched">
+        <span class="tab-icon" aria-hidden="true">👁</span> My Library
       </button>
     </div>
 
@@ -96,7 +96,7 @@
     </div>
 
     <!-- ═══ TAB: FOR YOU ═══ -->
-    <div id="panel-foryou" class="main-panel active">
+    <div id="panel-foryou" class="main-panel active" role="tabpanel" aria-labelledby="mtab-foryou">
 
       <!-- Recommended for you -->
 <!-- Recommended for you (primary content first) -->
@@ -146,7 +146,7 @@
     </div><!-- /panel-foryou -->
 
     <!-- ═══ TAB: BROWSE ═══ -->
-    <div id="panel-browse" class="main-panel">
+    <div id="panel-browse" class="main-panel" role="tabpanel" aria-labelledby="mtab-browse">
 
     <!-- Page header -->
     <div class="mb-4 px-1">
@@ -273,7 +273,7 @@
     </div><!-- /panel-browse -->
 
     <!-- ═══ TAB: CURATOR ═══ -->
-    <div id="panel-curator" class="main-panel">
+    <div id="panel-curator" class="main-panel" role="tabpanel" aria-labelledby="mtab-curator">
 
       <div class="rounded-3xl overflow-hidden" id="curator-chat-full" style="background:var(--curator-bg);border:1px solid rgba(185,28,28,0.18);box-shadow:0 0 0 1px rgba(255,255,255,0.03),0 8px 32px rgba(0,0,0,0.4);display:flex;flex-direction:column;flex:1;min-height:0;max-height:calc(100vh - 160px);">
 
@@ -334,7 +334,7 @@
     </div><!-- /panel-curator -->
 
     <!-- ═══ TAB: MY LIBRARY ═══ -->
-    <div id="panel-watched" class="main-panel">
+    <div id="panel-watched" class="main-panel" role="tabpanel" aria-labelledby="mtab-watched">
 
       <!-- Stats bar -->
       <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-2 flex gap-4 flex-wrap items-center mb-3 bg-zinc-900/60 border border-zinc-700/50 rounded-2xl"></div>
@@ -393,7 +393,7 @@
     <!-- Detail Modal -->
 <!-- Detail Modal -->
     <!-- Dedicated Settings Modal -->
-    <div id="settings-modal" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4">
+    <div id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4">
       <div class="bg-zinc-900 border border-zinc-700 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
         <div class="p-5">
           <div class="flex justify-between items-center mb-5">
@@ -480,7 +480,7 @@
       </div>
     </div>
 
-    <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
         <!-- Backdrop banner — populated from the title's TMDB backdrop_path in openModal().
              Hidden by default; only shown when an image is available. Gives the modal a
@@ -527,7 +527,7 @@
   </div>
   <!-- Toast container for feedback -->
   <!-- Data Transfer Modal -->
-  <div id="transfer-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onclick="if(event.target===this)closeTransferModal()">
+  <div id="transfer-modal" role="dialog" aria-modal="true" aria-label="Transfer to another device" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onclick="if(event.target===this)closeTransferModal()">
     <div class="bg-zinc-900 border border-indigo-500/30 rounded-3xl w-full max-w-md overflow-auto" style="max-height:92vh;box-shadow:0 0 60px rgba(99,102,241,0.2)">
       <div class="p-5 sm:p-6">
         <div class="flex justify-between items-center mb-4">

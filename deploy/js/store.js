@@ -114,3 +114,20 @@
       };
     })();
 
+    // ===================== escapeHtml (canonical, global) =====================
+    // Escapes text before it is interpolated into an innerHTML string. Defined
+    // here in store.js — the FIRST script loaded — so it is guaranteed to exist
+    // for every later module that renders TMDB/LLM-sourced text. It was previously
+    // defined only inside curator.js and merely happened to be global because the
+    // scripts share scope; if curator.js ever moved, reordered, or errored on load,
+    // every other module's escapeHtml(...) call would throw. Keeping the single
+    // source of truth in the earliest-loading file removes that fragility.
+    // Guarded so a stray later re-definition can't clobber it.
+    if (typeof window.escapeHtml !== 'function') {
+      window.escapeHtml = function escapeHtml(s) {
+        return (s == null ? '' : String(s)).replace(/[&<>"']/g, m => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+      };
+    }
+

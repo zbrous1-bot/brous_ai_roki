@@ -343,7 +343,7 @@
       if (!item || !item.poster_path) {
         return `<div class="w-20 h-[120px] bg-zinc-800 rounded-lg flex-shrink-0 flex items-center justify-center text-zinc-600 text-2xl">🎬</div>`;
       }
-      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" alt="${(item.title || item.name || 'Untitled')} poster" onload="this.parentNode.classList.remove('loading')"></div>`;
+      return `<div class="poster-wrap w-20 h-[120px] flex-shrink-0 loading"><img src="https://image.tmdb.org/t/p/${size}${item.poster_path}" class="w-full h-full object-cover rounded-lg shadow-lg" loading="lazy" alt="${escapeHtml(item.title || item.name || 'Untitled')} poster" onload="this.parentNode.classList.remove('loading')"></div>`;
     }
 
     function addToToWatch(item) {

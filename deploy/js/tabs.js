@@ -6,7 +6,12 @@
         const btn = document.getElementById('mtab-' + t);
         const navLink = document.getElementById('nav-' + t);
         if (panel) panel.classList.toggle('active', t === tab);
-        if (btn) btn.classList.toggle('active', t === tab);
+        if (btn) {
+          btn.classList.toggle('active', t === tab);
+          // Keep the ARIA state in sync with the visual active state so screen
+          // readers announce the current tab correctly.
+          btn.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+        }
         if (navLink) navLink.classList.toggle('page-active', t === tab);
       });
       const homeGrid = document.getElementById('home-command-grid');

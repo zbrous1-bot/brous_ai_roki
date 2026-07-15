@@ -155,6 +155,20 @@
       }
     }
 
+    // Global Escape-to-close for the detail and settings modals (the transfer
+    // modal registers its own Escape handler in transfer.js). Closes whichever
+    // is currently visible so keyboard users aren't trapped in a dialog.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const detail = document.getElementById('detail-modal');
+      const settings = document.getElementById('settings-modal');
+      if (detail && !detail.classList.contains('hidden')) {
+        closeModal();
+      } else if (settings && !settings.classList.contains('hidden')) {
+        settings.classList.add('hidden');
+      }
+    });
+
     // Make cards clickable and add watchlist buttons
     function enhanceCard(card, item) {
       card.style.cursor = 'pointer';
