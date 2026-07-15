@@ -4,7 +4,8 @@
   "description": "Brous Movie Engine / Horror Roki — static PWA + Cloudflare Worker.",
   "private": true,
   "scripts": {
-    "build:pages": "mkdir -p .pages-dist && cp index.html manifest.json .pages-dist/ && cp -R js .pages-dist/ && cp styles.css .pages-dist/",
+    "build:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o tailwind.css --minify",
+    "build:pages": "npm run build:css && mkdir -p .pages-dist && cp index.html manifest.json .pages-dist/ && cp -R js .pages-dist/ && cp styles.css tailwind.css .pages-dist/",
     "deploy:pages": "npm run build:pages && wrangler pages deploy .pages-dist --project-name brous-movie-engine --branch main --commit-dirty=true",
     "deploy:worker": "wrangler deploy --keep-vars --config cloudflare-worker/wrangler.toml"
   },
@@ -13,6 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "tailwindcss": "^3.4.17",
     "wrangler": "^4.100.0"
   }
 }

@@ -1,0 +1,7 @@
+/* Tailwind entry point for the static build (see package.json `build:css`).
+   These three layers mirror exactly what the old cdn.tailwindcss.com runtime
+   injected: base (Preflight reset), components, and the utilities the app uses.
+   The hand-written styles.css is loaded separately and is unaffected. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
