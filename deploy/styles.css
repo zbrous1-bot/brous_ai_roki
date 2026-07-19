@@ -40,8 +40,8 @@
       font-size: 16px; /* Prevents iOS zoom on focus */
     }
     .search-input:focus {
-      border-color: rgb(99, 102, 241);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+      border-color: rgb(var(--accent));
+      box-shadow: 0 0 0 4px rgba(var(--accent), 0.18);
     }
 
     .quick-chip {
@@ -107,9 +107,26 @@
       border-radius: inherit;
     }
 
+    /* ── Respect reduced-motion: the app leans on card-enter, glow pulses, and pop
+       animations. Users who ask their OS for less motion get near-instant state
+       changes instead of movement, while everything still functions. ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
     /* ── Theme variables ── */
     :root {
-      --accent: 99, 102, 241;
+      /* Brand accent (R,G,B — used as rgb()/rgba() so keep it comma-separated).
+         Crimson to match the engine's identity: this drives focus-visible rings,
+         active filter chips, provider/streaming table highlights, and the active
+         tab underline, so it must stay on-brand. The Curator keeps its own purple
+         sub-brand, and Cloud Sync keeps its indigo; nothing here should change those. */
+      --accent: 220, 38, 38;
       --bg:        #09090b;
       --bg2:       #111113;
       --bg3:       #18181b;
@@ -160,7 +177,7 @@
       --skeleton2: #d6c9b8;
     }
 
-    /* Cool blue-violet highlights around availability "tables" with smooth animations */
+    /* Crimson accent highlights around availability "tables" with smooth animations */
     .provider-table {
       border: 1px solid rgba(var(--accent), 0.25);
       box-shadow: 0 0 0 1px rgba(var(--accent), 0.08);
@@ -171,7 +188,7 @@
       box-shadow: 0 0 0 1px rgba(var(--accent), 0.22);
     }
 
-    /* Animated blue-violet treatment for Streaming sections */
+    /* Animated crimson treatment for Streaming sections */
     .provider-table.streaming {
       border-color: rgba(var(--accent), 0.38);
       background: linear-gradient(150deg, rgba(var(--accent), 0.04), transparent);
@@ -223,7 +240,7 @@
       }
     }
 
-    /* Blue-violet accent on active filter chips - with pop animation */
+    /* Crimson accent on active filter chips - with pop animation */
     .filter-chip-active {
       background-color: rgba(var(--accent), 0.92);
       border-color: rgb(var(--accent));

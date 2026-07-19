@@ -141,8 +141,12 @@
       </div>
       <div id="recs-empty" class="hidden empty-state text-sm">
         <span class="empty-state-icon">🎬</span>
-        <div class="text-zinc-300 font-medium">No recs yet</div>
-        <div class="text-zinc-500 text-xs mt-1">Add titles to your Watched list to unlock personalized recs.</div>
+        <div class="text-zinc-200 font-medium">No recommendations to show yet</div>
+        <div class="text-zinc-500 text-xs mt-1 max-w-sm mx-auto">Rate a couple of titles you’ve seen and your picks sharpen to your taste — or dive straight in below.</div>
+        <div class="flex items-center justify-center gap-2 mt-4 flex-wrap">
+          <button onclick="switchMainTab('browse')" class="text-xs px-4 py-2 rounded-full bg-red-700 hover:bg-red-600 active:bg-red-500 text-white font-semibold transition-colors">🔍 Browse the catalog</button>
+          <button onclick="switchMainTab('curator')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 hover:bg-zinc-700 transition-colors">👻 Ask the Curator</button>
+        </div>
       </div>
     </div>
 
@@ -611,9 +615,9 @@
   <script src="js/curator.js"></script>
   <script src="js/transfer.js"></script>
 
-  <div class="max-w-7xl mx-auto px-5 pb-6 text-center" style="font-size:9px;color:#3f3f46;opacity:0.55;line-height:1.5;">
-    Movies &amp; TV data by <a href="https://www.themoviedb.org" target="_blank" style="color:#52525b;text-decoration:underline;">TMDB</a> · Curator via xAI · Not affiliated with any service · Data stays local
-    <span id="app-version-footer" style="margin-left:6px;opacity:0.5">v2026-07</span>
+  <div class="max-w-7xl mx-auto px-5 pb-6 text-center" style="font-size:10px;color:#71717a;opacity:0.8;line-height:1.5;">
+    Movies &amp; TV data by <a href="https://www.themoviedb.org" target="_blank" style="color:#a1a1aa;text-decoration:underline;">TMDB</a> · Curator via xAI · Not affiliated with any service · Data stays local
+    <span id="app-version-footer" style="margin-left:6px;opacity:0.7">v2026-07</span>
   </div>
   <!-- Mobile overrides appended after Tailwind CDN so they win the cascade -->
   <style>

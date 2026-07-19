@@ -1139,6 +1139,10 @@
           <span class="empty-state-icon">🎬</span>
           <div class="text-zinc-300 font-medium">This pool is tapped out</div>
           <div class="text-zinc-500 text-xs mt-1">${mediaHint}Use More Recs to search deeper pages and less obvious titles.</div>
+          <div class="flex items-center justify-center gap-2 mt-4 flex-wrap">
+            <button onclick="loadMoreRecommendations()" class="text-xs px-4 py-2 rounded-full bg-red-700 hover:bg-red-600 active:bg-red-500 text-white font-semibold transition-colors">More Recs</button>
+            <button onclick="switchMainTab('browse')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 hover:bg-zinc-700 transition-colors">🔍 Browse instead</button>
+          </div>
         </div>`;
         return;
       }
