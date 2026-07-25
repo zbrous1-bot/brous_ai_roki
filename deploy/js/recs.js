@@ -813,14 +813,9 @@
     // replace the rec pool with them, and reuse recomputeRecommendations() so they get
     // scored by the user's taste and rendered with all the normal card wiring.
     //
-    // Keyword set verified against TMDB's actual keyword search (search/keyword?query=...):
-    // 163053 found footage · 342857 found footage horror · 340385 found footage story ·
-    // 345179 found footage mystery · 365923 found footage adjacent · 357207 foundfootage ·
-    // 322394 horror mockumentary · 272745 screenlife · 376138 screenlife horror ·
-    // 272686 screen life · 11665 handheld camera · 365784 faux documentary ·
-    // 160517 fake documentary. Deliberately excludes plain "mockumentary"/"point of view" —
-    // checked those too, but they're dominated by non-horror comedy/wildlife content that
-    // would dilute this pool rather than expand it.
+    // The keyword set itself lives in FF_KEYWORD_IDS (js/ui-helpers.js) so this pool and the
+    // Browse tab's Found Footage filter stay in agreement about what counts; see the comment
+    // there for how each keyword id was verified.
     //
     // The vote_count floor was the real limiter, not the keyword list: querying TMDB
     // directly showed this keyword set has ~4,000 movies total, but the old
@@ -837,7 +832,7 @@
       if (empty) empty.classList.add('hidden');
       if (grid) { grid.innerHTML = ''; showSkeletons('recs-grid', 8); }
       try {
-        const kw = '163053|342857|340385|345179|365923|357207|322394|272745|376138|272686|11665|365784|160517';
+        const kw = FF_KEYWORD_IDS;
         // vote_count floor dropped further (8 → 5) and page depth roughly doubled across
         // every tier below — the keyword set already covers ~4,000 titles (see comment
         // above), the old page counts were only skimming the front of that, and found
@@ -904,51 +899,19 @@
           const weighted = ((voteCount || 0) * (voteAvg || 0) + FF_M * FF_C) / ((voteCount || 0) + FF_M);
           return Math.max(-1.5, Math.min(2.0, (weighted - 6.6) * K));
         };
-        // Dedupe by id:mediaType, tag with a reason, drop animation + excluded items.
-        // Genre gate to remove keyword false-positives. The broad tags needed for recall
-        // ("faux documentary", "fake documentary", "handheld camera", "screenlife") also
-        // catch things that aren't fictional found footage: real documentaries (For Sama),
-        // mockumentary sitcoms (Arrested Development), news/reality TV. We drop anything
-        // tagged Documentary, and require at least one "narrative fiction" genre that found
-        // footage actually inhabits — this keeps genuine FF across horror/thriller/sci-fi/
-        // crime/action (so e.g. End of Watch and Cloverfield still qualify) while cutting the
-        // non-fiction and pure-comedy noise. Animation (16) stays excluded as before.
-        const DOC_GENRE = 99;
-        const FF_NARRATIVE_GENRES = new Set([
-          27,    // Horror
-          53,    // Thriller
-          9648,  // Mystery
-          878,   // Science Fiction
-          80,    // Crime
-          28,    // Action
-          18,    // Drama
-          10752, // War
-          14,    // Fantasy
-          10765, // Sci-Fi & Fantasy (TV)
-        ]);
-        // Manual denylist for specific mockumentary/shaky-cam titles that clear the genre gate
-        // (they carry Crime/Drama/Action) but aren't fictional found footage. Keyed by
-        // `id:mediaType` because TMDB movie and TV IDs share a numeric space. Kept deliberately
-        // small and title-commented — this is a curated exception list, not a heuristic. Add an
-        // entry only for a clear, recurring false positive that can't be excluded by genre
-        // without also dropping genuine found footage.
-        const FF_DENYLIST = new Set([
-          '73126:tv',    // American Vandal — mockumentary comedy-crime, not found footage
-          '1999:tv',     // The Comeback — showbiz mockumentary sitcom
-          '347375:movie',// Mile 22 — shaky-cam action thriller, not found footage
-        ]);
+        // Dedupe by id:mediaType, tag with a reason, drop excluded items and keyword
+        // false-positives. The gate (documentary/animation exclusion, narrative-genre
+        // requirement, curated denylist) is isPlausibleFoundFootage in js/ui-helpers.js —
+        // shared with the Browse tab's Found Footage filter so both agree on what qualifies.
         const excluded = getExcludedKeys();
         const seen = new Set();
         const mapped = [];
         for (const r of raw) {
           const mt = r._mediaType || 'movie';
           const key = `${r.id}:${mt}`;
-          if (seen.has(key) || excluded.has(key) || FF_DENYLIST.has(key)) continue;
-          const gids = r.genre_ids || [];
-          if (!r.poster_path || gids.includes(16)) continue;
-          // Drop real documentaries and anything carrying no found-footage-plausible genre.
-          if (gids.includes(DOC_GENRE)) continue;
-          if (!gids.some(g => FF_NARRATIVE_GENRES.has(g))) continue;
+          if (seen.has(key) || excluded.has(key)) continue;
+          if (!r.poster_path) continue;
+          if (!isPlausibleFoundFootage(r.id, mt, r.genre_ids)) continue;
           seen.add(key);
           mapped.push({
             id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,

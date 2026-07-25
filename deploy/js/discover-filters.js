@@ -20,7 +20,7 @@
     function updateFilterCount() {
       const badge = document.getElementById('filter-active-count');
       if (!badge) return;
-      const count = selectedGenres.size + (minRating > 0 ? 1 : 0) + (selectedDecade ? 1 : 0);
+      const count = selectedGenres.size + (minRating > 0 ? 1 : 0) + (selectedDecade ? 1 : 0) + (foundFootageOnly ? 1 : 0);
       if (count > 0) {
         badge.textContent = count;
         badge.classList.remove('hidden');
@@ -50,13 +50,38 @@
       updateFilterCount();
     }
 
+    // Found Footage toggle for the Browse filter panel. Unlike the For You version
+    // (toggleFoundFootageGenre in recs.js, which swaps the whole rec pool in and out),
+    // this is just another filter dimension: it adds `with_keywords` to the Discover
+    // query, so it composes with the genre / rating / decade / sort chips as-is.
+    function renderStyleChips() {
+      const container = document.getElementById('style-chips');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const btn = document.createElement('button');
+      btn.textContent = '🎥 Found Footage';
+      btn.setAttribute('aria-pressed', foundFootageOnly ? 'true' : 'false');
+      btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${foundFootageOnly
+        ? 'filter-chip-active'
+        : 'filter-chip'}`;
+      btn.onclick = () => {
+        foundFootageOnly = !foundFootageOnly;
+        renderStyleChips();
+      };
+      container.appendChild(btn);
+      updateFilterCount();
+    }
+
     function clearSelectedGenres() {
       selectedGenres.clear();
       minRating = 0;
       selectedDecade = null;
+      foundFootageOnly = false;
       renderGenreChips();
       renderRatingChips();
       renderDecadeChips();
+      renderStyleChips();
       const activeFilters = document.getElementById('active-filters');
       if (activeFilters) activeFilters.classList.add('hidden');
       // Also clear the search box text and cancel any pending search-as-you-type,
@@ -178,12 +203,21 @@
       const genreIds = Array.from(selectedGenres);
 
       const sortValue = document.getElementById('discover-sort')?.value || 'popularity.desc';
-      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
+      // Animation is always excluded; Documentary joins it under the Found Footage filter,
+      // where the broad "faux/fake documentary" keywords would otherwise drag in real docs.
+      const withoutGenres = foundFootageOnly ? '16,99' : '16';
+      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=${withoutGenres}&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
+      if (foundFootageOnly) {
+        url += `&with_keywords=${FF_KEYWORD_IDS}`;
+      }
       if (genreIds.length > 0) {
         url += `&with_genres=${genreIds.join(',')}`;
       }
       if (minRating > 0) {
-        url += `&vote_average.gte=${minRating}&vote_count.gte=75`;
+        // Found footage is dominated by low-budget indies with naturally few ratings —
+        // the usual 75-vote floor cuts the pool to almost nothing (this floor, not the
+        // keyword list, was the real limiter when the For You pool was first built).
+        url += `&vote_average.gte=${minRating}&vote_count.gte=${foundFootageOnly ? 10 : 75}`;
       }
       if (selectedDecade) {
         const dateField = currentDiscoverType === 'movie' ? 'primary_release_date' : 'first_air_date';
@@ -197,14 +231,24 @@
           if (reset) {
             container.innerHTML = `<div class="text-center py-10 text-zinc-400">
               <p>No titles found for those filters.</p>
-              <p class="text-xs mt-2 text-zinc-500">Try removing a genre or lowering the minimum rating.</p>
+              <p class="text-xs mt-2 text-zinc-500">${foundFootageOnly
+                ? 'Found Footage is a narrow pool — try clearing the genre chips, lowering the minimum rating, or switching to Movies.'
+                : 'Try removing a genre or lowering the minimum rating.'}</p>
             </div>`;
           }
           document.getElementById('load-more-container').classList.add('hidden');
           return;
         }
 
-        const enriched = await Promise.all(data.results.map(async item => {
+        // Keyword false-positive gate, applied before the per-item details fetch below so
+        // we don't spend a request enriching titles we're about to discard. `without_genres`
+        // already dropped documentaries server-side; this also catches the mockumentary /
+        // shaky-cam titles that carry a narrative genre (see FF_DENYLIST in ui-helpers.js).
+        const pageResults = foundFootageOnly
+          ? data.results.filter(item => isPlausibleFoundFootage(item.id, currentDiscoverType, item.genre_ids))
+          : data.results;
+
+        const enriched = await Promise.all(pageResults.map(async item => {
           const mediaPath = currentDiscoverType === 'movie' ? 'movie' : 'tv';
           try {
             // Combined into one details call (append_to_response) instead of two
@@ -241,6 +285,21 @@
         if (visibleCount < 10 && hasMorePages) {
           currentDiscoverPage++;
           performDiscover(false);
+          return;
+        }
+
+        // TMDB returned rows but the Found Footage gate above discarded every one of them,
+        // and there are no further pages to try — without this the grid would just sit
+        // blank with no explanation. (The early `!data.results?.length` return can't catch
+        // this case: the API response itself was non-empty.)
+        if (currentDiscoverResults.length === 0 && !hasMorePages) {
+          container.innerHTML = `<div class="text-center py-10 text-zinc-400">
+            <p>No titles found for those filters.</p>
+            <p class="text-xs mt-2 text-zinc-500">${foundFootageOnly
+              ? 'Found Footage is a narrow pool — try clearing the genre chips, lowering the minimum rating, or switching to Movies.'
+              : 'Try removing a genre or lowering the minimum rating.'}</p>
+          </div>`;
+          document.getElementById('load-more-container').classList.add('hidden');
           return;
         }
 
@@ -294,6 +353,7 @@
         }).filter(Boolean);
         filters.push(`Genres: ${genreNames.join(', ')}`);
       }
+      if (foundFootageOnly) filters.push('Style: 🎥 Found Footage');
       if (minRating > 0) filters.push(`Rating: ${minRating}+`);
       if (selectedDecade) filters.push(`Decade: ${selectedDecade.label}`);
 

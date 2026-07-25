@@ -46,6 +46,62 @@
       {id: 878, name: 'Sci-Fi'}, {id: 53, name: 'Thriller'}
     ];
 
+    // ---- Found Footage (shared by the Browse filter and the For You pool) ----
+    // Found footage is a TMDB *keyword*, not a genre, so it can never come from GENRES
+    // above — it has to be queried with `with_keywords`. These constants live here rather
+    // than inside either consumer so the Browse chip (discover-filters.js) and the For You
+    // pool (loadFoundFootage in recs.js) can't drift apart on what "found footage" means.
+    //
+    // Keyword set verified against TMDB's keyword search (search/keyword?query=...):
+    // 163053 found footage · 342857 found footage horror · 340385 found footage story ·
+    // 345179 found footage mystery · 365923 found footage adjacent · 357207 foundfootage ·
+    // 322394 horror mockumentary · 272745 screenlife · 376138 screenlife horror ·
+    // 272686 screen life · 11665 handheld camera · 365784 faux documentary ·
+    // 160517 fake documentary. Deliberately excludes plain "mockumentary"/"point of view" —
+    // those are dominated by non-horror comedy/wildlife content that dilutes rather than
+    // expands the pool. Pipe-delimited = OR in TMDB's discover API.
+    const FF_KEYWORD_IDS = '163053|342857|340385|345179|365923|357207|322394|272745|376138|272686|11665|365784|160517';
+
+    // The broad keywords needed for recall ("faux documentary", "handheld camera",
+    // "screenlife") also catch things that aren't fictional found footage: real
+    // documentaries, mockumentary sitcoms, news/reality TV. Requiring at least one
+    // narrative-fiction genre keeps genuine FF across horror/thriller/sci-fi/crime/action
+    // (End of Watch, Cloverfield) while cutting the non-fiction noise.
+    const FF_NARRATIVE_GENRES = new Set([
+      27,    // Horror
+      53,    // Thriller
+      9648,  // Mystery
+      878,   // Science Fiction
+      80,    // Crime
+      28,    // Action
+      18,    // Drama
+      10752, // War
+      14,    // Fantasy
+      10765, // Sci-Fi & Fantasy (TV)
+    ]);
+
+    // Manual denylist for specific mockumentary/shaky-cam titles that clear the genre gate
+    // (they carry Crime/Drama/Action) but aren't fictional found footage. Keyed by
+    // `id:mediaType` because TMDB movie and TV IDs share a numeric space. Kept deliberately
+    // small and title-commented — this is a curated exception list, not a heuristic. Add an
+    // entry only for a clear, recurring false positive that can't be excluded by genre
+    // without also dropping genuine found footage.
+    const FF_DENYLIST = new Set([
+      '73126:tv',    // American Vandal — mockumentary comedy-crime, not found footage
+      '1999:tv',     // The Comeback — showbiz mockumentary sitcom
+      '347375:movie',// Mile 22 — shaky-cam action thriller, not found footage
+    ]);
+
+    // Shared keyword false-positive gate. `genreIds` is TMDB's genre_ids array.
+    // Documentary (99) is dropped outright; Animation (16) too. Returns true if the item
+    // should be kept as plausible fictional found footage.
+    function isPlausibleFoundFootage(id, mediaType, genreIds) {
+      const gids = genreIds || [];
+      if (FF_DENYLIST.has(`${id}:${mediaType || 'movie'}`)) return false;
+      if (gids.includes(99) || gids.includes(16)) return false;
+      return gids.some(g => FF_NARRATIVE_GENRES.has(g));
+    }
+
     // Nice colors for provider pills (still used in modal for "where to watch")
     // Provider colors for the "where to watch" modal (My Services UI removed, but modal still shows availability)
     const PROVIDER_COLORS = {
@@ -63,6 +119,7 @@
     let currentDiscoverType = 'movie';
     let minRating = 0;
     let selectedDecade = null; // {label, gte, lte} or null
+    let foundFootageOnly = false; // Browse "Style" filter — adds with_keywords to Discover
     let currentSearchType = 'movie';
     let _liveSearchTimer = null; // debounce for search-as-you-type
     let _searchGen = 0; // bumped on every performSearch call so a slow/stale response can't clobber a newer one's results
