@@ -45,6 +45,18 @@
   </nav>
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
 
+    <!-- ═══ PROFILE SWITCHER ═══
+         Whose library is active, always visible rather than hidden in a menu — the
+         expensive mistake with per-person libraries is rating a film onto the wrong
+         one, and that only happens when you can't see who you're signed in as.
+         "Together" is a rec mode, not a profile: it blends both taste profiles but
+         leaves writes with the active person (see js/profiles.js). -->
+    <div class="profile-bar">
+      <span class="profile-bar-label">Profile</span>
+      <div id="profile-switcher" class="profile-switcher" role="group" aria-label="Active profile"></div>
+      <span id="profile-mode-note" class="profile-mode-note hidden"></span>
+    </div>
+
     <!-- ═══ MAIN PAGE TAB BAR ═══ -->
     <div class="main-tab-bar" role="tablist" aria-label="Main sections">
       <button class="main-tab-btn active" onclick="switchMainTab('foryou')" id="mtab-foryou" role="tab" aria-selected="true" aria-controls="panel-foryou">
@@ -612,6 +624,7 @@
 
   <script src="js/store.js"></script>
   <script src="js/ui-helpers.js"></script>
+  <script src="js/profiles.js"></script>
   <script src="js/discover-filters.js"></script>
   <script src="js/watchlist.js"></script>
   <script src="js/library.js"></script>

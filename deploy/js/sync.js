@@ -13,16 +13,47 @@
     // (deploy/functions/api/[[path]].js), so no separate Worker origin is needed.
     const SYNC_URL = '';
 
+    // Every /api/data call is scoped to one person's library. The server keys KV by this
+    // value (see worker.js), so a profile's data can never be pulled into — or pushed
+    // over — another's. `options.profile` overrides the active profile; that's used only
+    // by syncMirrorProfile below, which reads the other person's copy read-only.
+    function _withProfile(path, profileId) {
+      const id = profileId || Store.getProfile();
+      return path + (path.includes('?') ? '&' : '?') + 'profile=' + encodeURIComponent(id);
+    }
+
     async function _dataFetch(path, options = {}) {
       const fetchOptions = { method: options.method || 'GET', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } };
       if (options.body) fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
-      const res = await fetch(SYNC_URL + path, fetchOptions);
+      const res = await fetch(SYNC_URL + _withProfile(path, options.profile), fetchOptions);
       if (!res.ok && res.status !== 404) {
         const err = new Error('Sync error ' + res.status);
         err.status = res.status;
         throw err;
       }
       return res.json();
+    }
+
+    // Pull ANOTHER profile's library into its own local namespace, read-only.
+    //
+    // Together mode has to score candidates against both taste profiles at once, but with
+    // a phone each, the other person's library only exists on their device and in KV. This
+    // fetches their server copy and parks it under their namespaced keys (Store.setItemFor)
+    // so buildTasteProfile can be run over it locally. It deliberately never touches the
+    // in-memory globals and never pushes — the mirror is a cache of someone else's data,
+    // and this device has no business writing to their profile.
+    async function syncMirrorProfile(profileId) {
+      if (!profileId || profileId === Store.getProfile()) return null;
+      const serverData = await _dataFetch('/api/data', { profile: profileId });
+      if (!serverData || typeof serverData !== 'object') return null;
+      const put = (storeKey, value) => {
+        if (Array.isArray(value)) Store.setItemFor(storeKey, profileId, JSON.stringify(value));
+      };
+      put('horror_roki_watched', serverData.watched);
+      put('horror_roki_towatch', serverData.to_watch);
+      put('horror_roki_disliked', serverData.disliked);
+      put('horror_roki_not_interested', serverData.not_interested);
+      return serverData;
     }
 
     // Snapshot of list contents from the last point where local state was known to

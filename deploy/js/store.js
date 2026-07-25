@@ -71,8 +71,55 @@
         'roki_rec_tune': 'brous_rec_tune',
       };
 
+      // ---- Profile scoping ----
+      // Each person (Zach / Bradlee) gets their own copy of the personal keys below,
+      // so switching profiles swaps the whole library and — because the taste profile
+      // is *derived* from these lists rather than stored — the recommendations with it.
+      //
+      // The primary profile deliberately uses the UNSUFFIXED key names, i.e. exactly the
+      // keys that already exist today. Adding a second profile therefore touches none of
+      // the existing data: there is nothing to migrate and nothing to lose. Additional
+      // profiles get `<key>__<profileId>`.
+      //
+      // Only genuinely personal state is scoped. Device/account-level keys (the API
+      // password, the endpoint override, the cloud PIN, UI collapse prefs, and the LLM
+      // config) stay shared — scoping those would force you to re-enter the password
+      // once per profile for no benefit.
+      const PRIMARY_PROFILE = 'me';
+      const PROFILE_SCOPED_KEYS = new Set([
+        'brous_watched',
+        'brous_towatch',
+        'brous_disliked',
+        'brous_not_interested',
+        'brous_watchlist',
+        'brous_rec_tune',
+        'brous_chat',
+      ]);
+      const ACTIVE_PROFILE_KEY = 'brous_active_profile';
+
+      // Which profile this browser is currently acting as. Read once at load, before
+      // any module reads its lists. Deliberately NOT synced to the server: each phone
+      // pins itself to its owner, so a sync can never silently repoint your device at
+      // someone else's library mid-session.
+      let activeProfile = PRIMARY_PROFILE;
+      try {
+        const stored = localStorage.getItem(ACTIVE_PROFILE_KEY);
+        if (stored && /^[a-z0-9_-]{1,24}$/.test(stored)) activeProfile = stored;
+      } catch (e) { /* localStorage unavailable — stay on the primary profile */ }
+
       function resolve(key) {
-        return KEY_MAP[key] || key; // unrecognized keys pass through unchanged
+        const canonical = KEY_MAP[key] || key; // unrecognized keys pass through unchanged
+        if (activeProfile === PRIMARY_PROFILE) return canonical;
+        return PROFILE_SCOPED_KEYS.has(canonical) ? `${canonical}__${activeProfile}` : canonical;
+      }
+
+      // Resolve a key as some OTHER profile would see it, without switching. This is what
+      // lets one device hold a read-only mirror of the other person's library (needed by
+      // Together mode, which has to score against both taste profiles at once).
+      function resolveFor(key, profileId) {
+        const canonical = KEY_MAP[key] || key;
+        if (profileId === PRIMARY_PROFILE) return canonical;
+        return PROFILE_SCOPED_KEYS.has(canonical) ? `${canonical}__${profileId}` : canonical;
       }
 
       function migrate() {
@@ -110,6 +157,34 @@
         removeItem(key) {
           try { localStorage.removeItem(resolve(key)); }
           catch (e) { console.warn(`[Store] removeItem(${key}) failed:`, e); }
+        },
+
+        // ---- Profile API ----
+        PRIMARY_PROFILE,
+        getProfile() { return activeProfile; },
+
+        // Point every subsequent personal-key read/write at `profileId`. Callers are
+        // responsible for reloading in-memory state afterwards (see switchProfile in
+        // profiles.js) — this only moves the pointer, it does not touch the app's state.
+        setProfile(profileId) {
+          if (!/^[a-z0-9_-]{1,24}$/.test(profileId)) {
+            console.warn(`[Store] refusing invalid profile id: ${profileId}`);
+            return false;
+          }
+          activeProfile = profileId;
+          try { localStorage.setItem(ACTIVE_PROFILE_KEY, profileId); } catch (e) {}
+          return true;
+        },
+
+        // Read/write another profile's copy of a key without switching to it. Used to
+        // maintain the read-only mirror of the other person's library for Together mode.
+        getItemFor(key, profileId) {
+          try { return localStorage.getItem(resolveFor(key, profileId)); }
+          catch (e) { console.warn(`[Store] getItemFor(${key}, ${profileId}) failed:`, e); return null; }
+        },
+        setItemFor(key, profileId, value) {
+          try { localStorage.setItem(resolveFor(key, profileId), value); }
+          catch (e) { console.warn(`[Store] setItemFor(${key}, ${profileId}) failed:`, e); }
         },
       };
     })();

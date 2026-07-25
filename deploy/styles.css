@@ -2355,3 +2355,76 @@
     html.light #curator-messages {
       background: #ffffff !important;
     }
+
+    /* ===================== Profile switcher =====================
+       Per-person libraries (see js/profiles.js). Rendered above the main tab bar and
+       kept permanently visible: the costly failure mode with per-person libraries is
+       rating a title onto the wrong one, which only happens when the active profile
+       isn't in view. Each pill carries its own --profile-accent so the active person is
+       identifiable by colour as well as position — deliberately crimson/teal/amber,
+       staying clear of the purple (Curator) and indigo (Cloud Sync) sub-brands. */
+    .profile-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .profile-bar-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text3);
+    }
+    .profile-switcher {
+      display: inline-flex;
+      gap: 4px;
+      padding: 3px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 9999px;
+    }
+    .profile-pill {
+      padding: 5px 14px;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text3);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.18s ease, background-color 0.18s ease,
+                  border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .profile-pill:hover {
+      color: var(--text2);
+      background: var(--bg3);
+    }
+    .profile-pill-active {
+      background: color-mix(in srgb, var(--profile-accent) 88%, transparent);
+      border-color: var(--profile-accent);
+      color: #fff;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--profile-accent) 40%, transparent),
+                  0 2px 10px color-mix(in srgb, var(--profile-accent) 22%, transparent);
+    }
+    .profile-mode-note {
+      font-size: 11px;
+      color: var(--text3);
+      font-style: italic;
+    }
+    @media (max-width: 480px) {
+      .profile-bar { gap: 6px; margin-bottom: 10px; }
+      .profile-bar-label { display: none; }
+      .profile-pill { padding: 5px 11px; font-size: 11px; }
+      .profile-mode-note { flex-basis: 100%; }
+    }
+    /* color-mix is well supported in the mobile Safari/Chrome this app targets, but a
+       flat fallback keeps the active pill legible anywhere it isn't. */
+    @supports not (background: color-mix(in srgb, red 50%, transparent)) {
+      .profile-pill-active {
+        background: var(--profile-accent);
+        box-shadow: none;
+      }
+    }

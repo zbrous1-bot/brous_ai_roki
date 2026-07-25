@@ -225,7 +225,23 @@ export default {
         }, 501, request);
       }
 
-      const DATA_KEY = 'roki_data_v1';
+      // Per-profile storage key. Each person (see js/profiles.js) gets an isolated KV
+      // entry, so one profile's sync can never overwrite another's. The primary profile
+      // ('me', or a request with no profile param at all) keeps the ORIGINAL unsuffixed
+      // key — that's the data that existed before profiles, and it must stay exactly
+      // where it is, readable by any client that predates this change.
+      //
+      // The id is whitelisted rather than interpolated blind: it becomes part of a KV
+      // key, so an unvalidated value would let a caller read or clobber arbitrary keys
+      // in this namespace (including the _meta/_backup entries and the rate-limit
+      // records). Anything not matching the pattern is rejected outright rather than
+      // silently coerced to the primary profile, which would misfile a write.
+      const profileParam = url.searchParams.get('profile');
+      if (profileParam !== null && !/^[a-z0-9_-]{1,24}$/.test(profileParam)) {
+        return jsonError('Invalid profile id', 400, request);
+      }
+      const profileId = profileParam || 'me';
+      const DATA_KEY = profileId === 'me' ? 'roki_data_v1' : `roki_data_v1__${profileId}`;
 
       if (pathname === '/api/data/check') {
         const meta = await env.DATA_KV.get(DATA_KEY + '_meta', { type: 'json' });

@@ -20,8 +20,17 @@
       return prefs;
     }
 
-    // Rich taste profile used by the scoring engine
-    function buildTasteProfile() {
+    // Rich taste profile used by the scoring engine.
+    //
+    // `lists` defaults to the active profile's in-memory library, which is every caller
+    // except Together mode — that one passes the OTHER person's lists (read out of their
+    // local namespace by readProfileLists in profiles.js) to build a second, independent
+    // profile so candidates can be scored against both at once. Nothing here reads
+    // anything but the two lists, which is what makes that possible.
+    function buildTasteProfile(lists) {
+      const { watched, disliked } = lists || { watched: watchedList, disliked: dislikedList };
+      const watchedSource = watched || [];
+      const dislikedSource = disliked || [];
       const genreScores = {};   // genre_id -> weighted affinity (positive or negative)
       const decadeCounts = {};  // decade (e.g. 1990) -> weighted count
       const genrePairScores = {}; // "gidA,gidB" (sorted) -> weighted affinity for that *combination*
@@ -33,7 +42,7 @@
       // (index 0 = most recently added) to stay backward compatible.
       const now = Date.now();
       const DAY = 86400000;
-      watchedList.forEach((m, index) => {
+      watchedSource.forEach((m, index) => {
         const r = m.rating || 3;
         const decay = m._ts
           ? Math.pow(0.97, Math.max(0, (now - m._ts) / DAY) / 1.4) // ~daily-equivalent decay using real elapsed time
@@ -62,7 +71,7 @@
       // Disliked — negative genre signal, scaled by how often each genre shows up in
       // dislikes rather than a flat penalty per item. One disliked horror movie nudges
       // the horror score down; ten disliked horror movies push it down hard.
-      dislikedList.forEach(m => {
+      dislikedSource.forEach(m => {
         (m.genre_ids || []).forEach(gid => { genreDislikeCounts[gid] = (genreDislikeCounts[gid] || 0) + 1; });
       });
       Object.entries(genreDislikeCounts).forEach(([gid, count]) => {
@@ -77,6 +86,52 @@
       const totalPairPos = Object.values(genrePairScores).reduce((a, b) => a + Math.max(0, b), 0) || 1;
 
       return { genreScores, decadeCounts, totalPos, totalDecade, genrePairScores, totalPairPos };
+    }
+
+    // ---- Together mode scoring ----
+    // Assemble everything needed to score against the other person: their taste profile,
+    // built from the read-only mirror of their library, and the set of titles they've
+    // already seen or rejected. Returns null if there's no other profile or no data for
+    // them, so the caller silently falls back to normal single-profile recs.
+    function buildTogetherContext() {
+      if (typeof otherProfileId !== 'function') return null;
+      const otherId = otherProfileId();
+      if (!otherId) return null;
+      const lists = readProfileLists(otherId);
+      if (!lists.watched.length && !lists.disliked.length) return null;
+      const excluded = new Set();
+      [...lists.watched, ...lists.toWatch, ...lists.disliked, ...lists.notInterested]
+        .forEach(it => excluded.add(`${it.id}:${it._mediaType || 'movie'}`));
+      return {
+        name: getProfile(otherId).name,
+        profile: buildTasteProfile({ watched: lists.watched, disliked: lists.disliked }),
+        excluded,
+      };
+    }
+
+    // Combine two individual scores into one joint score.
+    //
+    // Weighted toward the MINIMUM rather than the average on purpose. Averaging optimises
+    // for "one of you will love this", which is how you end up with a queue full of films
+    // one person tolerates — the failure mode of picking something for two people is a
+    // veto, not a lack of enthusiasm. Leaning on the min favours titles neither of you
+    // would turn down, while the smaller mean term still breaks ties toward the pick you
+    // are both actually excited about rather than the blandest mutually-acceptable one.
+    function jointScore(a, b) {
+      return 0.65 * Math.min(a, b) + 0.35 * ((a + b) / 2);
+    }
+
+    // Explain a joint pick in the card's match label. The gap between the two scores is
+    // the interesting part: a small gap means genuine common ground, a large one means
+    // it's really one person's pick that the other can live with — worth saying plainly
+    // rather than presenting both cases as an equally good joint recommendation.
+    function togetherLabel(mine, theirs, otherName) {
+      const gap = Math.abs(mine - theirs);
+      const low = Math.min(mine, theirs);
+      if (gap <= 1.5 && low > 0) return `👥 Solid common ground`;
+      if (gap <= 1.5) return `👥 Equally new territory for you both`;
+      return mine > theirs ? `👥 Your pick — ${otherName} should be fine with it`
+                           : `👥 ${otherName}'s pick — you should be fine with it`;
     }
 
     // Bayesian-corrected rating — penalises films with few votes
@@ -1084,10 +1139,31 @@
       // Pool-relative thresholds (hidden-gem / vote-count reliability), computed once
       // per recompute rather than per item, then reused for every score in this pass.
       const poolStats = computePoolStats(currentRecPool);
-      // Score every item in the pool
-      let scored = currentRecPool.map(it => ({...it, _score: scoreItem(it, profile, poolStats)}));
-      // Filter out already seen/queued/hidden
-      scored = scored.filter(it => !excluded.has(`${it.id}:${it._mediaType || 'movie'}`));
+
+      // Together mode: build the other person's taste profile from their locally mirrored
+      // library and score every candidate against both. `joint` is null in normal mode,
+      // which leaves the single-profile path below completely untouched.
+      const joint = (typeof togetherMode !== 'undefined' && togetherMode) ? buildTogetherContext() : null;
+
+      let scored;
+      if (joint) {
+        scored = currentRecPool.map(it => {
+          const mine = scoreItem(it, profile, poolStats);
+          const theirs = scoreItem(it, joint.profile, poolStats);
+          return { ...it, _score: jointScore(mine, theirs), _togetherLabel: togetherLabel(mine, theirs, joint.name) };
+        });
+      } else {
+        // Score every item in the pool
+        scored = currentRecPool.map(it => ({...it, _score: scoreItem(it, profile, poolStats)}));
+      }
+      // Filter out already seen/queued/hidden. In Together mode the other person's
+      // library is excluded too — a joint pick that one of you has already seen or
+      // explicitly passed on isn't something to watch together tonight.
+      scored = scored.filter(it => {
+        const key = `${it.id}:${it._mediaType || 'movie'}`;
+        if (excluded.has(key)) return false;
+        return !(joint && joint.excluded.has(key));
+      });
       // Genre filter
       if (recGenreFilter !== null) {
         scored = scored.filter(it => (it.genre_ids || []).includes(recGenreFilter));
@@ -1142,6 +1218,9 @@
         const decadeFits = decade && decadeCounts[decade] > 0;
         const comboNames = bestGenrePair(gids);
         const isHiddenGem = (item.vote_average || 0) >= poolStats.gemVoteAvgMin && (item.popularity || 0) < poolStats.gemPopularityMax && (item.vote_count || 0) >= poolStats.gemVoteCountMin;
+        // In Together mode, why it suits BOTH of you is the whole point of the view —
+        // it outranks the single-profile affinity explanation below.
+        if (item._togetherLabel) return item._togetherLabel;
         // Affinity labels take priority — they're the most specific signal
         if (item._affinityReason) {
           return isHiddenGem ? `💎 ${item._affinityReason}` : `🎬 ${item._affinityReason}`;

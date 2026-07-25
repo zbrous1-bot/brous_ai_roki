@@ -425,6 +425,7 @@
         if (typeof renderRatingChips === 'function') renderRatingChips();
         if (typeof renderDecadeChips === 'function') renderDecadeChips();
         if (typeof renderStyleChips === 'function') renderStyleChips();
+        if (typeof renderProfileSwitcher === 'function') renderProfileSwitcher();
         if (typeof setDiscoverType === 'function') setDiscoverType('movie'); // default to Movies
 
         // Initialize Search type

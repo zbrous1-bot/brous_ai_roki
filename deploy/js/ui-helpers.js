@@ -144,15 +144,12 @@
     let currentDiscoverPage = 1;
     let currentDiscoverResults = [];
 
-    // Watchlist (legacy quick list, kept working for existing search/discover "My List" flows)
+    // Watchlist (legacy quick list, kept working for existing search/discover "My List" flows).
+    // Populated — along with the four library lists below — by loadPersonalStateFromStore(),
+    // which is defined further down and runs both at boot and on every profile switch.
     let watchlist = [];
-    try {
-      watchlist = JSON.parse(Store.getItem('brous_watchlist') || '[]');
-    } catch (e) {
-      console.warn('brous_watchlist parse failed (data may be corrupted or cleared):', e);
-    }
     // Use composite key to safely handle movie vs tv with potentially overlapping numeric ids
-    let watchedIds = new Set(watchlist.map(w => `${w.id}:${w._mediaType || 'movie'}`));
+    let watchedIds = new Set();
     let lastRenderedItems = [];
     // Remembers the opts renderResults was last called with (e.g. { keepLibraryItems: true }
     // for a title search) so a post-action refresh (removeFromCurrentResults) re-renders
@@ -182,11 +179,30 @@
         return fallback;
       }
     }
-    toWatchList = loadJSON('horror_roki_towatch', []);
-    watchedList = loadJSON('horror_roki_watched', []);
-    dislikedList = loadJSON('horror_roki_disliked', []);
-    notInterestedList = loadJSON('horror_roki_not_interested', []);
-    chatHistory = loadJSON('horror_roki_chat', []);
+    // Load every personal list out of Store into the in-memory globals. Called once at
+    // boot, and again by switchProfile() — because Store resolves these keys against the
+    // active profile, re-running this is all it takes to swap one person's library for
+    // another's. (llmConfig is deliberately excluded: it's shared device config, not
+    // personal state, so it's loaded once below and never reloaded on a switch.)
+    function loadPersonalStateFromStore() {
+      toWatchList = loadJSON('horror_roki_towatch', []);
+      watchedList = loadJSON('horror_roki_watched', []);
+      dislikedList = loadJSON('horror_roki_disliked', []);
+      notInterestedList = loadJSON('horror_roki_not_interested', []);
+      chatHistory = loadJSON('horror_roki_chat', []);
+      try {
+        watchlist = JSON.parse(Store.getItem('brous_watchlist') || '[]');
+      } catch (e) {
+        console.warn('brous_watchlist parse failed (data may be corrupted or cleared):', e);
+        watchlist = [];
+      }
+      // Same composition the boot init uses (see transfer.js) — all four library lists
+      // plus the legacy watchlist — so a profile switch lands on exactly the state a
+      // fresh page load of that profile would produce.
+      watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...notInterestedList, ...watchlist]
+        .map(w => `${w.id}:${w._mediaType || 'movie'}`));
+    }
+    loadPersonalStateFromStore();
     llmConfig = loadJSON('horror_roki_llm', llmConfig);
     let currentRecPool = [];
     let _recPoolLastRefreshed = null; // Date of the last full pool load — shown on the home dashboard's Recommendations card
