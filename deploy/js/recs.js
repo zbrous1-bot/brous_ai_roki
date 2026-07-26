@@ -1179,7 +1179,6 @@
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
         const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
-        const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
 <div class="poster-wrap loading relative overflow-hidden rounded-2xl">
@@ -1191,7 +1190,7 @@
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
-    <a id="imdb-si-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:12px"></i></a>
+    ${imdbBadgeHtml(item, `imdb-si-${item.id}`)}
     <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
   <button class="why-this-btn text-[10px] text-amber-400/80 mt-1.5 text-left w-full truncate hover:text-amber-300 transition-colors" title="Why this recommendation?">🎲 Outside your usual taste</button>
@@ -1386,7 +1385,6 @@
         const tmdbRating = item.vote_average ? item.vote_average.toFixed(1) : null;
         const ratingBadgeClass = item.vote_average >= 7.5 ? 'high' : item.vote_average >= 6 ? '' : 'low';
         const rtSearchUrl = rtUrl(item.title || item.name, item._mediaType);
-        const imdbSearchUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(item.title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
         const itemTitleSafe = escapeHtml(item.title || item.name || 'Untitled'); // for innerHTML string contexts only
         card.innerHTML = `
 <div class="poster-wrap loading relative overflow-hidden rounded-2xl">
@@ -1398,7 +1396,7 @@
   <div class="flex items-center gap-1 flex-wrap mt-1">
     ${year ? `<span class="text-[11px] text-zinc-500">${year}</span>` : ''}
     ${tmdbRating ? `<span class="rating-badge ${ratingBadgeClass}" style="font-size:10px;padding:2px 5px;"><i class="fa-solid fa-star" style="font-size:7px"></i> ${tmdbRating}</span>` : ''}
-    <a id="imdb-link-${item.id}" href="${imdbSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline"><i class="fa-brands fa-imdb" style="font-size:12px"></i></a>
+    ${imdbBadgeHtml(item, `imdb-link-${item.id}`)}
     <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
   <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${escapeHtml(matchLabel(item))}</button>

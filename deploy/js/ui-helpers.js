@@ -145,6 +145,38 @@
       return !(genreIds || []).some(g => banned.has(g));
     }
 
+    // Renders the yellow IMDb chip on a rec card. Two things beyond the old bare-logo
+    // version, both only possible now that attachImdbRatings runs:
+    //
+    // - Shows the actual IMDb score next to the logo. The chip already existed, so this
+    //   adds no new element to an already-dense card — it just stops being decoration.
+    //   Paired with the ★ TMDB badge it makes the two numbers directly comparable, which
+    //   is the point: where they diverge (Iron Lung is 6.9 on TMDB from 353 votes, 5.8 on
+    //   IMDb from 30,159) the gap explains why a title ranks where it does.
+    // - Links to the actual title page rather than a title-text search, since the real
+    //   imdb_id is now on the item. Falls back to the search URL when it isn't.
+    //
+    // Degrades cleanly: with no IMDb data the chip renders exactly as it did before.
+    function imdbBadgeHtml(item, domId) {
+      const title = item.title || item.name || '';
+      const year = String(item.release_date || item.first_air_date || '').slice(0, 4);
+      // Validated rather than trusted — this goes straight into an href, and the id comes
+      // from an upstream API rather than from our own table.
+      const validId = /^tt\d+$/.test(item.imdb_id || '') ? item.imdb_id : null;
+      const href = validId
+        ? `https://www.imdb.com/title/${validId}/`
+        : `https://www.imdb.com/find/?q=${encodeURIComponent(title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
+      const hasScore = typeof item.imdb_rating === 'number' && (item.imdb_votes || 0) > 0;
+      const score = hasScore ? item.imdb_rating.toFixed(1) : '';
+      const label = hasScore
+        ? `IMDb rating ${score} out of 10 for ${title}`
+        : `Find ${title} on IMDb`;
+      return `<a ${domId ? `id="${domId}" ` : ''}href="${href}" target="_blank" rel="noopener" `
+        + `title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" `
+        + `class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline">`
+        + `<i class="fa-brands fa-imdb" style="font-size:12px"></i>${hasScore ? `<span>${score}</span>` : ''}</a>`;
+    }
+
     // ---- Cosmic Horror (shared by the Browse filter and the For You pool) ----
     // Same shape as the Found Footage block above — a TMDB keyword, not a genre — but a
     // far narrower pool: the whole thing is ~70 titles against found footage's ~4,000
