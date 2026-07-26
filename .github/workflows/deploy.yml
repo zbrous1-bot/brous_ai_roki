@@ -16,10 +16,22 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: bd3acf733c055218f2c2175fdf9249b7
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
+      # v5 was the first major of both actions to run on Node 24; v7 is current. GitHub
+      # is retiring Node 20 from the runners, and on v4 it was force-running these on
+      # Node 24 anyway with a deprecation warning on every deploy — this makes that
+      # official rather than leaning on the compatibility shim.
+      #
+      # One thing to know before touching this step: setup-node v5 added automatic
+      # dependency caching (v6 narrowed it to npm). It's inert here because it keys off
+      # a `packageManager` field in a *top-level* package.json and this repo has no
+      # root package.json at all — the npm project lives in deploy/. If a root
+      # package.json is ever added, that caching would switch itself on, look for a
+      # lockfile beside it, find none, and fail the deploy. The fix at that point is
+      # `package-manager-cache: false` here, or a matching lockfile at the root.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
