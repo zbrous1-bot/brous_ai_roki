@@ -329,6 +329,11 @@
           }
         }));
 
+        // Cheap here compared to the rec pool: the enrichment above already resolved
+        // imdb_id for every row via append_to_response, so attachImdbRatings skips its
+        // per-title lookup entirely and costs one batched /api/ratings call. It also warms
+        // the shared id cache that the For You pools read from.
+        await attachImdbRatings(enriched);
         currentDiscoverResults = currentDiscoverResults.concat(enriched);
 
         renderActiveFilters();

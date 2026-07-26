@@ -210,6 +210,13 @@
         }));
         if (myGen !== _searchGen) return;
 
+        // Same as Browse: imdb_id already came back with the per-item details above, so
+        // this is one batched /api/ratings call rather than a lookup per title.
+        await attachImdbRatings(enriched);
+        // Re-check the generation guard — attachImdbRatings awaits, so a newer search may
+        // have been issued while it was in flight, and rendering here would clobber it.
+        if (myGen !== _searchGen) return;
+
         renderResults(enriched, { keepLibraryItems: true });
         const activeFilters = document.getElementById('active-filters');
         if (activeFilters) activeFilters.classList.add('hidden');
@@ -411,9 +418,10 @@ function setCuratorPrompt(q) {
                   ${m.vote_average ? `<span class="rating-badge ${m.vote_average >= 7.5 ? 'high' : ''}"><i class="fa-solid fa-star" style="font-size:8px"></i> ${m.vote_average.toFixed(1)}</span>` : ''}
                   ${m.imdb_id ? `
                     <a href="https://www.imdb.com/title/${m.imdb_id}/" target="_blank" rel="noopener"
+                       title="${imdbScoreText(m) ? `IMDb rating ${imdbScoreText(m)} out of 10` : 'View on IMDb'}"
                        class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-95">
                       <i class="fa-brands fa-imdb text-sm"></i>
-                      <span>IMDb</span>
+                      <span>${imdbScoreText(m) || 'IMDb'}</span>
                     </a>
                   ` : ''}
                   <a href="${rtUrl(title, m._mediaType || currentSearchType)}"

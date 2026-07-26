@@ -157,6 +157,16 @@
     //   imdb_id is now on the item. Falls back to the search URL when it isn't.
     //
     // Degrades cleanly: with no IMDb data the chip renders exactly as it did before.
+    // The displayable IMDb score for an item, or null when there's no usable data.
+    // Shared so the rec-card chip and the Browse/Search chip can't drift on what counts as
+    // "has a rating" — they render at different sizes and can't share markup, but the
+    // condition behind the number should be one thing.
+    function imdbScoreText(item) {
+      if (!item) return null;
+      const votes = item.imdb_votes || 0;
+      return (typeof item.imdb_rating === 'number' && votes > 0) ? item.imdb_rating.toFixed(1) : null;
+    }
+
     function imdbBadgeHtml(item, domId) {
       const title = item.title || item.name || '';
       const year = String(item.release_date || item.first_air_date || '').slice(0, 4);
@@ -166,8 +176,8 @@
       const href = validId
         ? `https://www.imdb.com/title/${validId}/`
         : `https://www.imdb.com/find/?q=${encodeURIComponent(title + (year ? ' ' + year : ''))}&s=tt&ttype=ft`;
-      const hasScore = typeof item.imdb_rating === 'number' && (item.imdb_votes || 0) > 0;
-      const score = hasScore ? item.imdb_rating.toFixed(1) : '';
+      const score = imdbScoreText(item) || '';
+      const hasScore = !!score;
       const label = hasScore
         ? `IMDb rating ${score} out of 10 for ${title}`
         : `Find ${title} on IMDb`;
