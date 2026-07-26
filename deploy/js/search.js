@@ -312,7 +312,7 @@ function setCuratorPrompt(q) {
             const cc = PROVIDER_COLORS[name] || 'bg-zinc-700 text-zinc-200';
             return `<span class="wtw-provider-pill ${cc}">${escapeHtml(name)}</span>`;
           }).join('')}</div>
-        `).join('');
+        `).join('') + `<div style="margin-top:6px;padding-top:5px;border-top:1px solid #3f3f46;font-size:9px;color:#52525b;">Availability data by <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#71717a;">JustWatch</a></div>`;
       }
       document.body.appendChild(popup);
       const rect = anchorEl.getBoundingClientRect();
@@ -381,7 +381,8 @@ function setCuratorPrompt(q) {
               const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
               return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${escapeHtml(p.provider_name)}</span>`;
             }).join('');
-            return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}</div>`;
+            // JustWatch credited inline: TMDB requires it on each item showing provider data.
+            return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}<span style="font-size:9px;color:#52525b;white-space:nowrap;" title="Streaming availability data by JustWatch">via JustWatch</span></div>`;
           }
           if (hasAnyProvider) {
             return `<button class="wtw-trigger" data-wtw-id="${m.id}">📍 Where to watch</button>`;

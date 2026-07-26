@@ -96,7 +96,8 @@
         });
         const wrap = document.getElementById('modal-availability-wrap');
         if (allHtml) {
-          availEl.innerHTML = `<div class="flex flex-wrap gap-1">${allHtml}</div>`;
+          // Per-item JustWatch credit — same TMDB requirement as the rec cards.
+          availEl.innerHTML = `<div class="flex flex-wrap gap-1 items-center">${allHtml}<span style="font-size:9px;color:#52525b;white-space:nowrap;" title="Streaming availability data by JustWatch">via JustWatch</span></div>`;
           if (wrap) wrap.style.display = '';
         } else {
           availEl.innerHTML = '';

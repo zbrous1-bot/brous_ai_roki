@@ -1533,6 +1533,17 @@
     // themselves being identical.
     const availRow = inner => `<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;overflow:hidden;">${inner}</div>`;
 
+    // Watch-provider data reaches us through TMDB's partnership with JustWatch, and TMDB
+    // requires that JustWatch be credited on each media item showing it — not once in a
+    // footer — with API access revocable for non-compliance. So this rides on every
+    // availability row rather than being hoisted out of the grid.
+    //
+    // flex-shrink:0 is load-bearing: the row is overflow:hidden, and without it the credit
+    // would be the first thing clipped on a two-service card, which is precisely the case
+    // where it has to stay visible.
+    const JW_CREDIT = '<span style="font-size:8px;color:#52525b;white-space:nowrap;flex-shrink:0;margin-left:1px;"'
+      + ' title="Streaming availability data by JustWatch">JustWatch</span>';
+
     const _availabilityByKey = new Map(); // `${id}:${mediaType}` -> { stream, rentable }
     let _availabilityRun = 0;
 
@@ -1575,11 +1586,11 @@
         const pills = mine.slice(0, 2)
           .map(label => `<span class="${PROVIDER_COLORS[label] || 'bg-zinc-700 text-zinc-200'}" style="${AVAIL_CHIP_STYLE}">${escapeHtml(label)}</span>`)
           .join('');
-        slot.innerHTML = availRow(pills);
+        slot.innerHTML = availRow(pills + JW_CREDIT);
         return;
       }
       if (data.rentable) {
-        slot.innerHTML = availRow(`<span style="${AVAIL_CHIP_STYLE}color:#71717a;border-color:#3f3f46;">Rent</span>`);
+        slot.innerHTML = availRow(`<span style="${AVAIL_CHIP_STYLE}color:#71717a;border-color:#3f3f46;">Rent</span>` + JW_CREDIT);
         return;
       }
       slot.innerHTML = '';
