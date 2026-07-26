@@ -714,8 +714,15 @@
         // Each entry carries its own media type so every fetched item can be tagged
         // correctly at the source — movie and TV ids can collide, so dedupe/scoring
         // downstream needs `${id}:${mediaType}` keys rather than id alone.
-        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
-        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=16&first_air_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        // without_genres carries the same exclusions as REC_POOL_EXCLUDED_GENRES
+        // (js/ui-helpers.js) so the non-narrative titles never get fetched in the first
+        // place. The client-side gate below still has to exist — /movie/popular,
+        // /movie/top_rated and /trending take no genre filter — but filtering here means
+        // the Discover pages spend their 20 slots on titles that can actually be used.
+        const MOVIE_EXCL = [...REC_POOL_EXCLUDED_GENRES.movie].join(',');
+        const TV_EXCL = [...REC_POOL_EXCLUDED_GENRES.tv].join(',');
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=${MOVIE_EXCL}&primary_release_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=${TV_EXCL}&first_air_date.gte=1960-01-01&vote_count.gte=100&vote_average.gte=5.5`;
         const pageCount = 10;
         const startPage = append ? recPageCursor : (1 + Math.floor(Math.random() * 20));
         const urls = []; // { url, type }
@@ -750,7 +757,7 @@
         // horror carries far fewer votes than mainstream genres, same reasoning as the
         // Found Footage pool's quality pass below) so Horror always has a real pool to
         // draw from instead of whatever scraps survive the generic discover queries.
-        const horrorBase = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&with_genres=27&without_genres=16&vote_count.gte=25&vote_average.gte=4.3`;
+        const horrorBase = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_origin_country=US&with_genres=27&without_genres=${MOVIE_EXCL}&vote_count.gte=25&vote_average.gte=4.3`;
         for (let i = 0; i < 8; i++) {
           const page = Math.min(startPage + i, 480);
           urls.push({ url: `${horrorBase}&sort_by=popularity.desc&page=${page}`, type: 'movie' });
@@ -826,8 +833,14 @@
           // *details* responses include it), so movies rely on with_origin_country=US
           // already applied at each discover URL above instead of a client-side check.
           const isAmerican = mt !== 'tv' || (r.origin_country || []).includes('US');
+          // isRecPoolEligible (js/ui-helpers.js) replaces the old inline `includes(16)`
+          // check and widens it to the other non-narrative genres. It has to run here and
+          // not only via without_genres above because /movie/popular, /movie/top_rated,
+          // /trending and the similar/recommendations calls aren't Discover endpoints and
+          // accept no genre filter — those were the route most of the concert films and
+          // documentaries were taking into the pool.
           return !excluded.has(key) && (r.vote_average || 0) >= ratingFloor && r.poster_path
-            && r.original_language === 'en' && isAmerican && !r.adult && !(r.genre_ids || []).includes(16)
+            && r.original_language === 'en' && isAmerican && !r.adult && isRecPoolEligible(mt, r.genre_ids)
             && (!year || year >= 1960);
         });
 

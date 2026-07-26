@@ -102,6 +102,43 @@
       return gids.some(g => FF_NARRATIVE_GENRES.has(g));
     }
 
+    // ---- Non-narrative genres (For You rec pool only) ----
+    // The rec pool is meant to answer "what should I watch tonight" for a horror/thriller
+    // audience, and concert films, stand-up specials and documentaries aren't that — but
+    // they rate extremely well, so they place high on any quality-ranked feed. Measured
+    // against a live 350-title pool, 50 titles (14%) were Documentary or Music, against
+    // only 35 Horror.
+    //
+    // Applied client-side as well as via `without_genres` because half the pool comes from
+    // /movie/popular, /movie/top_rated and /trending, which aren't Discover endpoints and
+    // take no genre filter at all — the server-side parameter alone would miss them.
+    //
+    // Scoped to the rec pool deliberately. The Browse tab has explicit Documentary and
+    // Animation genre chips, and someone who taps Documentary there means it.
+    //
+    // TV Movie (10770) is NOT excluded: it catches real genre films (Cast a Deadly Spell,
+    // Witch Hunt both surface in the Cosmic Horror pool as 10770), not just filler.
+    const REC_POOL_EXCLUDED_GENRES = {
+      movie: new Set([
+        16,    // Animation — long-standing app-wide exclusion
+        99,    // Documentary
+        10402, // Music (concert films: Nirvana Unplugged, Michael Jackson Live)
+      ]),
+      tv: new Set([
+        16,    // Animation
+        99,    // Documentary
+        10763, // News
+        10764, // Reality
+        10767, // Talk
+      ]),
+    };
+
+    // True if the title belongs in the For You rec pool. `genreIds` is TMDB's genre_ids.
+    function isRecPoolEligible(mediaType, genreIds) {
+      const banned = REC_POOL_EXCLUDED_GENRES[mediaType === 'tv' ? 'tv' : 'movie'];
+      return !(genreIds || []).some(g => banned.has(g));
+    }
+
     // ---- Cosmic Horror (shared by the Browse filter and the For You pool) ----
     // Same shape as the Found Footage block above — a TMDB keyword, not a genre — but a
     // far narrower pool: the whole thing is ~70 titles against found footage's ~4,000
