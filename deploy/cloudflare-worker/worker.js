@@ -167,18 +167,30 @@ export default {
       }
 
       try {
-        const placeholders = ids.map(() => '?').join(',');
-        const { results } = await env.RATINGS_DB
-          .prepare(`SELECT tconst, rating, votes FROM imdb_ratings WHERE tconst IN (${placeholders})`)
-          .bind(...ids)
-          .all();
+        // D1 rejects more than 100 bound variables in a single statement
+        // ("too many SQL variables"), so a realistic pool — refreshRecPool builds 350 —
+        // cannot go in one IN (...) list. Split into chunks of 100 and hand the whole set
+        // to .batch(), which runs them in one round trip rather than N sequential awaits.
+        const CHUNK = 100;
+        const statements = [];
+        for (let i = 0; i < ids.length; i += CHUNK) {
+          const chunk = ids.slice(i, i + CHUNK);
+          statements.push(
+            env.RATINGS_DB
+              .prepare(`SELECT tconst, rating, votes FROM imdb_ratings WHERE tconst IN (${chunk.map(() => '?').join(',')})`)
+              .bind(...chunk)
+          );
+        }
+        const batched = await env.RATINGS_DB.batch(statements);
 
         // Keyed by tconst so the client can merge by lookup instead of scanning an array.
         // Short field names because this response can carry 400 entries and the whole
         // point is that it costs less than 400 round trips.
         const out = {};
-        for (const row of (results || [])) {
-          out[row.tconst] = { r: row.rating, v: row.votes };
+        for (const res of batched) {
+          for (const row of (res.results || [])) {
+            out[row.tconst] = { r: row.rating, v: row.votes };
+          }
         }
         // Missing ids are simply absent rather than null-filled — the caller already has
         // to handle "no IMDb data for this title" (titles below the loader's vote floor,
