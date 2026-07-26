@@ -137,6 +137,60 @@ export default {
       }
     }
 
+    // === 2b. IMDb ratings lookup (batch) ===
+    // GET /api/ratings?ids=tt0084787,tt1179933 -> {"tt0084787":{"r":8.2,"v":530446},...}
+    //
+    // Backs the rec engine's quality scoring. TMDB's vote counts are thin for the obscure
+    // horror this app surfaces — on the live Cosmic Horror pool the median title had 205
+    // TMDB votes against 9,730 on IMDb — so ranking on TMDB alone leans almost entirely on
+    // the Bayesian prior rather than on real data. Data comes from IMDb's public bulk dump
+    // via scripts/load-imdb-ratings.js; there is no free IMDb API to call live.
+    //
+    // Deliberately unauthenticated, like the TMDB proxy above: IMDb ratings are public
+    // data, this reads a table nothing can write to, and requiring the shared password
+    // here would break scoring for anyone browsing without having set it.
+    if (pathname === '/api/ratings' || pathname === '/api/ratings/') {
+      if (!env.RATINGS_DB) {
+        return jsonResponse({ error: 'RATINGS_DB binding is not configured on this Worker' }, 500, request);
+      }
+
+      // Validate hard, for two reasons. These ids are interpolated into an IN (...) list,
+      // so anything that isn't strictly tt+digits has no business reaching the query; and
+      // an unbounded list would let one request read the whole table. 400 is the batch the
+      // client actually needs (refreshRecPool builds ~350 titles) with a little headroom.
+      const raw = (url.searchParams.get('ids') || '').split(',');
+      const ids = [...new Set(raw.map(s => s.trim()).filter(s => /^tt\d+$/.test(s)))].slice(0, 400);
+
+      if (!ids.length) {
+        // Not an error — a pool where TMDB knew no imdb_ids is legitimately empty.
+        return jsonResponse({}, 200, request);
+      }
+
+      try {
+        const placeholders = ids.map(() => '?').join(',');
+        const { results } = await env.RATINGS_DB
+          .prepare(`SELECT tconst, rating, votes FROM imdb_ratings WHERE tconst IN (${placeholders})`)
+          .bind(...ids)
+          .all();
+
+        // Keyed by tconst so the client can merge by lookup instead of scanning an array.
+        // Short field names because this response can carry 400 entries and the whole
+        // point is that it costs less than 400 round trips.
+        const out = {};
+        for (const row of (results || [])) {
+          out[row.tconst] = { r: row.rating, v: row.votes };
+        }
+        // Missing ids are simply absent rather than null-filled — the caller already has
+        // to handle "no IMDb data for this title" (titles below the loader's vote floor,
+        // or too new to be in the last dump), so absence is the same case as unknown.
+        return jsonResponse(out, 200, request);
+      } catch (err) {
+        // Fail soft: scoring falls back to TMDB-only if this errors, so a 502 here
+        // degrades ranking rather than breaking the grid.
+        return jsonResponse({ error: 'ratings lookup failed: ' + (err && err.message || 'unknown') }, 502, request);
+      }
+    }
+
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
     if (pathname === '/api/llm' || pathname === '/api/llm/') {
       if (env.PASSWORD) {

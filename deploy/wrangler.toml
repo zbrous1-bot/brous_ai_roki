@@ -8,3 +8,12 @@ compatibility_date = "2026-06-11"
 [[kv_namespaces]]
 binding = "DATA_KV"
 id = "dc0743eee387436f85af1aa92561fdda"
+
+# Must mirror the binding in cloudflare-worker/wrangler.toml for the same reason DATA_KV
+# does: functions/api/[[path]].js hands every /api/* request to that same Worker's fetch
+# handler, so a binding missing here is missing at runtime on Pages even though the
+# standalone Worker has it. See scripts/load-imdb-ratings.js for how the data gets in.
+[[d1_databases]]
+binding = "RATINGS_DB"
+database_name = "brous-ratings"
+database_id = "99410c33-dee4-4e0c-b867-59218ff4433e"

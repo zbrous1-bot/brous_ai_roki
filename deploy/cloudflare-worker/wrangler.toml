@@ -5,3 +5,12 @@ compatibility_date = "2026-06-11"
 [[kv_namespaces]]
 binding = "DATA_KV"
 id = "dc0743eee387436f85af1aa92561fdda"
+
+# IMDb ratings, loaded in bulk by scripts/load-imdb-ratings.js. Backs /api/ratings,
+# which the rec engine batch-queries to score titles on IMDb's vote counts instead of
+# TMDB's much thinner ones. Read-only from the Worker's side — nothing writes here
+# except the loader script.
+[[d1_databases]]
+binding = "RATINGS_DB"
+database_name = "brous-ratings"
+database_id = "99410c33-dee4-4e0c-b867-59218ff4433e"
