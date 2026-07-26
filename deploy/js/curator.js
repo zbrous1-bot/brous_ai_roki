@@ -607,6 +607,39 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       };
     }
 
+    // Chip row for picking subscribed services. Selecting one re-renders the availability
+    // line on any cards already on screen, so the effect is visible without a Recompute —
+    // unlike the tuning sliders below, this changes presentation, not ranking.
+    function renderMyServicesPicker() {
+      const container = document.getElementById('settings-services');
+      if (!container) return;
+      container.innerHTML = '';
+
+      STREAMING_SERVICES.forEach(({ label }) => {
+        const on = myServices.has(label);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${on ? 'filter-chip-active' : 'filter-chip'}`;
+        btn.onclick = () => {
+          if (myServices.has(label)) myServices.delete(label); else myServices.add(label);
+          saveMyServices(myServices);
+          renderMyServicesPicker();
+          // Repaint availability on whatever is currently rendered.
+          if (typeof refreshVisibleAvailability === 'function') refreshVisibleAvailability();
+        };
+        container.appendChild(btn);
+      });
+
+      const status = document.getElementById('settings-services-status');
+      if (status) {
+        status.textContent = myServices.size
+          ? `${myServices.size} selected — cards show these as Stream, everything else as Rent.`
+          : 'None selected — cards will show a Rent marker for anything that is rentable.';
+      }
+    }
+
     function showSettings() {
       const modal = document.getElementById('settings-modal');
       if (!modal) return;
@@ -656,6 +689,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
         Store.setItem('horror_roki_llm', JSON.stringify(llmConfig));
         setCloudStatus('\u2713 Config saved', '#4ade80');
       };
+
+      // ── My streaming services ──
+      renderMyServicesPicker();
 
       // ── Recommendation tuning sliders ──
       // The "taste" slider (0-100) drives BOTH quality baseline and genre affinity on a

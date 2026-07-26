@@ -75,6 +75,7 @@
         // id a TMDB title has is an objective fact, identical for every profile, so scoping
         // it would just make each person re-fetch the same mapping.
         'brous_imdb_ids': 'brous_imdb_ids',
+        'brous_my_services': 'brous_my_services',
       };
 
       // ---- Profile scoping ----
@@ -100,6 +101,9 @@
         'brous_watchlist',
         'brous_rec_tune',
         'brous_chat',
+        // Two people sharing this app don't necessarily share subscriptions, so the same
+        // title can be streaming for one profile and rent-only for the other.
+        'brous_my_services',
       ]);
       const ACTIVE_PROFILE_KEY = 'brous_active_profile';
 

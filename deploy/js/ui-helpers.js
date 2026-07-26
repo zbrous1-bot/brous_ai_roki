@@ -263,6 +263,60 @@
       } catch (_) { /* quota or private mode — enrichment still works, just uncached */ }
     }
 
+    // ---- Watch-provider lookup (For You cards) ----
+    // The rec pool is built entirely from TMDB list endpoints, which carry no provider
+    // data, so availability has to be fetched per title. That's why this is lazy and only
+    // ever runs for cards actually on screen (~40) rather than the whole 350-title pool.
+    //
+    // Cached because provider deals change on the order of weeks, not minutes, and without
+    // it every scroll and every Recompute would re-request the same titles. A week's TTL
+    // keeps it honest — a title leaving Netflix shows up within a week rather than being
+    // wrong until localStorage is cleared.
+    const PROVIDER_CACHE_KEY = 'brous_providers';
+    const PROVIDER_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+    const PROVIDER_CACHE_MAX = 1500;
+
+    function loadProviderCache() {
+      try {
+        const raw = Store.getItem(PROVIDER_CACHE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+      } catch (_) { return {}; }
+    }
+    function saveProviderCache(cache) {
+      try {
+        let toStore = cache;
+        const keys = Object.keys(cache);
+        if (keys.length > PROVIDER_CACHE_MAX) {
+          toStore = {};
+          keys.slice(-Math.floor(PROVIDER_CACHE_MAX / 2)).forEach(k => { toStore[k] = cache[k]; });
+        }
+        Store.setItem(PROVIDER_CACHE_KEY, JSON.stringify(toStore));
+      } catch (_) { /* quota — availability still works, just uncached */ }
+    }
+
+    // Returns { stream: [names], rentable: bool } for one title, or null if unknown.
+    // Stores only what the availability line needs — provider names and a rentable flag —
+    // rather than TMDB's full response, which is large and mostly logo URLs.
+    async function fetchWatchProviders(id, mediaType, cache) {
+      const key = `${mediaType === 'tv' ? 'tv' : 'movie'}:${id}`;
+      const hit = cache[key];
+      if (hit && (Date.now() - (hit.t || 0)) < PROVIDER_CACHE_TTL_MS) return hit.d;
+      try {
+        const mt = mediaType === 'tv' ? 'tv' : 'movie';
+        const res = await apiFetch(`/api/tmdb/3/${mt}/${id}/watch/providers`);
+        const us = res && res.results && res.results.US ? res.results.US : null;
+        const d = {
+          stream: (us && us.flatrate ? us.flatrate : []).map(p => p.provider_name),
+          rentable: !!(us && ((us.rent && us.rent.length) || (us.buy && us.buy.length))),
+        };
+        cache[key] = { t: Date.now(), d };
+        return d;
+      } catch (_) {
+        return null; // transient failure — leave the line blank rather than claim anything
+      }
+    }
+
     // ---- IMDb ratings enrichment ----
     // Attaches imdb_rating / imdb_votes to every item in a rec pool, in place, so
     // bayesianRating (js/recs.js) can score on IMDb's vote counts instead of TMDB's much
@@ -350,7 +404,79 @@
       'Apple TV+': 'bg-zinc-600 text-white',
       'Paramount+': 'bg-blue-700 text-white',
       'Disney+': 'bg-indigo-700 text-white',
+      // Added for the For You availability pills, which key off STREAMING_SERVICES labels
+      // rather than raw TMDB names — 'Max' above predates the HBO Max rename, and the rest
+      // are services the picker offers that had no colour. Without an entry the pill still
+      // renders, just in the grey fallback.
+      'HBO Max': 'bg-purple-700 text-white',
+      'Shudder': 'bg-red-900 text-red-100',
+      'AMC+': 'bg-amber-800 text-amber-100',
+      'Starz': 'bg-zinc-800 text-zinc-100',
+      'Criterion': 'bg-stone-700 text-stone-100',
+      'Tubi': 'bg-orange-700 text-white',
+      'Pluto TV': 'bg-slate-700 text-white',
     };
+
+    // ---- My streaming services ----
+    // The set the user subscribes to, chosen in Settings. Drives the availability line on
+    // For You cards: a title counts as "streamable" only if TMDB lists it on one of these.
+    //
+    // Profile-scoped (see PROFILE_SCOPED_KEYS in js/store.js) because two people sharing
+    // this app don't necessarily share subscriptions — the same title can legitimately be
+    // "on Netflix" for one profile and rent-only for the other.
+    //
+    // Each entry is a service you can subscribe to, paired with every name TMDB actually
+    // uses for it. Both halves matter and neither is guessable:
+    //
+    // - TMDB's names are not the marketing names. It returns "Amazon Prime Video" (not
+    //   "Prime Video"), "Disney Plus" (not "Disney+"), "HBO Max" (not "Max"), "Peacock
+    //   Premium", "Tubi TV". Matching on the label alone would silently never fire — the
+    //   line would read Rent for everything, which looks like working code.
+    // - One service appears under several names because TMDB lists resold channels
+    //   separately: Shudder is also "Shudder Amazon Channel" and "Shudder Apple TV
+    //   Channel". If you subscribe to Shudder you can watch it regardless of billing route,
+    //   so all variants count as the same tick.
+    //
+    // Verified against /watch/providers/movie?watch_region=US (290 entries) rather than
+    // written from memory. Shudder and AMC+ are included despite being niche because this
+    // is a horror app and they carry a lot of what it recommends.
+    const STREAMING_SERVICES = [
+      { label: 'Netflix',    match: ['Netflix'] },
+      { label: 'Hulu',       match: ['Hulu'] },
+      { label: 'HBO Max',    match: ['HBO Max', 'HBO Max Amazon Channel'] },
+      { label: 'Prime Video',match: ['Amazon Prime Video'] },
+      { label: 'Disney+',    match: ['Disney Plus'] },
+      { label: 'Apple TV+',  match: ['Apple TV'] },
+      { label: 'Paramount+', match: ['Paramount Plus Essential', 'Paramount Plus Premium', 'Paramount+ Amazon Channel', 'Paramount+ Roku Premium Channel'] },
+      { label: 'Peacock',    match: ['Peacock Premium', 'Peacock Premium Plus', 'Peacock Premium Plus Amazon Channel'] },
+      { label: 'Shudder',    match: ['Shudder', 'Shudder Amazon Channel', 'Shudder Apple TV Channel'] },
+      { label: 'AMC+',       match: ['AMC+', 'AMC+ Amazon Channel', 'AMC+ Roku Premium Channel', 'AMC Plus Apple TV Channel'] },
+      { label: 'Starz',      match: ['Starz', 'Starz Apple TV Channel', 'Starz Roku Premium Channel'] },
+      { label: 'Criterion',  match: ['Criterion Channel'] },
+      { label: 'Tubi',       match: ['Tubi TV'] },
+      { label: 'Pluto TV',   match: ['Pluto TV'] },
+    ];
+
+    // TMDB provider name -> the service label the user picked, so a lookup is one map hit
+    // rather than a scan across every service's variants for every title.
+    const PROVIDER_NAME_TO_SERVICE = (() => {
+      const m = {};
+      STREAMING_SERVICES.forEach(s => s.match.forEach(n => { m[n] = s.label; }));
+      return m;
+    })();
+
+    const MY_SERVICES_KEY = 'brous_my_services';
+    function loadMyServices() {
+      try {
+        const raw = Store.getItem(MY_SERVICES_KEY);
+        const arr = raw ? JSON.parse(raw) : null;
+        return new Set(Array.isArray(arr) ? arr.filter(s => typeof s === 'string') : []);
+      } catch (_) { return new Set(); }
+    }
+    function saveMyServices(set) {
+      try { Store.setItem(MY_SERVICES_KEY, JSON.stringify([...set])); } catch (_) {}
+    }
+    let myServices = loadMyServices();
 
     let selectedGenres = new Set();
     let currentDiscoverType = 'movie';

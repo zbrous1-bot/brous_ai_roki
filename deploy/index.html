@@ -464,6 +464,17 @@
             <button id="settings-save-config" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Save Config</button>
           </div>
 
+          <!-- MY STREAMING SERVICES -->
+          <!-- Drives the availability line on For You cards (see renderRecAvailability in
+               js/recs.js). Only the services picked here are shown as "streaming"; anything
+               else falls back to the muted Rent marker, so the line stays one row tall. -->
+          <div class="mb-4 pt-3 border-t border-zinc-800">
+            <div class="text-sm font-semibold text-zinc-200 mb-1">My streaming services</div>
+            <div class="text-[11px] text-zinc-500 mb-3">Pick what you subscribe to. Recommendation cards will show when a title streams on one of these; everything else shows a Rent marker.</div>
+            <div id="settings-services" class="flex flex-wrap gap-1.5"></div>
+            <div id="settings-services-status" class="text-[11px] mt-2 text-zinc-500"></div>
+          </div>
+
           <!-- RECOMMENDATION TUNING -->
           <div class="mb-4 pt-3 border-t border-zinc-800">
             <div class="text-sm font-semibold text-zinc-200 mb-1">Recommendation tuning</div>

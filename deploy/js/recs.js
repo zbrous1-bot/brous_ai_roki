@@ -1252,6 +1252,8 @@
         enhanceCard(card, item);
         grid.appendChild(card);
       });
+      // Surprise picks render the same card markup, so they get the same availability line.
+      renderRecAvailability(picks);
       showToast('🎲 Surprise picks — outside your usual genres');
     }
 
@@ -1400,7 +1402,7 @@
     <a href="${rtSearchUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#fa320a] text-white font-bold no-underline">RT</a>
   </div>
   <button class="why-this-btn text-[10px] text-emerald-400/80 mt-1.5 text-left w-full truncate hover:text-emerald-300 transition-colors" title="Why this recommendation?">${escapeHtml(matchLabel(item))}</button>
-  <div id="wtw-rec-${item.id}" class="mt-1"></div>
+  <div id="wtw-rec-${item.id}-${item._mediaType || 'movie'}" class="wtw-rec-slot mt-1"></div>
 </div>
 <div class="mt-2 flex gap-1 items-center" style="position:relative;">
   <button class="flex-1 min-w-0 text-[11px] px-2 py-1.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium" data-act="towatch" aria-label="Add ${itemTitleSafe} to To Watch">+ Watch</button>
@@ -1495,6 +1497,100 @@
         enhanceCard(card, item);
 
         grid.appendChild(card);
+      });
+
+      // Availability runs after the grid is in the DOM, not during the render loop: it needs
+      // a network round trip per title and blocking the render on ~40 of them would trade a
+      // fast grid for a slow one. Cards paint immediately with an empty slot that fills in.
+      renderRecAvailability(display);
+    }
+
+    // Fills each card's reserved availability slot with one compact line:
+    //   streaming on a service you have -> pills for those services
+    //   otherwise rentable              -> a single muted "Rent" marker
+    //   neither / unknown               -> nothing
+    //
+    // The slot (see the card markup above) is a pre-existing empty div, so this adds no new
+    // element to the layout and a card whose line stays empty is exactly as tall as before.
+    // Only ever shows services from myServices — the whole point is "can I watch this
+    // tonight without paying again", so listing services the user doesn't have would be
+    // noise. With nothing configured in Settings, every available title reads as Rent.
+    // Availability is held here rather than on the item, because the array passed in is a
+    // scored/sliced COPY of currentRecPool — writing to those objects wouldn't reach the
+    // pool, and the Settings repaint (which reads the pool) would find nothing.
+    // One style string for both the service pill and the Rent marker, so the two states
+    // occupy an identical box and a row of cards can't end up at different heights.
+    // Deliberately NOT reusing the .wtw-provider-pill class from styles.css: that's sized
+    // for the roomier Browse/Search rows (11px text, 3px/9px padding, 2px vertical margin)
+    // and its margin in particular survives inline overrides, which is what made these
+    // slots render 13px taller than the Rent ones.
+    const AVAIL_CHIP_STYLE = 'display:inline-flex;align-items:center;font-size:9px;font-weight:600;'
+      + 'line-height:14px;padding:1px 6px;margin:0;border:1px solid transparent;border-radius:9999px;white-space:nowrap;';
+
+    // Both states go through this same wrapper. A bare inline chip and a chip inside a flex
+    // row don't measure the same — the inline one picks up line-box leading and renders ~5px
+    // taller — so streaming and Rent cards would sit at different heights despite the chips
+    // themselves being identical.
+    const availRow = inner => `<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;overflow:hidden;">${inner}</div>`;
+
+    const _availabilityByKey = new Map(); // `${id}:${mediaType}` -> { stream, rentable }
+    let _availabilityRun = 0;
+
+    async function renderRecAvailability(items) {
+      if (!Array.isArray(items) || !items.length) return;
+      const run = ++_availabilityRun; // a newer render supersedes this one mid-flight
+      const cache = loadProviderCache();
+      // Sequential rather than Promise.all: this is a background nicety competing with the
+      // poster loads the user actually cares about, and firing 40 requests at once would
+      // contend with them for the browser's per-host connection budget.
+      for (const item of items) {
+        if (run !== _availabilityRun) return;
+        const mt = item._mediaType === 'tv' ? 'tv' : 'movie';
+        const data = await fetchWatchProviders(item.id, mt, cache);
+        if (run !== _availabilityRun) return;
+        if (!data) continue;
+        _availabilityByKey.set(`${item.id}:${mt}`, data);
+        paintAvailabilitySlot(item.id, mt);
+      }
+      saveProviderCache(cache);
+    }
+
+    function paintAvailabilitySlot(id, mediaType) {
+      const mt = mediaType === 'tv' ? 'tv' : 'movie';
+      const slot = document.getElementById(`wtw-rec-${id}-${mt}`);
+      if (!slot) return;
+      const data = _availabilityByKey.get(`${id}:${mt}`);
+      if (!data) { slot.innerHTML = ''; return; }
+
+      // Map TMDB's provider names onto the service labels the user picked (see
+      // PROVIDER_NAME_TO_SERVICE) — "Shudder Amazon Channel" is still Shudder. Deduped
+      // because a title can list the same service under two billing routes.
+      const mine = [...new Set(
+        (data.stream || []).map(n => PROVIDER_NAME_TO_SERVICE[n]).filter(l => l && myServices.has(l))
+      )];
+
+      if (mine.length) {
+        // Capped at 2 and nowrap so the line can't grow to a second row and make this card
+        // taller than its neighbours — the grid alignment was the stated concern.
+        const pills = mine.slice(0, 2)
+          .map(label => `<span class="${PROVIDER_COLORS[label] || 'bg-zinc-700 text-zinc-200'}" style="${AVAIL_CHIP_STYLE}">${escapeHtml(label)}</span>`)
+          .join('');
+        slot.innerHTML = availRow(pills);
+        return;
+      }
+      if (data.rentable) {
+        slot.innerHTML = availRow(`<span style="${AVAIL_CHIP_STYLE}color:#71717a;border-color:#3f3f46;">Rent</span>`);
+        return;
+      }
+      slot.innerHTML = '';
+    }
+
+    // Repaint from already-fetched data — no network. Called when the Settings service
+    // picker changes, so toggling a service updates the visible grid immediately.
+    function refreshVisibleAvailability() {
+      document.querySelectorAll('.wtw-rec-slot').forEach(el => {
+        const m = el.id.match(/^wtw-rec-(\d+)-(movie|tv)$/);
+        if (m) paintAvailabilitySlot(m[1], m[2]); else el.innerHTML = '';
       });
     }
 
