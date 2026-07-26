@@ -134,11 +134,32 @@
                            : `👥 ${otherName}'s pick — you should be fine with it`;
     }
 
-    // Bayesian-corrected rating — penalises films with few votes
-    function bayesianRating(voteAvg, voteCount) {
-      const C = 6.5;   // global mean prior
-      const m = 800;   // minimum votes for full trust
-      return (voteCount * voteAvg + m * C) / (voteCount + m);
+    // Bayesian-corrected rating — penalises titles with few votes.
+    //
+    // Pools TMDB and IMDb votes as one body of evidence rather than averaging two separate
+    // scores. IMDb carries 40-60x more votes per title (measured on the live pools: median
+    // 4,326 TMDB against 274,742 IMDb on the main pool, 205 against 9,730 on Cosmic Horror),
+    // so it naturally dominates wherever it has data, which is the point — TMDB alone can't
+    // tell an obscure title from one it simply has no data on. Where IMDb is missing
+    // (imdbVotes 0) this degrades exactly to the old TMDB-only behaviour.
+    //
+    // `prior` is the pool's own 25th-percentile rating, not a fixed constant, and that
+    // detail is the whole ballgame. A Bayesian prior is a magnet, not a penalty: it pulls
+    // thin-evidence titles toward itself. A prior ABOVE the pool's centre therefore
+    // promotes junk instead of demoting it. Fixed priors were tested against both pools
+    // and fail in opposite directions — the pools' means are 7.69 (main) and 5.99 (Cosmic
+    // Horror), so any constant sits above one of them. p25 is below the centre of whatever
+    // pool it's computed from, so it always acts as a penalty. See computePoolStats.
+    //
+    // m=1000 rather than the old 800: with IMDb's vote counts in play, 400 was low enough
+    // to let a 11,580-vote stand-up special into the main pool's top 20. Verified at 1000
+    // the least-evidenced title in the top 20 is 49,282 votes (main) and 9,730 (Cosmic).
+    function bayesianRating(voteAvg, voteCount, imdbRating, imdbVotes, prior) {
+      const C = (typeof prior === 'number' && isFinite(prior)) ? prior : 6.5;
+      const m = 1000;
+      const iv = imdbVotes || 0;
+      const ia = iv > 0 ? (imdbRating || 0) : 0;
+      return (voteCount * voteAvg + iv * ia + m * C) / (voteCount + iv + m);
     }
 
     // Percentile helper — value below which `p` fraction of a sorted numeric array falls.
@@ -157,7 +178,9 @@
     function computePoolStats(pool) {
       if (!pool || !pool.length) {
         // Sane fallbacks matching the old fixed constants, for an empty/missing pool.
-        return { gemVoteAvgMin: 7.2, gemPopularityMax: 60, gemVoteCountMin: 500, lowVoteCount: 150, midVoteCount: 400 };
+        // qualityPrior falls back to the 6.5 global mean bayesianRating used before this
+        // was pool-relative — with no pool there's no distribution to derive it from.
+        return { gemVoteAvgMin: 7.2, gemPopularityMax: 60, gemVoteCountMin: 500, lowVoteCount: 150, midVoteCount: 400, qualityPrior: 6.5 };
       }
       const voteAvgs = pool.map(p => p.vote_average || 0).sort((a, b) => a - b);
       const popularities = pool.map(p => p.popularity || 0).sort((a, b) => a - b);
@@ -167,7 +190,12 @@
         gemPopularityMax: Math.max(20, percentile(popularities, 0.5)), // below-median popularity = "didn't blow up"
         gemVoteCountMin: Math.max(200, percentile(voteCounts, 0.25)),  // still enough votes to trust the rating
         lowVoteCount: Math.max(50, percentile(voteCounts, 0.15)),
-        midVoteCount: Math.max(150, percentile(voteCounts, 0.35))
+        midVoteCount: Math.max(150, percentile(voteCounts, 0.35)),
+        // Prior for bayesianRating. Must sit BELOW this pool's centre or it promotes
+        // thin-evidence titles instead of demoting them (see the comment there). Measured
+        // p25 is 7.31 on the main pool and 5.21 on Cosmic Horror — no constant could serve
+        // both, which is why this is derived per pool like the thresholds above.
+        qualityPrior: percentile(voteAvgs, 0.25)
       };
     }
 
@@ -199,7 +227,7 @@
       // Tuned slightly DOWN (0.9 -> 0.78) so generically well-rated films no longer
       // out-muscle titles that actually match the user's taste — a gentle tilt toward
       // "more personal" without narrowing the (intentionally broad) candidate pool.
-      let score = bayesianRating(voteAvg, voteCount) * recTune.qualityBaseline;
+      let score = bayesianRating(voteAvg, voteCount, item.imdb_rating, item.imdb_votes, stats.qualityPrior) * recTune.qualityBaseline;
 
       // Genre affinity — normalised so top genres give a lift, anti-genres pull down.
       // Tuned slightly UP (3.5 -> 4.0) as the other half of the taste tilt above.
@@ -862,6 +890,10 @@
             _affinityReason: reason, _affinityBoost: boost
           };
         });
+        // Attach IMDb ratings before the pool is scored. bayesianRating pools these votes
+        // with TMDB's, so scoring without them would silently fall back to TMDB-only and
+        // rank a 350-title pool off vote counts a fraction the size.
+        await attachImdbRatings(mapped);
         currentRecPool = append ? currentRecPool.concat(mapped) : mapped;
         recPageCursor = startPage + pageCount;
         _recPoolLastRefreshed = new Date();
@@ -965,14 +997,12 @@
           const { type } = urls[i];
           raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
         });
-        // Found-footage-calibrated quality boost — see keywordPoolQualityBoost in
-        // js/ui-helpers.js for why the generic scorer can't order this pool on its own.
-        // m=60 and a slightly-lower C=6.0 tune the prior to found footage's actual vote
-        // reality (the subgenre skews rougher than the global mean); the result is that
-        // canonical/acclaimed titles (REC, Lake Mungo, Creep, Host) get a genuine lift and
-        // the 10-vote junk gets pushed down.
-        const ffQualityBoost = (voteAvg, voteCount) =>
-          keywordPoolQualityBoost(voteAvg, voteCount, 60, 6.0, 6.6, 1.6);
+        // This pool used to carry a hand-tuned quality boost (m=60, C=6.0) because the
+        // old bayesianRating flattened it — with a fixed m=800 against found footage's
+        // tiny TMDB vote counts, everything collapsed onto the prior and ordering came
+        // down to genre affinity plus jitter. bayesianRating now pools IMDb's vote counts
+        // and takes its prior from the pool's own distribution, which addresses that at
+        // the source, so the boost is gone rather than stacked on top of it.
         // Dedupe by id:mediaType, tag with a reason, drop excluded items and keyword
         // false-positives. The gate (documentary/animation exclusion, narrative-genre
         // requirement, curated denylist) is isPlausibleFoundFootage in js/ui-helpers.js —
@@ -992,13 +1022,14 @@
             poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || '') : (r.release_date || ''),
             vote_average: r.vote_average, vote_count: r.vote_count || 0,
             genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
-            _affinityReason: '🎥 Found footage', _affinityBoost: ffQualityBoost(r.vote_average, r.vote_count)
+            _affinityReason: '🎥 Found footage'
           });
         }
         if (!mapped.length) {
           if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🎥</span><div class="text-zinc-300 font-medium">No found-footage titles loaded</div><div class="text-zinc-500 text-xs mt-1">Check the 🔐 Pass button or your connection.</div></div>`;
           return;
         }
+        await attachImdbRatings(mapped);
         currentRecPool = mapped;
         _recPoolLastRefreshed = new Date();
         if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
@@ -1060,13 +1091,12 @@
           const { type } = urls[i];
           raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
         });
-        // Cosmic-horror-calibrated quality boost — see keywordPoolQualityBoost in
-        // js/ui-helpers.js. Prior is a touch stronger than found footage's (m=50 vs 60,
-        // C=6.2 vs 6.0): this pool has fewer sub-100-vote entries to protect against and a
-        // higher genuine ceiling, so the well-regarded end (The Thing, Evil Dead II, The
-        // Lighthouse) should be allowed to separate rather than be pulled toward the prior.
-        const cosmicQualityBoost = (voteAvg, voteCount) =>
-          keywordPoolQualityBoost(voteAvg, voteCount, 50, 6.2, 6.6, 1.6);
+        // Hand-tuned quality boost removed here for the same reason as the found-footage
+        // pool above — bayesianRating's pooled IMDb evidence and pool-relative prior now
+        // do this job properly. Verified on this pool specifically: without the boost, the
+        // head is still canonical (The Thing, Evil Dead II, Dark City, The Lighthouse) and
+        // Iron Lung correctly falls out of the top 12 — TMDB has it at 6.9 from 353 votes,
+        // IMDb at 5.8 from 30,159.
         // Same shape as the found-footage mapping: dedupe by id:mediaType, drop excluded
         // items and keyword false-positives (isPlausibleCosmicHorror in js/ui-helpers.js,
         // shared with the Browse tab's Cosmic Horror filter), tag with a reason.
@@ -1085,13 +1115,14 @@
             poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || '') : (r.release_date || ''),
             vote_average: r.vote_average, vote_count: r.vote_count || 0,
             genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
-            _affinityReason: '🐙 Cosmic horror', _affinityBoost: cosmicQualityBoost(r.vote_average, r.vote_count)
+            _affinityReason: '🐙 Cosmic horror'
           });
         }
         if (!mapped.length) {
           if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🐙</span><div class="text-zinc-300 font-medium">No cosmic-horror titles loaded</div><div class="text-zinc-500 text-xs mt-1">Check the 🔐 Pass button or your connection.</div></div>`;
           return;
         }
+        await attachImdbRatings(mapped);
         currentRecPool = mapped;
         _recPoolLastRefreshed = new Date();
         if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();

@@ -187,19 +187,108 @@
       return gids.some(g => COSMIC_GENRES.has(g));
     }
 
-    // Shared quality boost for the keyword-fetched For You pools. The generic scorer's
-    // bayesianRating uses m=800 min-votes-for-trust, which flattens these pools: both are
-    // dominated by low-vote indie titles, so nearly everything gets pulled to the ~6.5 prior
-    // and the good ones can't separate from the noise — final order ends up driven by genre
-    // affinity (near-identical, they're all Horror) plus serendipity jitter, i.e. close to
-    // random. This recomputes a weighted rating against a prior tuned to the pool's actual
-    // vote reality, then maps the distance from `center` into the existing _affinityBoost
-    // hook so canonical titles get a genuine lift and the 10-vote junk gets pushed down. The
-    // clamp keeps it in roughly the same range as the other affinity tags so it informs the
-    // user's taste ordering rather than overpowering it.
-    function keywordPoolQualityBoost(voteAvg, voteCount, m, c, center, k) {
-      const weighted = ((voteCount || 0) * (voteAvg || 0) + m * c) / ((voteCount || 0) + m);
-      return Math.max(-1.5, Math.min(2.0, (weighted - center) * k));
+    // tmdb_id -> imdb_id cache, persisted so the per-title /external_ids lookups in
+    // attachImdbRatings are paid once rather than on every pool refresh. Capped because
+    // localStorage is a shared, smallish budget and this competes with the user's actual
+    // library data — when it overflows the oldest half is dropped, which just means those
+    // titles get re-fetched if they come back around.
+    const IMDB_ID_CACHE_KEY = 'brous_imdb_ids';
+    const IMDB_ID_CACHE_MAX = 4000;
+    function loadImdbIdCache() {
+      try {
+        const raw = Store.getItem(IMDB_ID_CACHE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+      } catch (_) { return {}; }
+    }
+    function saveImdbIdCache(cache) {
+      try {
+        let toStore = cache;
+        const keys = Object.keys(cache);
+        if (keys.length > IMDB_ID_CACHE_MAX) {
+          // Object key order is insertion order for string keys, so the tail is the most
+          // recently added — keep that half.
+          toStore = {};
+          keys.slice(-Math.floor(IMDB_ID_CACHE_MAX / 2)).forEach(k => { toStore[k] = cache[k]; });
+        }
+        Store.setItem(IMDB_ID_CACHE_KEY, JSON.stringify(toStore));
+      } catch (_) { /* quota or private mode — enrichment still works, just uncached */ }
+    }
+
+    // ---- IMDb ratings enrichment ----
+    // Attaches imdb_rating / imdb_votes to every item in a rec pool, in place, so
+    // bayesianRating (js/recs.js) can score on IMDb's vote counts instead of TMDB's much
+    // thinner ones. Data comes from /api/ratings, backed by the D1 table that
+    // scripts/load-imdb-ratings.js populates from IMDb's public bulk dump.
+    //
+    // Two round trips per pool, not two per title: one TMDB call per item to resolve its
+    // imdb_id (TMDB's list endpoints don't return it — only /external_ids and the details
+    // response do), then ONE batched /api/ratings call for the whole set.
+    //
+    // Fails soft everywhere. If the id lookup or the ratings call errors, items simply keep
+    // no imdb_votes and bayesianRating degrades to its old TMDB-only behaviour — a ranking
+    // that's slightly worse, never an empty grid.
+    async function attachImdbRatings(pool) {
+      if (!Array.isArray(pool) || !pool.length) return pool;
+      try {
+        // Resolve imdb_ids, cache-first. TMDB's list endpoints don't carry imdb_id, so each
+        // unknown title costs a /external_ids call — 350 of them on a cold main pool, which
+        // would be a real regression given refreshRecPool otherwise uses list endpoints
+        // only. A tmdb_id -> imdb_id mapping never changes though, so it's cached in
+        // localStorage: the first pool build pays, and because successive pools overlap
+        // heavily the steady-state cost drops to a handful of lookups.
+        const cache = loadImdbIdCache();
+        const misses = [];
+        pool.forEach(item => {
+          const key = `${item._mediaType === 'tv' ? 'tv' : 'movie'}:${item.id}`;
+          if (item.imdb_id) { cache[key] = item.imdb_id; return; }
+          if (cache[key] !== undefined) { if (cache[key]) item.imdb_id = cache[key]; return; }
+          misses.push({ item, key });
+        });
+
+        if (misses.length) {
+          // Parallel, and apiFetch failures resolve to null rather than rejecting so one
+          // bad title can't take out the whole enrichment.
+          const fetched = await Promise.all(misses.map(async ({ item }) => {
+            const mt = item._mediaType === 'tv' ? 'tv' : 'movie';
+            try {
+              const d = await apiFetch(`/api/tmdb/3/${mt}/${item.id}/external_ids`);
+              return d && d.imdb_id ? d.imdb_id : null;
+            } catch (_) { return null; }
+          }));
+          fetched.forEach((id, i) => {
+            const { item, key } = misses[i];
+            // Cache the null too — a title with no IMDb id shouldn't be re-requested on
+            // every refresh forever.
+            cache[key] = id || null;
+            if (id) item.imdb_id = id;
+          });
+          saveImdbIdCache(cache);
+        }
+
+        const ids = [...new Set(pool.map(i => i.imdb_id).filter(Boolean))];
+        if (!ids.length) return pool;
+
+        // /api/ratings caps each request at 400 ids (and chunks internally to stay under
+        // D1's 100-bound-variable limit), so batch here to match rather than relying on
+        // the endpoint silently truncating anything past the cap.
+        const BATCH = 400;
+        const merged = {};
+        for (let i = 0; i < ids.length; i += BATCH) {
+          const chunk = ids.slice(i, i + BATCH);
+          try {
+            const d = await apiFetch(`/api/ratings?ids=${chunk.join(',')}`);
+            if (d && !d.error) Object.assign(merged, d);
+          } catch (_) { /* keep whatever earlier batches returned */ }
+        }
+        pool.forEach(item => {
+          const r = item.imdb_id ? merged[item.imdb_id] : null;
+          if (r) { item.imdb_rating = r.r; item.imdb_votes = r.v; }
+        });
+      } catch (_) {
+        // Enrichment is strictly an improvement — never let it break pool loading.
+      }
+      return pool;
     }
 
     // Nice colors for provider pills (still used in modal for "where to watch")

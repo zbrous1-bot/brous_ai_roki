@@ -69,6 +69,12 @@
         'horror_roki_lists_collapsed': 'brous_lists_collapsed',
         'tasteProfileCollapsed': 'brous_taste_profile_collapsed',
         'roki_rec_tune': 'brous_rec_tune',
+        // tmdb_id -> imdb_id lookup cache (see attachImdbRatings in js/ui-helpers.js).
+        // Listed here for visibility rather than migration — it's new, so it has no legacy
+        // name to map from. Deliberately absent from PROFILE_SCOPED_KEYS below: which IMDb
+        // id a TMDB title has is an objective fact, identical for every profile, so scoping
+        // it would just make each person re-fetch the same mapping.
+        'brous_imdb_ids': 'brous_imdb_ids',
       };
 
       // ---- Profile scoping ----
