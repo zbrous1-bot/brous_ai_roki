@@ -90,6 +90,12 @@
       '73126:tv',    // American Vandal — mockumentary comedy-crime, not found footage
       '1999:tv',     // The Comeback — showbiz mockumentary sitcom
       '347375:movie',// Mile 22 — shaky-cam action thriller, not found footage
+      // Woody Allen marital drama. Carries TMDB's "handheld camera" keyword — one of the
+      // broad tags the pool needs for recall — and clears the genre gate on Drama, so
+      // neither existing mechanism can catch it. It sat harmlessly low while scoring ran on
+      // TMDB's thin vote counts; once bayesianRating started pooling IMDb's 33,082 votes it
+      // rose into the pool's top 6, which is what made it worth an entry here.
+      '28384:movie', // Husbands and Wives
     ]);
 
     // Shared keyword false-positive gate. `genreIds` is TMDB's genre_ids array.
