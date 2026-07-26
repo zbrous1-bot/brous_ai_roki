@@ -225,9 +225,10 @@
             <div id="genre-chips" class="flex flex-wrap gap-1"></div>
           </div>
 
-          <!-- Style chips. Found Footage is a TMDB keyword, not a genre (see
-               FF_KEYWORD_IDS in js/ui-helpers.js), so it gets its own labelled row
-               rather than sitting among the genre chips where it would read as one. -->
+          <!-- Style chips. Found Footage and Cosmic Horror are TMDB keywords, not genres
+               (see FF_KEYWORD_IDS / COSMIC_KEYWORD_IDS in js/ui-helpers.js), so they get
+               their own labelled row rather than sitting among the genre chips where they
+               would read as genres. Populated by renderStyleChips in js/discover-filters.js. -->
           <div class="mb-2">
             <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Style</div>
             <div id="style-chips" class="flex flex-wrap gap-1"></div>

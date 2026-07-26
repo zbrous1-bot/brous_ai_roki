@@ -102,6 +102,69 @@
       return gids.some(g => FF_NARRATIVE_GENRES.has(g));
     }
 
+    // ---- Cosmic Horror (shared by the Browse filter and the For You pool) ----
+    // Same shape as the Found Footage block above — a TMDB keyword, not a genre — but a
+    // far narrower pool: the whole thing is ~70 titles against found footage's ~4,000
+    // (see loadCosmicHorror in recs.js for what that changes about how it's fetched).
+    //
+    // Keyword set verified against TMDB's keyword search (search/keyword?query=...):
+    // 215959 cosmic horror · 287274 lovecraftian · 375719 lovecraftian horror ·
+    // 173386 cthulhu. Checked and deliberately excluded:
+    //   306925 eldritch        — only 3 titles, and 2 are junk (Thumbelina, Fun in
+    //                            Balloon Land); its one real film (Iron Lung) already
+    //                            carries "cosmic horror", so it adds noise and no recall.
+    //   229863 ancient evil    — generic supernatural, not cosmic: Aquaman and the Lost
+    //                            Kingdom, The Nun, Ghostbusters: Afterlife.
+    //   374048 cosmic entity   — superhero usage (The Fantastic 4: First Steps).
+    //   275024 existential horror, 364532 weird fiction, 363056 unknown entity
+    //                          — 0–3 titles each, none of them cosmic horror.
+    // Pipe-delimited = OR in TMDB's discover API.
+    const COSMIC_KEYWORD_IDS = '215959|287274|375719|173386';
+
+    // Cosmic horror sits in a tighter genre range than found footage — there's no
+    // Crime/War/Action-only cosmic horror the way there's End of Watch — so this gate is
+    // narrower than FF_NARRATIVE_GENRES. It's what drops the handful of non-fiction and
+    // oddity false positives ("The Blood", a 1971 Drama; an untagged YouTube-hacks upload)
+    // while keeping everything genuine, including the Fantasy-led ones (Hellboy, Dagon).
+    const COSMIC_GENRES = new Set([
+      27,    // Horror
+      878,   // Science Fiction
+      53,    // Thriller
+      9648,  // Mystery
+      14,    // Fantasy
+      10765, // Sci-Fi & Fantasy (TV)
+    ]);
+
+    // Same curated-exception role as FF_DENYLIST — empty because the genre gate above
+    // already clears every false positive in the current pool (verified against all 72
+    // titles the keyword set returns). Kept as a named hook so a future bad tag has an
+    // obvious home instead of prompting a second mechanism.
+    const COSMIC_DENYLIST = new Set([]);
+
+    // Mirrors isPlausibleFoundFootage: Documentary (99) and Animation (16) are dropped
+    // outright, then at least one plausible genre is required.
+    function isPlausibleCosmicHorror(id, mediaType, genreIds) {
+      const gids = genreIds || [];
+      if (COSMIC_DENYLIST.has(`${id}:${mediaType || 'movie'}`)) return false;
+      if (gids.includes(99) || gids.includes(16)) return false;
+      return gids.some(g => COSMIC_GENRES.has(g));
+    }
+
+    // Shared quality boost for the keyword-fetched For You pools. The generic scorer's
+    // bayesianRating uses m=800 min-votes-for-trust, which flattens these pools: both are
+    // dominated by low-vote indie titles, so nearly everything gets pulled to the ~6.5 prior
+    // and the good ones can't separate from the noise — final order ends up driven by genre
+    // affinity (near-identical, they're all Horror) plus serendipity jitter, i.e. close to
+    // random. This recomputes a weighted rating against a prior tuned to the pool's actual
+    // vote reality, then maps the distance from `center` into the existing _affinityBoost
+    // hook so canonical titles get a genuine lift and the 10-vote junk gets pushed down. The
+    // clamp keeps it in roughly the same range as the other affinity tags so it informs the
+    // user's taste ordering rather than overpowering it.
+    function keywordPoolQualityBoost(voteAvg, voteCount, m, c, center, k) {
+      const weighted = ((voteCount || 0) * (voteAvg || 0) + m * c) / ((voteCount || 0) + m);
+      return Math.max(-1.5, Math.min(2.0, (weighted - center) * k));
+    }
+
     // Nice colors for provider pills (still used in modal for "where to watch")
     // Provider colors for the "where to watch" modal (My Services UI removed, but modal still shows availability)
     const PROVIDER_COLORS = {
@@ -119,7 +182,11 @@
     let currentDiscoverType = 'movie';
     let minRating = 0;
     let selectedDecade = null; // {label, gte, lte} or null
-    let foundFootageOnly = false; // Browse "Style" filter — adds with_keywords to Discover
+    // Browse "Style" filters — each adds with_keywords to Discover. Mutually exclusive
+    // (see renderStyleChips): the two keyword sets AND-combine to 10 titles, 9 of them
+    // zero-vote, so letting both be on at once only ever produces a dead end.
+    let foundFootageOnly = false;
+    let cosmicHorrorOnly = false;
     let currentSearchType = 'movie';
     let _liveSearchTimer = null; // debounce for search-as-you-type
     let _searchGen = 0; // bumped on every performSearch call so a slow/stale response can't clobber a newer one's results

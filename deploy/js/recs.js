@@ -302,36 +302,47 @@
     let recGenreFilter = null; // null = All, otherwise a genre id (number)
     let recMediaFilter = 'movie'; // 'all' | 'movie' | 'tv' — filters For You recs by media type; defaults to Movies
 
-    // Found Footage is a keyword search (TMDB has no such genre), not a real genre id,
-    // so it can't be filtered client-side out of the normal pool the way a genre chip
-    // filters currentRecPool by genre_ids — it needs its own fetched pool (see
-    // loadFoundFootage below). It's presented as a genre-style chip (see
-    // renderTasteDropdownGenres in library.js) that swaps the whole pool in/out instead
-    // of filtering the existing one. _ffPoolSnapshot remembers what was showing before
-    // Found Footage was turned on, so turning it back off restores it instantly.
-    let foundFootageActive = false;
-    let _ffPoolSnapshot = null; // { pool, mediaFilter } or null
+    // Found Footage and Cosmic Horror are keyword searches (TMDB has no such genres), not
+    // real genre ids, so they can't be filtered client-side out of the normal pool the way
+    // a genre chip filters currentRecPool by genre_ids — each needs its own fetched pool
+    // (see loadFoundFootage / loadCosmicHorror below). They're presented as genre-style
+    // chips (see renderTasteDropdownGenres in library.js) that swap the whole pool in/out
+    // instead of filtering the existing one. _keywordPoolSnapshot remembers what was
+    // showing before one was turned on, so turning it back off restores it instantly.
+    //
+    // Only one can be active at a time: each replaces currentRecPool outright, so there's
+    // no state in which both are meaningfully "on".
+    const KEYWORD_POOLS = {
+      ff:     { label: 'Found Footage', chip: '🎥 Found Footage', load: () => loadFoundFootage() },
+      cosmic: { label: 'Cosmic Horror', chip: '🐙 Cosmic Horror', load: () => loadCosmicHorror() },
+    };
 
-    // Toggle Found Footage mode on/off — mirrors clicking a genre chip, but swaps in/out
-    // a dedicated keyword-fetched pool instead of filtering the current one.
-    function toggleFoundFootageGenre() {
-      if (foundFootageActive) { exitFoundFootageMode(); return; }
-      _ffPoolSnapshot = { pool: currentRecPool, mediaFilter: recMediaFilter };
-      foundFootageActive = true;
+    let keywordPoolActive = null;   // null | 'ff' | 'cosmic'
+    let _keywordPoolSnapshot = null; // { pool, mediaFilter } or null
+
+    // Toggle a keyword pool on/off — mirrors clicking a genre chip, but swaps in/out a
+    // dedicated keyword-fetched pool instead of filtering the current one.
+    function toggleKeywordPool(key) {
+      if (keywordPoolActive === key) { exitKeywordPoolMode(); return; }
+      // Only snapshot when coming from the normal recs. Switching straight from one keyword
+      // pool to the other must keep the original snapshot, or turning the second one off
+      // would "restore" the first keyword pool instead of the user's actual recommendations.
+      if (!keywordPoolActive) _keywordPoolSnapshot = { pool: currentRecPool, mediaFilter: recMediaFilter };
+      keywordPoolActive = key;
       recGenreFilter = null;
-      loadFoundFootage();
+      KEYWORD_POOLS[key].load();
     }
 
-    // Restore whatever pool/media-filter was active before Found Footage was turned on.
-    // Called both when the Found Footage chip is toggled off directly and when a real
-    // genre chip is picked while Found Footage is active (see library.js).
-    function exitFoundFootageMode() {
-      if (!foundFootageActive) return;
-      foundFootageActive = false;
-      if (_ffPoolSnapshot) {
-        currentRecPool = _ffPoolSnapshot.pool;
-        const restoreMediaFilter = _ffPoolSnapshot.mediaFilter;
-        _ffPoolSnapshot = null;
+    // Restore whatever pool/media-filter was active before a keyword pool was turned on.
+    // Called both when a keyword chip is toggled off directly and when a real genre chip is
+    // picked while one is active (see library.js).
+    function exitKeywordPoolMode() {
+      if (!keywordPoolActive) return;
+      keywordPoolActive = null;
+      if (_keywordPoolSnapshot) {
+        currentRecPool = _keywordPoolSnapshot.pool;
+        const restoreMediaFilter = _keywordPoolSnapshot.mediaFilter;
+        _keywordPoolSnapshot = null;
         setRecMediaFilter(restoreMediaFilter); // restores toggle styling + recomputes
       }
     }
@@ -340,7 +351,7 @@
     function updateRecGenreLabel() {
       const el = document.getElementById('rec-genre-filter-label');
       if (!el) return;
-      if (foundFootageActive) { el.textContent = 'Genre: Found Footage'; return; }
+      if (keywordPoolActive) { el.textContent = 'Genre: ' + KEYWORD_POOLS[keywordPoolActive].label; return; }
       if (recGenreFilter === null) { el.textContent = 'Genre: All'; return; }
       const g = (typeof GENRES !== 'undefined') ? GENRES.find(x => x.id === recGenreFilter) : null;
       el.textContent = 'Genre: ' + (g ? g.name : '…');
@@ -371,32 +382,35 @@
 
       const allBtn = document.createElement('button');
       allBtn.textContent = 'All';
-      allBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!foundFootageActive && recGenreFilter === null) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
-      allBtn.onclick = () => { exitFoundFootageMode(); recGenreFilter = null; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
+      allBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!keywordPoolActive && recGenreFilter === null) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+      allBtn.onclick = () => { exitKeywordPoolMode(); recGenreFilter = null; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
       wrap.innerHTML = '';
       wrap.appendChild(allBtn);
 
       available.forEach(g => {
         const btn = document.createElement('button');
         btn.textContent = g.name;
-        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!foundFootageActive && recGenreFilter === g.id) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
-        btn.onclick = () => { exitFoundFootageMode(); recGenreFilter = recGenreFilter === g.id ? null : g.id; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
+        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${(!keywordPoolActive && recGenreFilter === g.id) ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+        btn.onclick = () => { exitKeywordPoolMode(); recGenreFilter = recGenreFilter === g.id ? null : g.id; collapseRecsGenreFilter(); renderRecGenreChips(); recomputeRecommendations(); };
         wrap.appendChild(btn);
       });
 
-      // Found Footage — dedicated keyword-fetched pool (see toggleFoundFootageGenre),
-      // presented as a genre-style chip alongside the real genres above.
-      const ffBtn = document.createElement('button');
-      ffBtn.textContent = '🎥 Found Footage';
-      ffBtn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${foundFootageActive ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
-      ffBtn.onclick = () => { collapseRecsGenreFilter(); toggleFoundFootageGenre(); };
-      wrap.appendChild(ffBtn);
+      // Keyword pools (see toggleKeywordPool) — presented as genre-style chips alongside the
+      // real genres above. Unlike those, they're always offered: they're fetched on demand
+      // rather than derived from what happens to be in the current pool.
+      Object.entries(KEYWORD_POOLS).forEach(([key, pool]) => {
+        const btn = document.createElement('button');
+        btn.textContent = pool.chip;
+        btn.className = `text-xs px-3 py-1.5 rounded-full border transition-colors ${keywordPoolActive === key ? 'bg-red-700 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'}`;
+        btn.onclick = () => { collapseRecsGenreFilter(); toggleKeywordPool(key); };
+        wrap.appendChild(btn);
+      });
 
       // Update the collapsed-header label to show the active genre
       const label = document.getElementById('recs-filter-current');
       if (label) {
         const active = GENRES.find(g => g.id === recGenreFilter);
-        label.textContent = foundFootageActive ? 'Found Footage' : (active ? active.name : 'All');
+        label.textContent = keywordPoolActive ? KEYWORD_POOLS[keywordPoolActive].label : (active ? active.name : 'All');
       }
       // Keep the inline "Genre: X ▾" button in sync as well
       updateRecGenreLabel();
@@ -460,10 +474,10 @@
       _recPoolLoading = true;
       const append = !!options.append;
 
-      // A full rebuild replaces currentRecPool outright, so a stale Found Footage
-      // snapshot (see toggleFoundFootageGenre) would no longer have anything sensible
-      // to restore later — drop it rather than let the chip lie about being active.
-      if (foundFootageActive) { foundFootageActive = false; _ffPoolSnapshot = null; }
+      // A full rebuild replaces currentRecPool outright, so a stale keyword-pool snapshot
+      // (see toggleKeywordPool) would no longer have anything sensible to restore later —
+      // drop it rather than let the chip lie about being active.
+      if (keywordPoolActive) { keywordPoolActive = null; _keywordPoolSnapshot = null; }
 
       const grid = document.getElementById('recs-grid');
       const empty = document.getElementById('recs-empty');
@@ -938,22 +952,14 @@
           const { type } = urls[i];
           raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
         });
-        // Found-footage-calibrated quality boost. The generic scorer's bayesianRating uses
-        // m=800 min-votes-for-trust, which flattens this pool: found footage is overwhelmingly
-        // low-vote indie, so nearly every title gets pulled to the ~6.5 prior and the good ones
-        // can't separate from the noise — final order ends up dominated by genre affinity (near
-        // identical, they're all Horror) plus serendipity jitter, i.e. close to random. This
-        // recomputes a weighted rating with a prior tuned to found footage's actual vote reality
-        // (m=60, and a slightly-lower C=6.0 since the subgenre skews rougher than the global
-        // mean), then maps the distance from that prior into the existing _affinityBoost hook so
-        // canonical/acclaimed titles (REC, Lake Mungo, Creep, Host) get a genuine lift and the
-        // 10-vote junk gets pushed down — without letting it overpower the user's own taste,
-        // hence the clamp keeping the boost in roughly the same range as the other affinity tags.
-        const ffQualityBoost = (voteAvg, voteCount) => {
-          const FF_M = 60, FF_C = 6.0, K = 1.6;
-          const weighted = ((voteCount || 0) * (voteAvg || 0) + FF_M * FF_C) / ((voteCount || 0) + FF_M);
-          return Math.max(-1.5, Math.min(2.0, (weighted - 6.6) * K));
-        };
+        // Found-footage-calibrated quality boost — see keywordPoolQualityBoost in
+        // js/ui-helpers.js for why the generic scorer can't order this pool on its own.
+        // m=60 and a slightly-lower C=6.0 tune the prior to found footage's actual vote
+        // reality (the subgenre skews rougher than the global mean); the result is that
+        // canonical/acclaimed titles (REC, Lake Mungo, Creep, Host) get a genuine lift and
+        // the 10-vote junk gets pushed down.
+        const ffQualityBoost = (voteAvg, voteCount) =>
+          keywordPoolQualityBoost(voteAvg, voteCount, 60, 6.0, 6.6, 1.6);
         // Dedupe by id:mediaType, tag with a reason, drop excluded items and keyword
         // false-positives. The gate (documentary/animation exclusion, narrative-genre
         // requirement, curated denylist) is isPlausibleFoundFootage in js/ui-helpers.js —
@@ -991,6 +997,99 @@
         if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">⚠️</span><div class="text-zinc-300 font-medium">Couldn't load found footage</div></div>`;
       } finally {
         _foundFootageLoading = false;
+      }
+    }
+
+    // Load a dedicated Cosmic Horror pool. Same mechanism as loadFoundFootage above — a
+    // TMDB keyword search that replaces the rec pool and gets scored by the user's taste —
+    // but the pool is two orders of magnitude smaller (~70 titles against found footage's
+    // ~4,000, see COSMIC_KEYWORD_IDS in js/ui-helpers.js), and that changes how it's fetched:
+    //
+    // - No multi-tier sampling. Found footage needs popularity/rating passes at several
+    //   vote floors because no single sort can surface 4,000 titles' worth of good material.
+    //   Cosmic horror's entire pool is four pages, so paging straight through popularity.desc
+    //   already returns all of it — a rating pass would just refetch the same rows.
+    // - `with_origin_country=US` is dropped (with_original_language=en stays). Five of the
+    //   most canonical entries — Hellraiser (1987), Dark City, The Void, Dagon, Dark Waters —
+    //   are English-language but non-US, and losing five titles out of ~70 is a real dent.
+    // - vote_count.gte=3 rather than found footage's 5. Below 3 the pool is almost entirely
+    //   zero-rating shorts and unreleased entries; above it the tail still holds real films.
+    //
+    // Verified against production: 72 rows fetched, gate keeps 69, and the three it discards
+    // are correct (The Spine of Night and Howard Lovecraft & the Undersea Kingdom are
+    // animated; Spectral Shadows is tagged Documentary/Reality).
+    let _cosmicHorrorLoading = false;
+    async function loadCosmicHorror() {
+      if (_cosmicHorrorLoading) return;
+      _cosmicHorrorLoading = true;
+      const grid = document.getElementById('recs-grid');
+      const empty = document.getElementById('recs-empty');
+      if (empty) empty.classList.add('hidden');
+      if (grid) { grid.innerHTML = ''; showSkeletons('recs-grid', 8); }
+      try {
+        const kw = COSMIC_KEYWORD_IDS;
+        const base = `/api/tmdb/3/discover/movie?language=en-US&include_adult=false&with_original_language=en&with_keywords=${kw}&vote_count.gte=3&sort_by=popularity.desc`;
+        // TV contributes almost nothing here (FROM and Lovecraft Country, essentially), so
+        // it's one page with no vote floor rather than found footage's four — the floor
+        // would only cost recall on a list this short.
+        const tvBase = `/api/tmdb/3/discover/tv?language=en-US&include_adult=false&with_original_language=en&with_keywords=${kw}&sort_by=popularity.desc`;
+        const urls = [
+          { url: `${base}&page=1`, type: 'movie' },
+          { url: `${base}&page=2`, type: 'movie' },
+          { url: `${base}&page=3`, type: 'movie' },
+          { url: `${base}&page=4`, type: 'movie' },
+          { url: `${tvBase}&page=1`, type: 'tv' },
+        ];
+        const results = await Promise.allSettled(urls.map(({ url }) => apiFetch(url)));
+        let raw = [];
+        results.forEach((res, i) => {
+          if (res.status !== 'fulfilled') return;
+          const { type } = urls[i];
+          raw = raw.concat((res.value.results || []).map(r => ({ ...r, _mediaType: type })));
+        });
+        // Cosmic-horror-calibrated quality boost — see keywordPoolQualityBoost in
+        // js/ui-helpers.js. Prior is a touch stronger than found footage's (m=50 vs 60,
+        // C=6.2 vs 6.0): this pool has fewer sub-100-vote entries to protect against and a
+        // higher genuine ceiling, so the well-regarded end (The Thing, Evil Dead II, The
+        // Lighthouse) should be allowed to separate rather than be pulled toward the prior.
+        const cosmicQualityBoost = (voteAvg, voteCount) =>
+          keywordPoolQualityBoost(voteAvg, voteCount, 50, 6.2, 6.6, 1.6);
+        // Same shape as the found-footage mapping: dedupe by id:mediaType, drop excluded
+        // items and keyword false-positives (isPlausibleCosmicHorror in js/ui-helpers.js,
+        // shared with the Browse tab's Cosmic Horror filter), tag with a reason.
+        const excluded = getExcludedKeys();
+        const seen = new Set();
+        const mapped = [];
+        for (const r of raw) {
+          const mt = r._mediaType || 'movie';
+          const key = `${r.id}:${mt}`;
+          if (seen.has(key) || excluded.has(key)) continue;
+          if (!r.poster_path) continue;
+          if (!isPlausibleCosmicHorror(r.id, mt, r.genre_ids)) continue;
+          seen.add(key);
+          mapped.push({
+            id: r.id, title: mt === 'tv' ? (r.name || r.title) : (r.title || r.name), _mediaType: mt,
+            poster_path: r.poster_path, release_date: mt === 'tv' ? (r.first_air_date || '') : (r.release_date || ''),
+            vote_average: r.vote_average, vote_count: r.vote_count || 0,
+            genre_ids: r.genre_ids || [], overview: r.overview || '', popularity: r.popularity || 0,
+            _affinityReason: '🐙 Cosmic horror', _affinityBoost: cosmicQualityBoost(r.vote_average, r.vote_count)
+          });
+        }
+        if (!mapped.length) {
+          if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🐙</span><div class="text-zinc-300 font-medium">No cosmic-horror titles loaded</div><div class="text-zinc-500 text-xs mt-1">Check the 🔐 Pass button or your connection.</div></div>`;
+          return;
+        }
+        currentRecPool = mapped;
+        _recPoolLastRefreshed = new Date();
+        if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
+        recGenreFilter = null;      // cosmic-horror pool spans many genres; don't pre-filter
+        recMediaFilter = 'all';
+        setRecMediaFilter('all');   // resets toggle styling + triggers recompute/render
+        showToast(`Cosmic horror: ${mapped.length} titles`);
+      } catch (e) {
+        if (grid) grid.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">⚠️</span><div class="text-zinc-300 font-medium">Couldn't load cosmic horror</div></div>`;
+      } finally {
+        _cosmicHorrorLoading = false;
       }
     }
 

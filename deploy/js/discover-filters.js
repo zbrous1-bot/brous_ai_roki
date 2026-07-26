@@ -20,7 +20,8 @@
     function updateFilterCount() {
       const badge = document.getElementById('filter-active-count');
       if (!badge) return;
-      const count = selectedGenres.size + (minRating > 0 ? 1 : 0) + (selectedDecade ? 1 : 0) + (foundFootageOnly ? 1 : 0);
+      const count = selectedGenres.size + (minRating > 0 ? 1 : 0) + (selectedDecade ? 1 : 0)
+        + (foundFootageOnly ? 1 : 0) + (cosmicHorrorOnly ? 1 : 0);
       if (count > 0) {
         badge.textContent = count;
         badge.classList.remove('hidden');
@@ -50,26 +51,80 @@
       updateFilterCount();
     }
 
-    // Found Footage toggle for the Browse filter panel. Unlike the For You version
-    // (toggleFoundFootageGenre in recs.js, which swaps the whole rec pool in and out),
-    // this is just another filter dimension: it adds `with_keywords` to the Discover
-    // query, so it composes with the genre / rating / decade / sort chips as-is.
+    // Style toggles for the Browse filter panel. Unlike the For You versions
+    // (toggleKeywordPool in recs.js, which swaps the whole rec pool in and out), these are
+    // just another filter dimension: each adds `with_keywords` to the Discover query, so
+    // they compose with the genre / rating / decade / sort chips as-is.
+    //
+    // They're mutually exclusive with each other, though. TMDB can express the combination
+    // (comma = AND between pipe-delimited OR groups), but the actual intersection is 10
+    // titles and 9 of them have zero votes — turning on the second chip would always read
+    // as a broken filter rather than a narrower one, so picking one clears the other.
+    // Each entry also carries the query tweaks its pool needs, so performDiscover below can
+    // read them off the active filter instead of growing a ternary per knob per filter.
+    const STYLE_FILTERS = [
+      {
+        key: 'ff',
+        label: '🎥 Found Footage',
+        get: () => foundFootageOnly,
+        set: v => { foundFootageOnly = v; },
+        keywords: () => FF_KEYWORD_IDS,
+        // The broad "faux/fake documentary" keywords drag in real docs, so Documentary
+        // joins Animation in without_genres here.
+        withoutGenres: '16,99',
+        // Found footage is dominated by low-budget indies with naturally few ratings — the
+        // usual 75-vote floor cuts the pool to almost nothing (this floor, not the keyword
+        // list, was the real limiter when the For You pool was first built).
+        voteFloor: 10,
+        usOnly: true,
+        gate: isPlausibleFoundFootage,
+        emptyHint: 'Found Footage is a narrow pool — try clearing the genre chips, lowering the minimum rating, or switching to Movies.',
+      },
+      {
+        key: 'cosmic',
+        label: '🐙 Cosmic Horror',
+        get: () => cosmicHorrorOnly,
+        set: v => { cosmicHorrorOnly = v; },
+        keywords: () => COSMIC_KEYWORD_IDS,
+        withoutGenres: '16,99',
+        voteFloor: 10,
+        // The only filter that drops `with_origin_country=US`. The whole cosmic-horror pool
+        // is ~70 titles, and that one parameter removes five of the most canonical entries
+        // in it — Hellraiser (1987), Dark City, The Void, Dagon and Dark Waters are all
+        // English-language but non-US productions. `with_original_language=en` still applies,
+        // so this widens the pool to UK/Canadian/Irish cosmic horror without opening it up
+        // to subtitled titles the rest of the app doesn't surface.
+        usOnly: false,
+        gate: isPlausibleCosmicHorror,
+        emptyHint: 'Cosmic Horror is a narrow pool (~70 titles) — try clearing the genre chips, lowering the minimum rating, or switching to Movies.',
+      },
+    ];
+
+    function activeStyleFilter() {
+      return STYLE_FILTERS.find(f => f.get()) || null;
+    }
+
     function renderStyleChips() {
       const container = document.getElementById('style-chips');
       if (!container) return;
       container.innerHTML = '';
 
-      const btn = document.createElement('button');
-      btn.textContent = '🎥 Found Footage';
-      btn.setAttribute('aria-pressed', foundFootageOnly ? 'true' : 'false');
-      btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${foundFootageOnly
-        ? 'filter-chip-active'
-        : 'filter-chip'}`;
-      btn.onclick = () => {
-        foundFootageOnly = !foundFootageOnly;
-        renderStyleChips();
-      };
-      container.appendChild(btn);
+      STYLE_FILTERS.forEach(f => {
+        const on = f.get();
+        const btn = document.createElement('button');
+        btn.textContent = f.label;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.className = `px-3 py-1 text-xs rounded-2xl border transition-all active:scale-[0.985] ${on
+          ? 'filter-chip-active'
+          : 'filter-chip'}`;
+        btn.onclick = () => {
+          const next = !on;
+          STYLE_FILTERS.forEach(o => o.set(false)); // one at a time — see comment above
+          f.set(next);
+          renderStyleChips();
+        };
+        container.appendChild(btn);
+      });
       updateFilterCount();
     }
 
@@ -78,6 +133,7 @@
       minRating = 0;
       selectedDecade = null;
       foundFootageOnly = false;
+      cosmicHorrorOnly = false;
       renderGenreChips();
       renderRatingChips();
       renderDecadeChips();
@@ -203,21 +259,22 @@
       const genreIds = Array.from(selectedGenres);
 
       const sortValue = document.getElementById('discover-sort')?.value || 'popularity.desc';
-      // Animation is always excluded; Documentary joins it under the Found Footage filter,
-      // where the broad "faux/fake documentary" keywords would otherwise drag in real docs.
-      const withoutGenres = foundFootageOnly ? '16,99' : '16';
-      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en&with_origin_country=US&without_genres=${withoutGenres}&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
-      if (foundFootageOnly) {
-        url += `&with_keywords=${FF_KEYWORD_IDS}`;
+      const style = activeStyleFilter();
+      // Animation is always excluded; the style filters widen that (see withoutGenres in
+      // STYLE_FILTERS) because their keyword sets pull in documentaries.
+      const withoutGenres = style ? style.withoutGenres : '16';
+      const originCountry = (!style || style.usOnly) ? '&with_origin_country=US' : '';
+      let url = `/api/tmdb/3/discover/${currentDiscoverType}?language=en-US&sort_by=${sortValue}&include_adult=false&with_original_language=en${originCountry}&without_genres=${withoutGenres}&primary_release_date.gte=1960-01-01&watch_region=US&page=${currentDiscoverPage}`;
+      if (style) {
+        url += `&with_keywords=${style.keywords()}`;
       }
       if (genreIds.length > 0) {
         url += `&with_genres=${genreIds.join(',')}`;
       }
       if (minRating > 0) {
-        // Found footage is dominated by low-budget indies with naturally few ratings —
-        // the usual 75-vote floor cuts the pool to almost nothing (this floor, not the
-        // keyword list, was the real limiter when the For You pool was first built).
-        url += `&vote_average.gte=${minRating}&vote_count.gte=${foundFootageOnly ? 10 : 75}`;
+        // Style pools are small and indie-heavy, so they lower the usual 75-vote floor
+        // (see voteFloor in STYLE_FILTERS for why).
+        url += `&vote_average.gte=${minRating}&vote_count.gte=${style ? style.voteFloor : 75}`;
       }
       if (selectedDecade) {
         const dateField = currentDiscoverType === 'movie' ? 'primary_release_date' : 'first_air_date';
@@ -227,13 +284,13 @@
       try {
         const data = await apiFetch(url);
 
+        const noResultsHint = style ? style.emptyHint : 'Try removing a genre or lowering the minimum rating.';
+
         if (!data.results?.length) {
           if (reset) {
             container.innerHTML = `<div class="text-center py-10 text-zinc-400">
               <p>No titles found for those filters.</p>
-              <p class="text-xs mt-2 text-zinc-500">${foundFootageOnly
-                ? 'Found Footage is a narrow pool — try clearing the genre chips, lowering the minimum rating, or switching to Movies.'
-                : 'Try removing a genre or lowering the minimum rating.'}</p>
+              <p class="text-xs mt-2 text-zinc-500">${noResultsHint}</p>
             </div>`;
           }
           document.getElementById('load-more-container').classList.add('hidden');
@@ -242,10 +299,11 @@
 
         // Keyword false-positive gate, applied before the per-item details fetch below so
         // we don't spend a request enriching titles we're about to discard. `without_genres`
-        // already dropped documentaries server-side; this also catches the mockumentary /
-        // shaky-cam titles that carry a narrative genre (see FF_DENYLIST in ui-helpers.js).
-        const pageResults = foundFootageOnly
-          ? data.results.filter(item => isPlausibleFoundFootage(item.id, currentDiscoverType, item.genre_ids))
+        // already dropped documentaries server-side; this also catches the titles that carry
+        // a plausible genre but aren't really the style (see the *_DENYLIST sets and the
+        // genre gates in ui-helpers.js).
+        const pageResults = style
+          ? data.results.filter(item => style.gate(item.id, currentDiscoverType, item.genre_ids))
           : data.results;
 
         const enriched = await Promise.all(pageResults.map(async item => {
@@ -288,16 +346,14 @@
           return;
         }
 
-        // TMDB returned rows but the Found Footage gate above discarded every one of them,
-        // and there are no further pages to try — without this the grid would just sit
-        // blank with no explanation. (The early `!data.results?.length` return can't catch
-        // this case: the API response itself was non-empty.)
+        // TMDB returned rows but the style gate above discarded every one of them, and there
+        // are no further pages to try — without this the grid would just sit blank with no
+        // explanation. (The early `!data.results?.length` return can't catch this case: the
+        // API response itself was non-empty.)
         if (currentDiscoverResults.length === 0 && !hasMorePages) {
           container.innerHTML = `<div class="text-center py-10 text-zinc-400">
             <p>No titles found for those filters.</p>
-            <p class="text-xs mt-2 text-zinc-500">${foundFootageOnly
-              ? 'Found Footage is a narrow pool — try clearing the genre chips, lowering the minimum rating, or switching to Movies.'
-              : 'Try removing a genre or lowering the minimum rating.'}</p>
+            <p class="text-xs mt-2 text-zinc-500">${noResultsHint}</p>
           </div>`;
           document.getElementById('load-more-container').classList.add('hidden');
           return;
@@ -353,7 +409,8 @@
         }).filter(Boolean);
         filters.push(`Genres: ${genreNames.join(', ')}`);
       }
-      if (foundFootageOnly) filters.push('Style: 🎥 Found Footage');
+      const activeStyle = activeStyleFilter();
+      if (activeStyle) filters.push(`Style: ${activeStyle.label}`);
       if (minRating > 0) filters.push(`Rating: ${minRating}+`);
       if (selectedDecade) filters.push(`Decade: ${selectedDecade.label}`);
 
