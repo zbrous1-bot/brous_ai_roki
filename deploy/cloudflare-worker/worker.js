@@ -205,7 +205,11 @@ export default {
 
     // === 3. LLM Proxy (for The Curator chatbot; OpenAI-compatible, key injected server-side) ===
     if (pathname === '/api/llm' || pathname === '/api/llm/') {
-      if (env.PASSWORD) {
+      {
+        // Fail closed: without a PASSWORD secret this endpoint stays locked rather than open.
+        if (!env.PASSWORD) {
+          return jsonError('PASSWORD secret is not configured on this Worker', 500, request);
+        }
         if (await isRateLimited(request, env)) {
           return jsonError('Too many failed attempts. Try again in a few minutes.', 429, request);
         }
@@ -275,7 +279,11 @@ export default {
     // GET  /api/data/check   check whether shared data exists
     // GET  /api/data/backup  recover the previous snapshot
     if (pathname === '/api/data' || pathname === '/api/data/check' || pathname === '/api/data/backup') {
-      if (env.PASSWORD) {
+      {
+        // Fail closed: without a PASSWORD secret this endpoint stays locked rather than open.
+        if (!env.PASSWORD) {
+          return jsonError('PASSWORD secret is not configured on this Worker', 500, request);
+        }
         if (await isRateLimited(request, env)) {
           return jsonError('Too many failed attempts. Try again in a few minutes.', 429, request);
         }
@@ -420,7 +428,9 @@ async function isAuthenticated(request, env) {
   try {
     const base64Credentials = authHeader.split(' ')[1];
     const credentials = atob(base64Credentials);
-    const [, password] = credentials.split(':');
+    // Only the first colon separates user from password; the password itself may contain ':'.
+    const sep = credentials.indexOf(':');
+    const password = sep < 0 ? '' : credentials.slice(sep + 1);
 
     return await timingSafeEqual(password || '', env.PASSWORD);
   } catch (err) {
