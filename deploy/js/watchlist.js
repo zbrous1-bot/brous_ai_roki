@@ -36,7 +36,7 @@
     // after being selected as watched. This prevents duplication in the current results view.
     // Call this (or wire it into your "mark as watched" / add to library flow) whenever a title
     // is added to the watched library. It cleans both the in-memory cache and the DOM view.
-    function removeFromCurrentResults(id, mediaType = 'movie') {
+    function removeFromCurrentResults(id, mediaType = 'movie', opts = {}) {
       const key = `${id}:${mediaType}`;
       currentDiscoverResults = currentDiscoverResults.filter(m => {
         const mKey = `${m.id}:${m._mediaType || 'movie'}`;
@@ -60,9 +60,18 @@
       if (lastRenderedItems.length > 0) {
         renderResults(lastRenderedItems, lastRenderedOpts);
       }
-      // keep recs grid fresh
+      // Recs: soft-remove the card so the rest of the grid stays put (no full reshuffle).
+      // Pass { hardRecompute: true } when a full re-rank is required.
       if (document.getElementById('recs-grid')) {
-        recomputeRecommendations();
+        if (opts.hardRecompute) {
+          if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
+        } else if (typeof softRemoveRecFromUI === 'function') {
+          softRemoveRecFromUI(id, mediaType);
+        } else if (typeof recomputeRecommendationsDebounced === 'function') {
+          recomputeRecommendationsDebounced(400);
+        } else if (typeof recomputeRecommendations === 'function') {
+          recomputeRecommendations();
+        }
       }
     }
 

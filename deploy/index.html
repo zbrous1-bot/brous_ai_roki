@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#18181b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,37 +10,30 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>Brous Movie Engine • Find your next nightmare</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%2318181b'/%3E%3Ctext x='90' y='115' font-size='80' fill='white' text-anchor='middle' font-family='system-ui, sans-serif' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap"></noscript>
   <!-- Static, pre-built Tailwind (replaces the cdn.tailwindcss.com runtime).
        Built by `npm run build:css` from tailwind.input.css; loaded BEFORE
        styles.css so the hand-written rules still win any tie. -->
   <link rel="stylesheet" href="tailwind.css">
-  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
+<!-- Curator is on. boot() adds body.curator-hidden when CURATOR_ENABLED is false in js/store.js. -->
 <body class="no-pull-refresh" style="background:var(--bg);color:var(--text);">
 
-  <!-- Sticky navigation bar -->
+  <!-- Sticky navigation bar — desktop primary nav; on mobile page links hide (main-tab-bar is primary). -->
   <nav id="sticky-nav">
     <button class="nav-brand" onclick="switchMainTab('foryou')" style="background:none;border:none;cursor:pointer;padding:0;">BROUS <span>●</span> MOVIE ENGINE</button>
     <div class="nav-links">
-      <button type="button" class="nav-link page-active" id="nav-foryou" onclick="switchMainTab('foryou')">🎬 For You</button>
-      <button type="button" class="nav-link" id="nav-curator" onclick="switchMainTab('curator')">👻 Curator</button>
-      <button type="button" class="nav-link" id="nav-browse" onclick="switchMainTab('browse')">🔍 Browse</button>
-      <button type="button" class="nav-link" id="nav-watched" onclick="switchMainTab('watched')">👁 Library</button>
-      <button id="pass-btn" onclick="managePassword()" title="Set the shared Worker password" aria-label="Set the shared Worker password"
-        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
-        🔐 Pass
-      </button>
+      <button type="button" class="nav-link page-active nav-page-link" id="nav-foryou" onclick="switchMainTab('foryou')">For You</button>
+      <button type="button" class="nav-link nav-page-link" id="nav-curator" onclick="switchMainTab('curator')">Curator</button>
+      <button type="button" class="nav-link nav-page-link" id="nav-browse" onclick="switchMainTab('browse')">Browse</button>
+      <button type="button" class="nav-link nav-page-link" id="nav-watched" onclick="switchMainTab('watched')">Library</button>
       <button id="settings-btn" onclick="showSettings()" title="Settings" aria-label="Settings"
-        style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#a1a1aa;cursor:pointer;transition:all 0.15s ease;white-space:nowrap;">
-        ⚙︎
-      </button>
+        class="nav-icon-btn">⚙︎</button>
     </div>
   </nav>
   <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8">
@@ -56,44 +49,43 @@
       <div id="profile-switcher" class="profile-switcher" role="group" aria-label="Active profile"></div>
       <span id="profile-mode-note" class="profile-mode-note hidden"></span>
     </div>
+    <div id="rating-as-pill" class="rating-as-pill" aria-live="polite">Rating as Zach</div>
 
-    <!-- ═══ MAIN PAGE TAB BAR ═══ -->
+    <!-- ═══ MAIN PAGE TAB BAR (mobile primary nav; hidden on desktop) ═══ -->
     <div class="main-tab-bar" role="tablist" aria-label="Main sections">
       <button class="main-tab-btn active" onclick="switchMainTab('foryou')" id="mtab-foryou" role="tab" aria-selected="true" aria-controls="panel-foryou">
-        <span class="tab-icon" aria-hidden="true">🎬</span> For You
+        For You
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('curator')" id="mtab-curator" role="tab" aria-selected="false" aria-controls="panel-curator">
-        <span class="tab-icon" aria-hidden="true">👻</span> Curator
+        Curator
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('browse')" id="mtab-browse" role="tab" aria-selected="false" aria-controls="panel-browse">
-        <span class="tab-icon" aria-hidden="true">🔍</span> Browse
+        Browse
       </button>
       <button class="main-tab-btn" onclick="switchMainTab('watched')" id="mtab-watched" role="tab" aria-selected="false" aria-controls="panel-watched">
-        <span class="tab-icon" aria-hidden="true">👁</span> My Library
+        Library
       </button>
     </div>
 
-    <div class="home-command-grid" id="home-command-grid">
-      <button class="home-command-card primary" onclick="refreshRecPool()">
-        <span class="home-command-kicker">Recommendations</span>
-        <span class="home-command-value" id="home-rec-pool-count">Fresh pool</span>
-        <span class="home-command-note" id="home-rec-pool-note">Pull a wider set of dark cinema picks.</span>
+    <!-- Slim status strip (replaces large command cards so recs get the screen) -->
+    <div class="home-status-bar" id="home-command-grid">
+      <button type="button" class="home-status-chip" onclick="refreshRecPool()" title="Refresh recommendation pool">
+        <span class="home-status-value" id="home-rec-pool-count">—</span>
+        <span class="home-status-label" id="home-rec-pool-note">Refresh picks</span>
       </button>
-      <button class="home-command-card card-queue" id="home-queue-card" onclick="switchMainTab('watched')">
-        <img id="home-queue-thumb" class="home-queue-thumb" alt="" onerror="this.style.display='none'; document.getElementById('home-queue-card').classList.remove('has-thumb');">
-        <span class="home-command-kicker">Queue</span>
-        <span class="home-command-value" id="home-queue-count">0 waiting</span>
-        <span class="home-command-note" id="home-next-title">Add titles from search or Curator.</span>
+      <button type="button" class="home-status-chip" id="home-queue-card" onclick="toggleQueuePeek(event)" title="Peek your queue">
+        <img id="home-queue-thumb" class="home-queue-thumb home-status-thumb" alt="" onerror="this.style.display='none'; document.getElementById('home-queue-card').classList.remove('has-thumb');">
+        <span class="home-status-value" id="home-queue-count">0</span>
+        <span class="home-status-label" id="home-next-title">in queue</span>
       </button>
-      <button class="home-command-card card-taste" id="taste-profile-card" onclick="toggleTasteDropdown(event)">
-        <span class="home-command-kicker">Taste Profile</span>
-        <span class="home-command-value" id="home-watched-count">0 rated</span>
-        <span class="home-command-note" id="home-taste-label">Taste profile is warming up.<span class="taste-chevron">▼</span></span>
+      <button type="button" class="home-status-chip" id="taste-profile-card" onclick="switchMainTab('watched'); if (typeof switchPersonalTab === 'function') switchPersonalTab('watched');" title="Open your rated library">
+        <span class="home-status-value" id="home-watched-count">0</span>
+        <span class="home-status-label" id="home-taste-label">rated<span class="taste-chevron">▼</span></span>
       </button>
-      <button class="home-command-card card-curator" onclick="switchMainTab('curator')">
-        <span class="home-command-kicker">Curator</span>
-        <span class="home-command-value" id="home-curator-value">Ask next</span>
-        <span class="home-command-note" id="home-curator-note">Use your library to pick tonight.</span>
+      <!-- Kept in DOM for updateHomeSnapshot when Curator is re-enabled -->
+      <button type="button" class="home-command-card card-curator home-status-chip" id="home-curator-card" onclick="switchMainTab('curator')" hidden>
+        <span class="home-status-value" id="home-curator-value">Ask</span>
+        <span class="home-status-label" id="home-curator-note">Curator</span>
       </button>
     </div>
 
@@ -106,58 +98,107 @@
       <div id="taste-dropdown-genres" class="taste-dropdown-genres"></div>
       <div class="taste-dropdown-footer">
         <button class="taste-dropdown-footer-btn" onclick="switchMainTab('watched'); closeTasteDropdown()">View watched list →</button>
-        <button class="taste-dropdown-footer-btn" onclick="switchMainTab('foryou'); closeTasteDropdown()">Go to For You →</button>
       </div>
     </div>
 
     <!-- ═══ TAB: FOR YOU ═══ -->
     <div id="panel-foryou" class="main-panel active" role="tabpanel" aria-labelledby="mtab-foryou">
 
-      <!-- Recommended for you -->
-<!-- Recommended for you (primary content first) -->
-    <div id="section-recs"></div>
-    <div class="mb-4">
-      <div class="flex items-center justify-between mb-2 px-1 recs-header-row">
-        <div>
-          <div class="font-semibold text-[15px] text-zinc-100 tracking-tight recs-section-header">Recommended for you</div>
-          <div class="text-xs text-zinc-500 mt-0.5">Based on what you’ve watched • client-side taste boost</div>
+      <!-- Cold-start onboarding (hidden once services + enough ratings are in place) -->
+      <div id="cold-start" class="cold-start hidden" aria-label="Get started">
+        <div class="cold-start-header">
+          <div>
+            <div class="cold-start-title">Set up your engine</div>
+            <div class="cold-start-sub">Personal picks need your services and a few ratings.</div>
+          </div>
+          <button type="button" class="cold-start-dismiss" onclick="dismissColdStart()" title="Hide setup" aria-label="Hide setup">✕</button>
         </div>
-        <div class="flex items-center gap-2 recs-chip-scroll">
+        <div class="cold-start-steps">
+          <button type="button" class="cold-start-step" id="cs-step-services" onclick="showSettings('streaming')">
+            <span class="cs-check" id="cs-check-services">1</span>
+            <span class="cs-step-body">
+              <span class="cs-step-label">Pick streaming services</span>
+              <span class="cs-step-hint" id="cs-hint-services">So we know where you can watch</span>
+            </span>
+          </button>
+          <button type="button" class="cold-start-step" id="cs-step-rate" onclick="scrollToStarterRates()">
+            <span class="cs-check" id="cs-check-rate">2</span>
+            <span class="cs-step-body">
+              <span class="cs-step-label">Rate titles you’ve seen</span>
+              <span class="cs-step-hint" id="cs-hint-rate">0 / 8 — trains recommendations</span>
+            </span>
+          </button>
+          <button type="button" class="cold-start-step" id="cs-step-import" onclick="showSettings('data')">
+            <span class="cs-check" id="cs-check-import">↗</span>
+            <span class="cs-step-body">
+              <span class="cs-step-label">Or import Letterboxd</span>
+              <span class="cs-step-hint">CSV export → skip manual rating</span>
+            </span>
+          </button>
+        </div>
+        <div id="starter-rate-section" class="starter-rate-section hidden">
+          <div class="starter-rate-header">
+            <span>Tap a star on films you’ve seen</span>
+            <button type="button" class="text-[11px] text-zinc-500 hover:text-zinc-300" onclick="loadStarterRateGrid(true)">Refresh</button>
+          </div>
+          <div id="starter-rate-grid" class="starter-rate-grid"></div>
+        </div>
+      </div>
+
+      <!-- Recommended for you. The pick and the two lanes come first.
+           Movies / TV, services, density, and genre live in the ⋯ menu.
+           The buttons stay in the page so the existing toggle code can find them. -->
+    <div id="section-recs"></div>
+    <div id="pool-progress" class="pool-progress hidden" aria-live="polite"></div>
+    <div class="recs-genre-bar" id="recs-genre-bar">
+      <div id="recs-genre-chips" class="recs-genre-row" role="group" aria-label="Filter by genre"></div>
+    </div>
+    <div id="tonight-hero" class="tonight-hero hidden" aria-live="polite"></div>
+    <div id="series-gap-row" class="rec-lane hidden" aria-label="Finish the series"></div>
+    <div id="outside-taste-row" class="rec-lane hidden" aria-label="Outside the usual"></div>
+    <div id="home-insight-strip" class="home-insight-strip hidden">
+      <div id="weekly-recap" class="weekly-recap hidden" aria-label="Your week"></div>
+      <div id="ratings-health" class="ratings-health hidden" aria-label="Ratings health"></div>
+      <div id="taste-forming-meter" class="taste-forming-meter hidden" aria-label="Taste forming"></div>
+    </div>
+    <div class="mb-4">
+      <div class="recs-more-head">
+        <div class="recs-more-title">More picks</div>
+        <div class="recs-more-actions">
           <button onclick="loadMoreRecommendations()"
-                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">More Recs</button>
-          <button onclick="toggleRecsActionsMenu(event)" id="recs-more-btn" aria-haspopup="true" aria-expanded="false" title="More options"
+                  class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">Show more</button>
+          <button onclick="toggleRecsActionsMenu(event)" id="recs-more-btn" aria-haspopup="true" aria-expanded="false" title="Filters and more"
                   class="text-[11px] px-3 py-1.5 rounded-3xl bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700 active:bg-zinc-600 transition-colors pool-btn">⋯</button>
         </div>
       </div>
-
-      <!-- Recommendation filters. The inline genre chips were removed to avoid duplicating
-           the genre filter in the Taste Profile dropdown ("Filter Recommendations by
-           Genre") — that dropdown is now the single home for genre filtering. The
-           Movies/TV toggle stays here, visible, since it's toggled frequently.
-           #recs-genre-chips is kept (hidden) because renderRecGenreChips() and
-           recomputeRecommendations() still reference it; the dropdown drives the actual
-           genre state via recGenreFilter. -->
-      <div id="recs-filter-wrap" class="mb-3">
+      <div id="recs-filter-wrap" class="recs-filter-source" hidden>
         <div class="flex items-center gap-2 flex-wrap">
           <button id="rec-media-all" onclick="setRecMediaFilter('all')" class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip">All</button>
-          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-all type-toggle-active">🎬 Movies</button>
-          <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip">📺 TV</button>
+          <button id="rec-media-movie" onclick="setRecMediaFilter('movie')" class="text-xs px-3 py-1.5 rounded-full border transition-all type-toggle-active">Movies</button>
+          <button id="rec-media-tv" onclick="setRecMediaFilter('tv')" class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip">TV</button>
+          <button id="rec-services-toggle" onclick="toggleRecServicesOnly()" type="button"
+                  class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip"
+                  title="Only show titles streaming on services you selected in Settings"
+                  aria-pressed="false">On my services</button>
+          <div class="density-toggle" role="group" aria-label="Poster density">
+            <button type="button" id="density-3" class="density-btn" onclick="setRecDensity(3)" title="Larger posters">3</button>
+            <button type="button" id="density-4" class="density-btn density-btn-active" onclick="setRecDensity(4)" title="More posters">4</button>
+          </div>
         </div>
-        <!-- Genre filtering lives in the Taste Profile card's dropdown (single source).
-             #recs-genre-chips kept (hidden) for renderRecGenreChips()/recompute references. -->
-        <div id="recs-genre-chips" class="hidden"></div>
       </div>
 
-      <div id="recs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div id="recs-grid" class="grid recs-grid gap-3 sm:gap-4" data-density="4">
         <!-- Populated by recomputeRecommendations() -->
       </div>
       <div id="recs-empty" class="hidden empty-state text-sm">
         <span class="empty-state-icon">🎬</span>
         <div class="text-zinc-200 font-medium">No recommendations to show yet</div>
-        <div class="text-zinc-500 text-xs mt-1 max-w-sm mx-auto">Rate a couple of titles you’ve seen and your picks sharpen to your taste — or dive straight in below.</div>
+        <div class="text-zinc-500 text-xs mt-1 max-w-sm mx-auto">Powered by <strong class="text-zinc-300">your ratings</strong> — rate a few titles you’ve seen and picks sharpen to your taste.</div>
         <div class="flex items-center justify-center gap-2 mt-4 flex-wrap">
-          <button onclick="switchMainTab('browse')" class="text-xs px-4 py-2 rounded-full bg-red-700 hover:bg-red-600 active:bg-red-500 text-white font-semibold transition-colors">🔍 Browse the catalog</button>
-          <button onclick="switchMainTab('curator')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 hover:bg-zinc-700 transition-colors">👻 Ask the Curator</button>
+          <button onclick="scrollToStarterRates && scrollToStarterRates()" class="text-xs px-4 py-2 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white font-semibold transition-colors">Rate starters</button>
+          <button onclick="switchMainTab('browse')" class="text-xs px-4 py-2 rounded-full bg-red-700 hover:bg-red-600 active:bg-red-500 text-white font-semibold transition-colors">Browse the catalog</button>
+          <button onclick="showSettings('data')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 hover:bg-zinc-700 transition-colors">Import Letterboxd</button>
+          <button type="button" id="pwa-install-btn" onclick="promptPwaInstall()" class="hidden text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200">Install app</button>
         </div>
       </div>
     </div>
@@ -167,135 +208,124 @@
     <!-- ═══ TAB: BROWSE ═══ -->
     <div id="panel-browse" class="main-panel" role="tabpanel" aria-labelledby="mtab-browse">
 
-    <!-- Page header -->
-    <div class="mb-4 px-1">
-      <h2 class="text-xl font-bold text-zinc-100 tracking-tight" style="letter-spacing:-0.02em;">Search & Discover</h2>
-      <p class="text-xs text-zinc-500 mt-0.5">Find by title · filter by genre, decade, or rating</p>
-    </div>
-
-    <!-- Search -->
-    <div id="section-search" class="mb-4">
-      <div class="search-panel" style="border-radius:20px;padding:14px 16px;border:1px solid rgba(185,28,28,0.18);">
-        <div class="flex gap-2 items-center">
-          <div class="relative flex-1">
-            <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" style="font-size:13px;"></i>
-            <input id="search-input" type="text" placeholder="Title, director, actor, vibe..."
-                   class="search-input w-full bg-zinc-950 border border-zinc-700 pl-9 pr-3 py-2.5 rounded-2xl text-base outline-none placeholder:text-zinc-500"
+    <!-- Search hero -->
+    <div id="section-search" class="mb-3">
+      <div class="search-panel browse-search-hero">
+        <div class="browse-hero-copy">
+          <h2 class="browse-hero-title">Find something to watch</h2>
+          <p class="browse-hero-sub">Search any title — or explore by mood and filters below</p>
+        </div>
+        <div class="browse-search-row">
+          <div class="relative flex-1 browse-search-field">
+            <svg class="browse-search-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="search-input" type="text" placeholder="Title, director, actor, vibe…"
+                   class="search-input browse-search-input w-full outline-none"
                    oninput="handleSearchInput()"
                    onkeypress="if (event.key === 'Enter') { clearTimeout(_liveSearchTimer); performSearch(); }">
+            <button type="button" id="search-clear-btn" class="browse-search-clear hidden" onclick="clearBrowseSearch()" aria-label="Clear search">×</button>
           </div>
-          <button onclick="performSearch()" class="search-action-btn inline-flex items-center justify-center gap-2 flex-shrink-0" style="padding:10px 18px;">
-            <i class="fa-solid fa-arrow-right" style="font-size:12px;"></i>
+          <button type="button" onclick="performSearch()" class="search-action-btn browse-search-go">
             <span>Search</span>
           </button>
         </div>
-        <div class="search-chip-row" aria-label="Quick searches" style="margin-top:10px;">
-          <button class="search-chip" onclick="quickSearch('folk horror')">Folk horror</button>
-          <button class="search-chip" onclick="quickSearch('psychological thriller')">Psychological</button>
-          <button class="search-chip" onclick="quickSearch('creature feature')">Creature feature</button>
-          <button class="search-chip" onclick="quickSearch('hidden gem horror')">Hidden gems</button>
+        <div class="browse-search-types" role="group" aria-label="Search in">
+          <button type="button" id="search-type-all" class="type-toggle-active" onclick="setSearchType('all')">All</button>
+          <button type="button" id="search-type-movie" onclick="setSearchType('movie')">Movies</button>
+          <button type="button" id="search-type-tv" onclick="setSearchType('tv')">TV</button>
+        </div>
+        <div class="search-chip-row" aria-label="Quick searches">
+          <button type="button" class="search-chip" data-q="folk horror" onclick="quickSearch('folk horror', this)">Folk horror</button>
+          <button type="button" class="search-chip" data-q="psychological thriller" onclick="quickSearch('psychological thriller', this)">Psychological</button>
+          <button type="button" class="search-chip" data-q="creature feature" onclick="quickSearch('creature feature', this)">Creature feature</button>
+          <button type="button" class="search-chip" data-q="hidden gem horror" onclick="quickSearch('hidden gem horror', this)">Hidden gems</button>
         </div>
       </div>
     </div>
 
-    <!-- Divider -->
-    <div class="flex items-center gap-3 mb-4 px-1">
-      <div class="flex-1 h-px bg-zinc-800"></div>
-      <span class="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">or filter</span>
-      <div class="flex-1 h-px bg-zinc-800"></div>
-    </div>
-
-    <!-- Discover -->
-    <div id="section-discover" class="mb-4 filters-collapsed" onkeydown="if(event.key==='Enter'){event.preventDefault();performDiscover();}">
-      <div class="discover-panel" style="border-radius:18px;padding:11px 14px;">
-        <!-- Header (tap to expand/collapse on mobile) -->
-        <div class="flex items-center justify-between mb-2">
-          <button onclick="toggleMobileFilters()" class="filter-toggle-btn flex items-center gap-2" style="background:none;border:none;padding:0;cursor:pointer;">
-            <span class="text-[13px] font-bold text-red-400 uppercase" style="letter-spacing:0.1em;">Filter</span>
-            <span id="filter-active-count" class="hidden text-[10px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5 leading-none"></span>
-            <span class="filter-chevron text-zinc-400" style="font-size:11px;">▼</span>
+    <!-- Explore filters (collapsed by default) -->
+    <div id="section-discover" class="mb-3 filters-collapsed" onkeydown="if(event.key==='Enter'){event.preventDefault();performDiscover();}">
+      <div class="discover-panel browse-discover-panel">
+        <div class="browse-filter-toolbar">
+          <button type="button" onclick="toggleMobileFilters()" class="filter-toggle-btn browse-filter-toggle">
+            <span class="browse-filter-toggle-label">Explore filters</span>
+            <span id="filter-active-count" class="browse-filter-count hidden"></span>
+            <span class="filter-chevron browse-filter-chevron">▼</span>
           </button>
-          <button onclick="clearSelectedGenres()" class="text-[11px] text-zinc-500 hover:text-red-400 transition-colors font-medium">Clear all</button>
-        </div>
-
-        <div id="filter-body">
-          <!-- Genre chips -->
-          <div class="mb-2">
-            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Genre</div>
-            <div id="genre-chips" class="flex flex-wrap gap-1"></div>
-          </div>
-
-          <!-- Style chips. Found Footage and Cosmic Horror are TMDB keywords, not genres
-               (see FF_KEYWORD_IDS / COSMIC_KEYWORD_IDS in js/ui-helpers.js), so they get
-               their own labelled row rather than sitting among the genre chips where they
-               would read as genres. Populated by renderStyleChips in js/discover-filters.js. -->
-          <div class="mb-2">
-            <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Style</div>
-            <div id="style-chips" class="flex flex-wrap gap-1"></div>
-          </div>
-
-          <!-- Rating + Decade side-by-side -->
-          <div id="rating-decade-row" class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Min Rating</div>
-              <div id="rating-chips" class="flex flex-wrap gap-1"></div>
-            </div>
-            <div>
-              <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Decade</div>
-              <div id="decade-chips" class="flex flex-wrap gap-1"></div>
-            </div>
+          <div class="browse-filter-toolbar-right">
+            <button id="browse-services-toggle" type="button" onclick="toggleBrowseServicesOnly()"
+                    class="text-xs px-3 py-1.5 rounded-full border transition-all filter-chip"
+                    title="Only show titles streaming on services you selected in Settings"
+                    aria-pressed="false">On my services</button>
+            <button type="button" onclick="clearSelectedGenres()" class="browse-clear-filters">Clear</button>
           </div>
         </div>
 
-        <!-- Bottom controls -->
-        <div class="flex items-center gap-2 pt-2 border-t border-zinc-800/70">
-          <select id="discover-sort" onchange="performDiscover()"
-                  class="bg-zinc-950 border border-zinc-700 rounded-xl px-2.5 py-1.5 text-sm text-zinc-200 outline-none flex-shrink-0">
-            <option value="popularity.desc">Popular</option>
-            <option value="vote_average.desc">Top Rated</option>
-            <option value="release_date.desc">Newest</option>
-            <option value="release_date.asc">Oldest</option>
-          </select>
-
-          <div class="inline-flex rounded-xl bg-zinc-800/80 border border-zinc-700 p-0.5 flex-shrink-0">
-            <button onclick="setDiscoverType('movie')" id="type-movie"
-                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all type-toggle-active">Movies</button>
-            <button onclick="setDiscoverType('tv')" id="type-tv"
-                    class="px-3 py-1 rounded-lg text-sm font-semibold transition-all text-zinc-400 hover:text-zinc-200">TV</button>
+        <div id="filter-body" class="browse-filter-body">
+          <div class="browse-filter-group">
+            <div class="browse-filter-label">Genre</div>
+            <div id="genre-chips" class="browse-chip-wrap"></div>
           </div>
-
-          <button onclick="performDiscover()"
-                  class="ml-auto px-7 py-2 text-white font-bold rounded-xl shadow-md transition-all active:scale-[0.97] browse-btn"
-                  style="letter-spacing:0.06em;font-size:14px;">
-            🔍 Find
-          </button>
+          <div class="browse-filter-group">
+            <div class="browse-filter-label">Style</div>
+            <div id="style-chips" class="browse-chip-wrap"></div>
+          </div>
+          <div id="rating-decade-row" class="browse-filter-split">
+            <div class="browse-filter-group">
+              <div class="browse-filter-label">Min rating</div>
+              <div id="rating-chips" class="browse-chip-wrap"></div>
+            </div>
+            <div class="browse-filter-group">
+              <div class="browse-filter-label">Decade</div>
+              <div id="decade-chips" class="browse-chip-wrap"></div>
+            </div>
+          </div>
+          <div class="browse-filter-footer">
+            <div class="browse-sort-pills" role="group" aria-label="Sort">
+              <button type="button" class="browse-sort-pill active" data-sort="popularity.desc" onclick="setDiscoverSort('popularity.desc')">Popular</button>
+              <button type="button" class="browse-sort-pill" data-sort="vote_average.desc" onclick="setDiscoverSort('vote_average.desc')">Top rated</button>
+              <button type="button" class="browse-sort-pill" data-sort="release_date.desc" onclick="setDiscoverSort('release_date.desc')">Newest</button>
+              <button type="button" class="browse-sort-pill" data-sort="release_date.asc" onclick="setDiscoverSort('release_date.asc')">Oldest</button>
+            </div>
+            <select id="discover-sort" class="hidden" onchange="performDiscover()" aria-hidden="true">
+              <option value="popularity.desc">Popular</option>
+              <option value="vote_average.desc">Top Rated</option>
+              <option value="release_date.desc">Newest</option>
+              <option value="release_date.asc">Oldest</option>
+            </select>
+            <div class="inline-flex rounded-xl bg-zinc-800/80 border border-zinc-700 p-0.5 flex-shrink-0">
+              <button type="button" onclick="setDiscoverType('movie')" id="type-movie"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all type-toggle-active">Movies</button>
+              <button type="button" onclick="setDiscoverType('tv')" id="type-tv"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-zinc-400 hover:text-zinc-200">TV</button>
+            </div>
+            <button type="button" onclick="performDiscover()" class="browse-btn browse-explore-btn">Explore</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Active Filters Summary -->
-    <div id="active-filters" class="hidden mb-3 flex flex-wrap gap-2 px-1"></div>
+    <!-- Active filter pills + result count -->
+    <div id="active-filters" class="hidden browse-active-filters"></div>
+    <div id="browse-results-meta" class="browse-results-meta hidden">
+      <span id="browse-results-count"></span>
+    </div>
 
     <!-- Results -->
-    <div id="results" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    <div id="results" class="browse-results"></div>
 
     <!-- Load more for Discover -->
-    <div id="load-more-container" class="hidden text-center mt-4">
-      <button onclick="loadMoreDiscover()"
-              class="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-white text-sm font-medium rounded-3xl border border-zinc-700">
-        Show more
+    <div id="load-more-container" class="hidden text-center mt-4 mb-2">
+      <button type="button" onclick="loadMoreDiscover()" class="browse-load-more">
+        <span class="browse-load-more-label">Show more</span>
       </button>
     </div>
 
-
-
-
-
     <!-- Empty/invite state shown before any search -->
-    <div id="initial-state" class="flex flex-col items-center justify-center py-16 text-center px-4">
-      <div style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;">🔍</div>
-      <div class="text-zinc-400 font-medium text-sm">Search a title, director, or vibe above</div>
-      <div class="text-zinc-600 text-xs mt-1">or pick a genre and hit Find</div>
+    <div id="initial-state" class="browse-initial-state">
+      <div class="browse-initial-icon" aria-hidden="true">⌕</div>
+      <div class="browse-initial-title">Search a title, director, or vibe</div>
+      <div class="browse-initial-sub">Or open Explore filters and pick a mood</div>
+      <button type="button" class="browse-initial-cta" onclick="document.getElementById('section-discover')?.classList.remove('filters-collapsed'); document.getElementById('section-discover')?.scrollIntoView({behavior:'smooth',block:'nearest'});">Open filters</button>
     </div>
 
     </div><!-- /panel-browse -->
@@ -348,7 +378,7 @@
 
         <div class="px-3 pb-3 pt-2" style="background:rgba(10,8,14,0.6);border-top:1px solid rgba(185,28,28,0.12);">
           <div class="flex gap-2 items-center">
-            <input id="curator-input" type="text" placeholder="Ask about horror, thrillers, sci-fi, or your taste…"
+            <input id="curator-input" type="text" placeholder="Ask the Curator"
                    class="flex-1 border focus:border-red-700/70 text-sm rounded-2xl px-4 py-2.5 outline-none placeholder:text-zinc-600"
                    style="background:#0d0b12;border-color:#3f3f46;color:#f4f4f5;"
                    onkeypress="if (event.key === 'Enter') sendToCurator()">
@@ -368,7 +398,7 @@
       <div id="personal-stats" class="text-[11px] text-zinc-400 px-3 py-2 flex gap-4 flex-wrap items-center mb-3 bg-zinc-900/60 border border-zinc-700/50 rounded-2xl"></div>
 
       <!-- Search + sort bar for the active list -->
-      <div class="flex gap-2 mb-3">
+      <div class="library-tools">
         <div class="relative flex-1">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#71717a;font-size:12px;pointer-events:none;">🔍</span>
           <input id="library-search" type="search" placeholder="Search this list…" autocomplete="off"
@@ -390,20 +420,24 @@
           <button onclick="switchPersonalTab('towatch')" id="tab-towatch" class="personal-tab active">To Watch <span id="tab-towatch-count">(0)</span></button>
           <button onclick="switchPersonalTab('watched')" id="tab-watched" class="personal-tab">Watched <span id="tab-watched-count">(0)</span></button>
           <button onclick="switchPersonalTab('disliked')" id="tab-disliked" class="personal-tab">Disliked <span id="tab-disliked-count">(0)</span></button>
-          <button onclick="switchPersonalTab('notinterested')" id="tab-notinterested" class="personal-tab">Hidden <span id="tab-notinterested-count"></span></button>
+          <button onclick="switchPersonalTab('notinterested')" id="tab-notinterested" class="personal-tab">Passed <span id="tab-notinterested-count"></span></button>
         </div>
         <button id="lists-toggle" onclick="toggleAllLists()" class="ml-0.5 text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg flex-shrink-0 hover:bg-zinc-700 transition-colors" title="Hide all lists">▾</button>
       </div>
       <div id="personal-content" class="border-x border-b border-zinc-700 rounded-b-2xl overflow-hidden mb-4">
         <div id="pane-towatch" class="personal-pane">
-          <div class="flex justify-between mb-1.5 text-xs">
-            <div class="font-medium text-zinc-400">Upcoming nightmares</div>
-            <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">🎲 Random</button>
+          <div id="library-next-up" class="library-next-up hidden" aria-live="polite"></div>
+          <div class="flex justify-between mb-1.5 text-xs px-0.5">
+            <div class="font-medium text-zinc-400">Your queue</div>
+            <button onclick="pickRandomToWatch()" class="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 transition-colors">Random</button>
           </div>
           <div id="to-watch-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-watched" class="personal-pane hidden">
-          <div class="text-xs font-medium text-zinc-400 mb-1.5">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5 px-0.5">
+            <div class="text-xs font-medium text-zinc-400">Watched library <span class="text-zinc-600 font-normal">(drives recommendations)</span></div>
+            <button type="button" onclick="showSettings('data')" class="text-[10px] px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700">Import Letterboxd</button>
+          </div>
           <div id="watched-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-disliked" class="personal-pane hidden">
@@ -411,7 +445,7 @@
           <div id="disliked-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
         <div id="pane-notinterested" class="personal-pane hidden">
-          <div class="text-xs font-medium text-zinc-400 mb-1.5">Not Interested <span class="text-zinc-600 font-normal">(hidden from results + genres downranked in recs)</span></div>
+          <div class="text-xs font-medium text-zinc-400 mb-1.5">Passed <span class="text-zinc-600 font-normal">(hidden, and films like them rank lower)</span></div>
           <div id="notinterested-content" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-auto" style="max-height:calc(100vh - 300px);"></div>
         </div>
       </div>
@@ -424,95 +458,104 @@
     <div id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4">
       <div class="bg-zinc-900 border border-zinc-700 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
         <div class="p-5">
-          <div class="flex justify-between items-center mb-5">
+          <div class="flex justify-between items-center mb-4">
             <div>
               <div class="text-lg font-bold text-white">Settings</div>
-              <div class="text-xs text-zinc-400">Cloud Sync, backup &amp; config</div>
+              <div class="text-xs text-zinc-400">Streaming, preferences, data &amp; access</div>
             </div>
             <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-2xl text-zinc-400 hover:text-white w-9 h-9 flex items-center justify-center rounded-full bg-zinc-800" aria-label="Close settings">&times;</button>
           </div>
 
-          <!-- CLOUD SYNC -->
-          <div class="rounded-2xl border border-indigo-500/40 bg-indigo-950/40 p-4 mb-4">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="text-xl">&#9729;&#65039;</span>
-              <div>
-                <div class="font-semibold text-indigo-200 text-sm">Cloud Sync</div>
-                <div class="text-[11px] text-indigo-400">Shared library syncs across every device</div>
-              </div>
-            </div>
-            <div id="settings-sync-status" class="text-[11px] text-zinc-500 mb-3">Cloud sync is ready.</div>
-            <div class="flex gap-2">
-              <button id="settings-cloud-save"
-                class="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-500 text-white text-sm font-semibold">
-                &#8679; Save to Cloud
-              </button>
-              <button id="settings-cloud-load"
-                class="flex-1 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-500 text-white text-sm font-semibold">
-                &#8681; Load from Cloud
-              </button>
-            </div>
-            <div id="settings-cloud-status" class="text-[11px] mt-2 text-center text-zinc-500"></div>
+          <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button type="button" class="settings-tab active" data-settings-tab="streaming" onclick="switchSettingsTab('streaming')">Streaming</button>
+            <button type="button" class="settings-tab" data-settings-tab="preferences" onclick="switchSettingsTab('preferences')">Taste</button>
+            <button type="button" class="settings-tab" data-settings-tab="data" onclick="switchSettingsTab('data')">Data</button>
+            <button type="button" class="settings-tab" data-settings-tab="access" onclick="switchSettingsTab('access')">Advanced</button>
           </div>
 
-          <!-- LLM CONFIG -->
-          <div class="space-y-2 mb-4">
-            <div>
-              <div class="text-xs text-zinc-500 mb-1">LLM Model</div>
-              <input id="settings-model" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-400">
-            </div>
-            <button id="settings-save-config" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Save Config</button>
-          </div>
-
-          <!-- MY STREAMING SERVICES -->
-          <!-- Drives the availability line on For You cards (see renderRecAvailability in
-               js/recs.js). Only the services picked here are shown as "streaming"; anything
-               else falls back to the muted Rent marker, so the line stays one row tall. -->
-          <div class="mb-4 pt-3 border-t border-zinc-800">
+          <!-- STREAMING -->
+          <div class="settings-panel" id="settings-panel-streaming">
             <div class="text-sm font-semibold text-zinc-200 mb-1">My streaming services</div>
-            <div class="text-[11px] text-zinc-500 mb-3">Pick what you subscribe to. Recommendation cards will show when a title streams on one of these; everything else shows a Rent marker.</div>
+            <div class="text-[11px] text-zinc-500 mb-3">Used on For You cards and the “On my services” filter.</div>
             <div id="settings-services" class="flex flex-wrap gap-1.5"></div>
             <div id="settings-services-status" class="text-[11px] mt-2 text-zinc-500"></div>
           </div>
 
-          <!-- RECOMMENDATION TUNING -->
-          <div class="mb-4 pt-3 border-t border-zinc-800">
+          <!-- PREFERENCES -->
+          <div class="settings-panel hidden" id="settings-panel-preferences">
+            <div id="settings-taste-explain" class="rounded-2xl border border-zinc-700 bg-zinc-950/50 p-4 mb-4"></div>
             <div class="text-sm font-semibold text-zinc-200 mb-1">Recommendation tuning</div>
-            <div class="text-[11px] text-zinc-500 mb-3">Adjust how the For You ranking behaves. Changes apply on the next Recompute.</div>
-
+            <div class="text-[11px] text-zinc-500 mb-3">Adjust how For You ranks titles.</div>
             <div class="mb-3">
               <div class="flex justify-between items-baseline mb-1">
                 <label for="tune-taste" class="text-xs text-zinc-300">Personal taste vs. broad quality</label>
                 <span id="tune-taste-val" class="text-[11px] text-zinc-500"></span>
               </div>
-              <input type="range" id="tune-taste" min="0" max="100" step="5" class="w-full accent-indigo-500">
-              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>More popular picks</span><span>More my taste</span></div>
+              <input type="range" id="tune-taste" min="0" max="100" step="5" class="w-full accent-red-500">
+              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>More popular</span><span>More my taste</span></div>
             </div>
-
             <div class="mb-3">
               <div class="flex justify-between items-baseline mb-1">
-                <label for="tune-explore" class="text-xs text-zinc-300">Serendipity (shuffle on refresh)</label>
+                <label for="tune-explore" class="text-xs text-zinc-300">Serendipity</label>
                 <span id="tune-explore-val" class="text-[11px] text-zinc-500"></span>
               </div>
-              <input type="range" id="tune-explore" min="0" max="100" step="5" class="w-full accent-indigo-500">
-              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>Same every time</span><span>More variety</span></div>
+              <input type="range" id="tune-explore" min="0" max="100" step="5" class="w-full accent-red-500">
+              <div class="flex justify-between text-[10px] text-zinc-600 mt-0.5"><span>Stable</span><span>More variety</span></div>
             </div>
-
-            <div class="flex gap-2">
-              <button id="tune-apply" class="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Apply &amp; Recompute</button>
+            <div class="flex gap-2 mb-4">
+              <button id="tune-apply" class="flex-1 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white text-sm font-semibold">Apply &amp; recompute</button>
               <button id="tune-reset" class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white">Reset</button>
             </div>
+            <div class="curator-only space-y-2 pt-3 border-t border-zinc-800">
+              <div class="text-xs text-zinc-500 mb-1">LLM model (Curator)</div>
+              <input id="settings-model" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-red-500">
+              <button id="settings-save-config" class="w-full py-2 rounded-xl bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-semibold">Save model</button>
+            </div>
           </div>
 
-          <!-- BACKUP -->
-          <div class="flex gap-2 mb-2">
-            <button id="settings-backup" class="flex-1 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white">Download Backup</button>
-          </div>
-          <div>
+          <!-- DATA -->
+          <div class="settings-panel hidden" id="settings-panel-data">
+            <div class="rounded-2xl border border-zinc-700 bg-zinc-950/50 p-4 mb-4">
+              <div class="text-sm font-semibold text-zinc-200 mb-1">Import Letterboxd</div>
+              <div class="text-[11px] text-zinc-500 mb-3">Export ratings or diary CSV from Letterboxd (Settings → Import &amp; Export). We’ll match titles on TMDB and add them to Watched.</div>
+              <input type="file" id="settings-letterboxd-file" accept=".csv,text/csv" class="w-full text-xs text-zinc-400 mb-2">
+              <button type="button" id="settings-letterboxd-btn" class="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold">Import CSV</button>
+              <div id="settings-letterboxd-status" class="text-[11px] mt-2 text-zinc-500"></div>
+            </div>
+            <div class="text-sm font-semibold text-zinc-200 mb-1">Backup</div>
+            <div class="text-[11px] text-zinc-500 mb-2">Your library stays on this device unless you sync or export.</div>
+            <button id="settings-backup" class="w-full py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white mb-3">Download backup JSON</button>
             <div class="text-xs text-zinc-500 mb-1">Import backup JSON</div>
             <div class="flex gap-2">
               <input type="file" id="settings-import-file" accept=".json" class="flex-1 text-xs text-zinc-400">
               <button id="settings-import-btn" class="px-3 py-1.5 rounded-xl bg-zinc-700 text-sm text-white">Import</button>
+            </div>
+            <div id="settings-data-note" class="text-[11px] mt-3 text-zinc-600">Cloud sync is optional — use the Advanced tab.</div>
+          </div>
+
+          <!-- ADVANCED (was Access) -->
+          <div class="settings-panel hidden" id="settings-panel-access">
+            <div class="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-4 mb-4">
+              <div class="text-sm font-semibold text-zinc-200 mb-1">Algo health check</div>
+              <div class="text-[11px] text-zinc-500 mb-2">Holdout metric: how much top-40 overlaps genres from your high ratings.</div>
+              <button type="button" onclick="runTasteEval()" class="w-full py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white">Run eval</button>
+              <div id="settings-eval-result" class="text-[11px] mt-2 text-zinc-500"></div>
+            </div>
+            <div class="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-4 mb-4">
+              <div class="text-sm font-semibold text-zinc-200 mb-1">API password</div>
+              <div class="text-[11px] text-zinc-500 mb-3">Matches the Worker <code class="text-zinc-400">PASSWORD</code> secret. Needed for cloud sync (and Curator when enabled).</div>
+              <div id="settings-pass-status" class="text-[11px] text-zinc-500 mb-2">Not set for this browser.</div>
+              <button type="button" id="settings-pass-btn" onclick="managePassword()" class="w-full py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white font-semibold">Set or change password</button>
+            </div>
+            <div class="rounded-2xl border border-indigo-500/40 bg-indigo-950/40 p-4">
+              <div class="font-semibold text-indigo-200 text-sm mb-1">Cloud sync</div>
+              <div class="text-[11px] text-indigo-400/90 mb-3">Optional shared library across devices.</div>
+              <div id="settings-sync-status" class="text-[11px] text-zinc-500 mb-3">Cloud sync is ready.</div>
+              <div class="flex gap-2">
+                <button id="settings-cloud-save" class="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold">Save to cloud</button>
+                <button id="settings-cloud-load" class="flex-1 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white text-sm font-semibold">Load from cloud</button>
+              </div>
+              <div id="settings-cloud-status" class="text-[11px] mt-2 text-center text-zinc-500"></div>
             </div>
           </div>
         </div>
@@ -520,7 +563,7 @@
     </div>
 
     <div id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div class="modal-sheet bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto">
         <!-- Backdrop banner — populated from the title's TMDB backdrop_path in openModal().
              Hidden by default; only shown when an image is available. Gives the modal a
              visual anchor so it reads like a real movie page. -->
@@ -528,8 +571,9 @@
           <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(24,24,27,1) 0%, rgba(24,24,27,0.35) 55%, rgba(24,24,27,0.1) 100%);border-radius:1.5rem 1.5rem 0 0;"></div>
         </div>
         <div class="p-4 sm:p-6">
-          <div class="flex justify-between items-start mb-3 sm:mb-4">
-            <div class="min-w-0 pr-2">
+          <div class="flex justify-between items-start mb-3 sm:mb-4 gap-3">
+            <img id="modal-poster" class="modal-side-poster hidden" alt="">
+            <div class="min-w-0 pr-2 flex-1">
               <div id="modal-title" class="text-xl sm:text-2xl font-semibold leading-tight"></div>
               <div id="modal-meta" class="text-zinc-400 mt-1 text-sm"></div>
             </div>
@@ -632,10 +676,43 @@
     </div>
   </div>
 
+  <div id="queue-peek" class="queue-peek hidden" role="dialog" aria-label="Queue peek">
+    <div class="queue-peek-head">
+      <div>
+        <div class="queue-peek-title">Up next</div>
+        <div class="queue-peek-sub" id="queue-peek-sub">Your queue</div>
+      </div>
+      <button type="button" class="queue-peek-close" onclick="closeQueuePeek()" aria-label="Close">×</button>
+    </div>
+    <div id="queue-peek-list" class="queue-peek-list"></div>
+    <button type="button" class="queue-peek-footer" onclick="closeQueuePeek(); switchMainTab('watched')">Open Library →</button>
+  </div>
+
   <div id="toast-container"></div>
+
+  <!-- Mobile bottom nav (desktop uses sticky page links) -->
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Primary">
+    <button type="button" class="bottom-nav-btn active" id="bnav-foryou" onclick="switchMainTab('foryou')" aria-current="page">
+      <span class="bottom-nav-icon" aria-hidden="true">▶</span>
+      <span class="bottom-nav-label">For You</span>
+    </button>
+    <button type="button" class="bottom-nav-btn" id="bnav-curator" onclick="switchMainTab('curator')">
+      <span class="bottom-nav-icon" aria-hidden="true">👻</span>
+      <span class="bottom-nav-label">Curator</span>
+    </button>
+    <button type="button" class="bottom-nav-btn" id="bnav-browse" onclick="switchMainTab('browse')">
+      <span class="bottom-nav-icon" aria-hidden="true">⌕</span>
+      <span class="bottom-nav-label">Browse</span>
+    </button>
+    <button type="button" class="bottom-nav-btn" id="bnav-watched" onclick="switchMainTab('watched')">
+      <span class="bottom-nav-icon" aria-hidden="true">☰</span>
+      <span class="bottom-nav-label">Library</span>
+    </button>
+  </nav>
 
   <script src="js/store.js"></script>
   <script src="js/ui-helpers.js"></script>
+  <script src="js/roku-play.js"></script>
   <script src="js/profiles.js"></script>
   <script src="js/discover-filters.js"></script>
   <script src="js/watchlist.js"></script>
@@ -645,7 +722,9 @@
   <script src="js/modal.js"></script>
   <script src="js/search.js"></script>
   <script src="js/recs.js"></script>
+  <script src="js/product.js"></script>
   <script src="js/curator.js"></script>
+  <script src="js/onboarding.js"></script>
   <script src="js/transfer.js"></script>
 
   <!-- Attribution. TMDB's API terms require BOTH their logo and the exact notice text
@@ -661,36 +740,52 @@
     <a href="https://www.themoviedb.org" target="_blank" rel="noopener" aria-label="The Movie Database"
        style="display:inline-block;margin-bottom:6px;opacity:0.75;"><svg role="img" aria-label="The Movie Database (TMDB)" style="height:14px;width:auto;display:block;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 489.04 35.4"><defs><style>.tmdb-c1{fill:url(#tmdb-lg);}</style><linearGradient id="tmdb-lg" y1="17.7" x2="489.04" y2="17.7" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#90cea1"/><stop offset="0.56" stop-color="#3cbec9"/><stop offset="1" stop-color="#00b3e5"/></linearGradient></defs><title>Asset 5</title><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><path class="tmdb-c1" d="M293.5,0h8.9l8.75,23.2h.1L320.15,0h8.35L313.9,35.4h-6.25Zm46.6,0h7.8V35.4h-7.8Zm22.2,0h24.05V7.2H370.1v6.6h15.35V21H370.1v7.2h17.15v7.2H362.3Zm55,0H429a33.54,33.54,0,0,1,8.07,1A18.55,18.55,0,0,1,443.75,4a15.1,15.1,0,0,1,4.52,5.53A18.5,18.5,0,0,1,450,17.8a16.91,16.91,0,0,1-1.63,7.58,16.37,16.37,0,0,1-4.37,5.5,19.52,19.52,0,0,1-6.35,3.37A24.59,24.59,0,0,1,430,35.4H417.29Zm7.81,28.2h4a21.57,21.57,0,0,0,5-.55,10.87,10.87,0,0,0,4-1.83,8.69,8.69,0,0,0,2.67-3.34,11.92,11.92,0,0,0,1-5.08,9.87,9.87,0,0,0-1-4.52,9,9,0,0,0-2.62-3.18,11.68,11.68,0,0,0-3.88-1.88,17.43,17.43,0,0,0-4.67-.62h-4.6ZM461.24,0h13.2a34.42,34.42,0,0,1,4.63.32,12.9,12.9,0,0,1,4.17,1.3,7.88,7.88,0,0,1,3,2.73A8.34,8.34,0,0,1,487.39,9a7.42,7.42,0,0,1-1.67,5,9.28,9.28,0,0,1-4.43,2.82v.1a10,10,0,0,1,3.18,1,8.38,8.38,0,0,1,2.45,1.85,7.79,7.79,0,0,1,1.57,2.62,9.16,9.16,0,0,1,.55,3.2,8.52,8.52,0,0,1-1.2,4.68,9.42,9.42,0,0,1-3.1,3,13.38,13.38,0,0,1-4.27,1.65,23.11,23.11,0,0,1-4.73.5h-14.5ZM469,14.15h5.65a8.16,8.16,0,0,0,1.78-.2A4.78,4.78,0,0,0,478,13.3a3.34,3.34,0,0,0,1.13-1.2,3.63,3.63,0,0,0,.42-1.8,3.22,3.22,0,0,0-.47-1.82,3.33,3.33,0,0,0-1.23-1.13,5.77,5.77,0,0,0-1.7-.58,10.79,10.79,0,0,0-1.85-.17H469Zm0,14.65h7a8.91,8.91,0,0,0,1.83-.2,4.78,4.78,0,0,0,1.67-.7,4,4,0,0,0,1.23-1.3,3.71,3.71,0,0,0,.47-2,3.13,3.13,0,0,0-.62-2A4,4,0,0,0,479,21.45,7.83,7.83,0,0,0,477,20.9a15.12,15.12,0,0,0-2.05-.15H469Zm-265,6.53H271a17.66,17.66,0,0,0,17.66-17.66h0A17.67,17.67,0,0,0,271,0H204.06A17.67,17.67,0,0,0,186.4,17.67h0A17.66,17.66,0,0,0,204.06,35.33ZM10.1,6.9H0V0H28V6.9H17.9V35.4H10.1ZM39,0h7.8V13.2H61.9V0h7.8V35.4H61.9V20.1H46.75V35.4H39ZM80.2,0h24V7.2H88v6.6h15.35V21H88v7.2h17.15v7.2h-25Zm55,0H147l8.15,23.1h.1L163.45,0H175.2V35.4h-7.8V8.25h-.1L158,35.4h-5.95l-9-27.15H143V35.4h-7.8Z"/></g></g></svg></a>
     <div>This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.</div>
-    <div style="margin-top:3px;">Streaming availability data by <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#a1a1aa;text-decoration:underline;">JustWatch</a> · Curator via xAI · Not affiliated with any streaming service · Your library stays on your device
-    <span id="app-version-footer" style="margin-left:6px;opacity:0.7">v2026-07</span></div>
+    <div style="margin-top:3px;">Streaming availability data by <a href="https://www.justwatch.com" target="_blank" rel="noopener" style="color:#a1a1aa;text-decoration:underline;">JustWatch</a><span class="curator-only"> · Curator via xAI</span> · Not affiliated with any streaming service · Your library stays on your device
+    <span id="app-version-footer" style="margin-left:6px;opacity:0.7;white-space:nowrap">v2026-10-04</span></div>
   </div>
-  <!-- Mobile overrides appended after Tailwind CDN so they win the cascade -->
+  <!-- Mobile overrides — scoped so browse-card / tonight posters keep 2:3 aspect -->
   <style>
+    .roku-play-btn {
+      background: #f0a35a !important;
+      color: #2a1606 !important;
+      border-color: #f0a35a !important;
+      font-weight: 650;
+    }
     @media (max-width: 640px) {
-      .movie-card-v2 .mt-2.flex {
+      .movie-card-v2:not(.browse-card) .mt-2.flex {
         gap: 4px !important;
       }
-      .movie-card-v2 .mt-2.flex button {
+      .movie-card-v2:not(.browse-card) .mt-2.flex button {
         font-size: 11px !important;
         padding: 5px 8px !important;
         border-radius: 10px !important;
       }
-      /* Browse card title: smaller + tighter so it reads cleanly and shows the
-         full name (no mid-word "..." truncation) in the narrow column beside the
-         bigger poster. Overrides the older .movie-card 16px title rule. */
-      .movie-card-v2 .line-clamp-3 {
+      .movie-card-v2:not(.browse-card) .line-clamp-3 {
         font-size: 14px !important;
         line-height: 1.3 !important;
         -webkit-line-clamp: 3 !important;
       }
-      /* Year stays legible but secondary */
-      .movie-card-v2 .flex-1 .text-sm { font-size: 12.5px !important; }
-      /* Even vertical rhythm: trim the oversized gaps between title/meta/buttons */
-      .movie-card-v2 .flex-1 .mt-2 { margin-top: 6px !important; }
-      .movie-card-v2 .flex-1 .mt-3 { margin-top: 8px !important; }
-      /* Vertically center content next to the tall poster so short cards don't
-         leave an awkward empty gap */
-      .movie-card-v2 > div { align-items: center !important; }
+      .browse-card-inner {
+        grid-template-columns: 96px minmax(0, 1fr) !important;
+        align-items: start !important;
+      }
+      .browse-card-poster,
+      .browse-card-poster-wrap img {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 2 / 3 !important;
+        object-fit: cover !important;
+      }
+      .tonight-hero-inner {
+        grid-template-columns: 100px minmax(0, 1fr) !important;
+        align-items: start !important;
+      }
+      .tonight-hero-poster {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 2 / 3 !important;
+        object-fit: cover !important;
+      }
     }
   </style>
 </body>

@@ -67,33 +67,37 @@
       // ── Build rich Curator context ──────────────────────────────────────────
       const prefs = getUserGenrePrefs();
 
-      // Watched: full detail — title, year, rating, genres
-      const watchedDetail = watchedList.slice(0, 40).map(x => ({
-        title: x.title || x.name,
-        year: (x.release_date || x.first_air_date || '').slice(0, 4),
-        rating: x.rating || null,
-        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean),
-        type: x._mediaType || 'movie'
-      }));
+      const titleOf = x => (x && (x.title || x.name) || '').trim();
+      const yearOf = x => (x.release_date || x.first_air_date || '').slice(0, 4);
+      const genreNamesOf = x => (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean);
 
-      // To Watch queue
+      // To Watch queue — short, this is intent
       const twDetail = toWatchList.slice(0, 30).map(x => ({
-        title: x.title || x.name,
-        year: (x.release_date || x.first_air_date || '').slice(0, 4),
-        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean),
+        title: titleOf(x),
+        year: yearOf(x),
+        genres: genreNamesOf(x),
         type: x._mediaType || 'movie'
       }));
 
-      // Disliked
-      const disDetail = dislikedList.slice(0, 20).map(x => ({
-        title: x.title || x.name,
-        year: (x.release_date || '').slice(0, 4),
-        genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean)
-      }));
+      // Distinctive likes, not the newest 5s. A 5 is ordinary on this library.
+      const seedSource = typeof pickDistinctiveSeeds === 'function'
+        ? pickDistinctiveSeeds(watchedList, 12)
+        : watchedList.filter(x => x.rating >= 5).slice(0, 12);
+      const loved = seedSource.map(x => `${titleOf(x)} (${x.rating}★${genreNamesOf(x).length ? ', ' + genreNamesOf(x).slice(0, 2).join('/') : ''})`);
 
-      // Top-rated by user (5★ and 4★)
-      const loved = watchedList.filter(x => x.rating >= 4).slice(0, 10).map(x => `${x.title || x.name} (${x.rating}★)`);
-      const hated = watchedList.filter(x => x.rating <= 2).slice(0, 8).map(x => `${x.title || x.name} (${x.rating}★)`);
+      // Sharp misses: the ratings and passes that actually describe taste.
+      const sharp = [];
+      const pushSharp = (x, tag) => {
+        const t = titleOf(x);
+        if (!t || sharp.some(s => s.toLowerCase() === `${t} (${tag})`.toLowerCase())) return;
+        sharp.push(`${t} (${tag})`);
+      };
+      watchedList.filter(x => (x.rating || 0) >= 1 && (x.rating || 0) <= 2).slice(0, 12).forEach(x => pushSharp(x, `${x.rating}★`));
+      watchedList.filter(x => x.rating === 3).slice(0, 12).forEach(x => pushSharp(x, '3★'));
+      dislikedList.slice(0, 15).forEach(x => pushSharp(x, 'disliked'));
+      (typeof notInterestedList !== 'undefined' ? notInterestedList : []).slice(0, 12).forEach(x => pushSharp(x, 'passed'));
+      const mean = typeof libraryRatingMean === 'function' ? libraryRatingMean(watchedList) : null;
+      const meanText = mean == null ? 'not enough ratings' : mean.toFixed(2);
 
       // Current rec pool — what the engine already surfaced
       const poolSample = currentRecPool.slice(0, 15).map(x => ({
@@ -103,15 +107,8 @@
         genres: (x.genre_ids || []).map(id => GENRES.find(g => g.id === id)?.name).filter(Boolean)
       }));
 
-      // All excluded titles (flat list for the LLM to check against)
-      const allExcluded = [...new Set([
-        ...watchedList.map(x => x.title || x.name),
-        ...toWatchList.map(x => x.title || x.name),
-        ...dislikedList.map(x => x.title || x.name)
-      ].filter(Boolean))];
-
       // Grounding: extract any titles the user mentioned that we know about
-      const knownTitles = [...toWatchList, ...watchedList, ...dislikedList, ...currentRecPool].map(x => x.title || x.name).filter(Boolean);
+      const knownTitles = [...toWatchList, ...watchedList, ...dislikedList, ...(typeof notInterestedList !== 'undefined' ? notInterestedList : []), ...currentRecPool].map(x => x.title || x.name).filter(Boolean);
       const mentioned = knownTitles.filter(t => t && text.toLowerCase().includes((t.toLowerCase()).slice(0, Math.min(14, t.length))));
       const grounding = {};
       mentioned.slice(0, 6).forEach(t => {
@@ -135,40 +132,34 @@ YOUR EXPERTISE covers thousands of films and series: horror (found-footage, slow
 PERSONALITY: Dry dark wit, slightly theatrical. Brief but substantive. Never sycophantic. Reference the user's taste when relevant.
 
 HOW TO USE THE PROVIDED CONTEXT:
-- EXCLUDED_TITLES: the ONLY restriction — never suggest these (already watched, queued, or disliked)
-- Watch history and ratings: understand their taste preferences — NOT a limit on what you can suggest
-- GROUNDING: optional metadata for titles mentioned in the query. If empty, that is completely fine — use your own knowledge
-- YOU ARE FREE TO SUGGEST ANY FILM OR SERIES FROM YOUR OWN KNOWLEDGE as long as it is not in EXCLUDED_TITLES
-- Example: if asked for found-footage films, Paranormal Activity style, J-horror, giallo, or ANY niche — answer from your expertise
+- The app drops any suggestion whose title or TMDB id is already watched, queued, disliked, or passed, before a card is shown. Still avoid naming films you would expect in a library this large.
+- SHARP_MISSES is the taste signal. A 3, a 1–2, a dislike, or a pass matters more than another 5.
+- DISTINCTIVE_LIKES are the above-average titles whose genres are less common in the library. Do not treat "most of the 5s are horror" as a request for more generic horror.
+- Their personal average is in the profile. A 5 at an average near 4.4 is ordinary enthusiasm, not a rare love.
+- GROUNDING: optional metadata for titles mentioned in the query. If empty, use your own knowledge.
+- Suggest from your own knowledge. The app is the exclusion list.
 
 RULES:
-1. NEVER suggest a title in EXCLUDED_TITLES
+1. Do not recommend a title from SHARP_MISSES or one you were shown as already logged. If your ideas are all too familiar, say so and offer a different lane.
 2. For ANY query where you name films/shows to watch, you MUST end with a line in EXACTLY this format (this is what renders the clickable movie cards — without it the user only sees text): SUGGESTED: ["Title One", "Title Two", ...] (3-6 titles). Use the exact word SUGGESTED:, a real JSON array of plain double-quoted title strings, and put every title you recommend in it.
 3. Match the specific tone asked for precisely — found-footage dread, slow-burn, brutal, cozy, etc.
-4. For similar-to queries: analyze what makes the reference film distinctive and match those qualities
-5. For director/actor queries: include deep cuts alongside highlights
+4. For similar-to queries: match what is distinctive about the reference, and stay away from the neighborhood of SHARP_MISSES.
+5. For director/actor queries: include deep cuts alongside highlights, still excluding logged titles.
 6. For decade queries: respect that era's aesthetic
 7. Non-recommendation questions: answer fully without forcing SUGGESTED
 8. Flag TV with [TV Series] or [Mini-Series] after the title
-9. 5-star = loved, 1-star = hated — weight toward their highly rated patterns`;
+9. Do not explain a pick as "because you like horror" when horror is on most of the library. Name a director, a series, or a specific film from DISTINCTIVE_LIKES or explain why it is unlike a SHARP_MISS.`;
 
       const userCtxBlock = `=== USER PROFILE ===
-Genre preferences (weighted by watch history + ratings): ${JSON.stringify(prefs)}
-Loved (4–5★): ${loved.join(', ') || 'none yet'}
-Disliked (1–2★): ${hated.join(', ') || 'none yet'}
-Total watched: ${watchedList.length} | Queued: ${toWatchList.length} | Disliked: ${dislikedList.length}
+Personal average rating: ${meanText} (a 5 is ordinary when this is near 4.4; a 3 or below is the informative vote)
+Genre weights from above-average ratings only: ${JSON.stringify(prefs)}
+DISTINCTIVE_LIKES: ${loved.join(' | ') || 'none yet'}
+SHARP_MISSES: ${sharp.join(' | ') || 'none yet'}
+Total watched: ${watchedList.length} | Queued: ${toWatchList.length} | Disliked: ${dislikedList.length} | Passed: ${(typeof notInterestedList !== 'undefined' ? notInterestedList.length : 0)}
+The app rejects logged titles before showing a card. Do not spend the reply listing them.
 
-=== FULL WATCH HISTORY (newest first, up to 40) ===
-${JSON.stringify(watchedDetail, null, 0)}
-
-=== TO WATCH QUEUE (up to 30) ===
-${JSON.stringify(twDetail, null, 0)}
-
-=== DISLIKED TITLES (up to 20) ===
-${JSON.stringify(disDetail, null, 0)}
-
-=== EXCLUDED_TITLES (NEVER suggest these) ===
-${JSON.stringify(allExcluded)}
+=== TO WATCH QUEUE ===
+${JSON.stringify(twDetail)}
 
 === CURRENT REC POOL (engine's top picks — avoid duplicating unless asked) ===
 ${JSON.stringify(poolSample, null, 0)}
@@ -299,7 +290,9 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           // Normalize titles for robust matching: case/punctuation/(year)-insensitive
           const normTitle = s => String(s || '').toLowerCase().replace(/\(\d{4}\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
           // Strict filter: never suggest titles already in any list (normalized match)
-          const seenTitles = new Set([...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[])].map(x => normTitle(x.title)));
+          const libraryRows = [...(watchedList||[]), ...(toWatchList||[]), ...(dislikedList||[]), ...(typeof notInterestedList !== 'undefined' ? notInterestedList : [])];
+          const seenTitles = new Set(libraryRows.map(x => normTitle(x.title || x.name)));
+          const loggedIds = new Set(libraryRows.map(x => String(x && x.id)).filter(id => id && id !== 'undefined'));
           titles = titles.filter(t => t && !seenTitles.has(normTitle(t)));
           if (!titles.length) return;
           // Enrich with posters; prefer an EXACT title match so similarly-named films aren't mixed up
@@ -311,8 +304,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             let canonical = t;
             let enrichExtra = {};
             // Try local data first (exact normalized title)
-            const local = [...(currentRecPool||[]), ...(toWatchList||[]), ...(watchedList||[]), ...(dislikedList||[])]
-                            .find(x => x.title && normTitle(x.title) === nt);
+            const local = (currentRecPool||[]).find(x => x.title && normTitle(x.title) === nt);
             if (local) {
               poster_path = local.poster_path || null;
               id = local.id || id;
@@ -342,7 +334,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             const nt = normTitle(item.title);
             const nst = normTitle(item.suggestedTitle);
             // Skip if already in any list (by id OR by normalized canonical/suggested title)
-            if (excluded.has(key) || seenTitles.has(nt) || seenTitles.has(nst)) return;
+            if (excluded.has(key) || loggedIds.has(String(item.id)) || seenTitles.has(nt) || seenTitles.has(nst)) return;
             // Skip duplicates within this pick set (normalized title)
             if (curatorPicks.some(p => normTitle(p.title) === nt)) return;
             curatorPicks.push(item);
@@ -397,7 +389,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
                   ${yearStr}${voteStr}
                   <a href="${imdbUrl}" target="_blank" rel="noopener"
                      class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
-                    <i class="fa-brands fa-imdb" style="font-size:11px"></i> IMDb
+                    IMDb
                   </a>
                   <a href="${rtHref}" target="_blank" rel="noopener"
                      class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-90 leading-none flex-shrink-0">
@@ -410,7 +402,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
               <button class="text-[11px] px-2.5 py-1 rounded-xl bg-emerald-700 text-white" data-add-towatch>+ Watch</button>
               <button class="text-[11px] px-2.5 py-1 rounded-xl border border-zinc-700" data-mark-watched>Rate</button>
               <div class="flex gap-1">
-                <button class="flex-1 text-[11px] px-1.5 py-1 rounded-xl border border-zinc-700 text-red-400" data-dislike>👎</button>
+                <button class="flex-1 text-[11px] px-1.5 py-1 rounded-xl border border-zinc-700 text-zinc-300" data-pass>Pass</button>
                 <button class="flex-1 text-[11px] px-1.5 py-1 rounded-xl border border-zinc-700 text-zinc-600 hidden" data-trailer title="Watch trailer">▶</button>
               </div>
             </div>
@@ -434,12 +426,11 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
               row.style.opacity = '0.4';
             }, { hideButtons: Array.from(row.querySelectorAll('button')) });
           };
-          const disBtn = row.querySelector('[data-dislike]');
-          if (disBtn) disBtn.onclick = () => {
-            const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path };
-            addToDisliked(found);
+          const passPick = row.querySelector('[data-pass]');
+          if (passPick) passPick.onclick = () => {
+            const found = currentRecPool.find(x => x.title && x.title.toLowerCase() === p.title.toLowerCase()) || {title: p.title, id: p.id || Date.now()+i, poster_path: p.poster_path, _mediaType: p.mediaType || 'movie' };
+            if (typeof addToNotInterested === 'function') addToNotInterested(found);
             row.style.opacity = '0.3';
-            // also refresh main recs grid so it disappears from recommendations
             if (currentRecPool.length) recomputeRecommendations();
           };
           const chk = row.querySelector('input[type="checkbox"]');
@@ -628,6 +619,20 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           renderMyServicesPicker();
           // Repaint availability on whatever is currently rendered.
           if (typeof refreshVisibleAvailability === 'function') refreshVisibleAvailability();
+          if (typeof refreshAllWtwSlots === 'function') refreshAllWtwSlots();
+          if (typeof syncRecServicesToggleUI === 'function') syncRecServicesToggleUI();
+          if (typeof syncBrowseServicesToggleUI === 'function') syncBrowseServicesToggleUI();
+          if (typeof updateColdStartUI === 'function') updateColdStartUI();
+          // Re-apply browse filter if results are on screen
+          if (typeof browseServicesOnly !== 'undefined' && browseServicesOnly
+              && typeof lastRenderedItems !== 'undefined' && lastRenderedItems.length
+              && typeof renderResults === 'function') {
+            renderResults(lastRenderedItems, lastRenderedOpts || {});
+          }
+          // Services-only ranking depends on the set — re-rank when it changes.
+          if (typeof recServicesOnly !== 'undefined' && recServicesOnly && typeof recomputeRecommendations === 'function') {
+            recomputeRecommendations();
+          }
         };
         container.appendChild(btn);
       });
@@ -640,70 +645,64 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       }
     }
 
-    function showSettings() {
+    function showSettings(tab) {
       const modal = document.getElementById('settings-modal');
       if (!modal) return;
 
-      // Populate fields with current values
       const syncStatus = document.getElementById('settings-sync-status');
       const modelInput = document.getElementById('settings-model');
 
       if (syncStatus) {
-        syncStatus.textContent = '\u2713 Cloud sync active. Library auto-saves on every change.';
+        syncStatus.textContent = 'Cloud sync ready — library can auto-save when password is set.';
         syncStatus.style.color = '#818cf8';
       }
       if (modelInput) modelInput.value = llmConfig.model || 'grok-4.3';
 
+      if (typeof updateSettingsPassStatus === 'function') updateSettingsPassStatus();
+      if (typeof switchSettingsTab === 'function') {
+        switchSettingsTab(tab || 'streaming');
+      }
+
       modal.classList.remove('hidden');
 
-      // Helper to update cloud status text
       const cloudStatus = document.getElementById('settings-cloud-status');
       const setCloudStatus = (msg, color) => {
         if (cloudStatus) { cloudStatus.textContent = msg; cloudStatus.style.color = color || '#71717a'; }
       };
 
-      // Save to Cloud
       const cloudSaveBtn = document.getElementById('settings-cloud-save');
       if (cloudSaveBtn) cloudSaveBtn.onclick = async () => {
         setCloudStatus('Saving...', '#fbbf24');
         await pushToServer(true);
-        setCloudStatus('\u2713 Saved (' + watchedList.length + ' watched, ' + toWatchList.length + ' queued)', '#4ade80');
+        setCloudStatus('Saved (' + watchedList.length + ' watched, ' + toWatchList.length + ' queued)', '#4ade80');
       };
 
-      // Load from Cloud
       const cloudLoadBtn = document.getElementById('settings-cloud-load');
       if (cloudLoadBtn) cloudLoadBtn.onclick = async () => {
         setCloudStatus('Loading from cloud...', '#fbbf24');
         const data = await syncFromServer();
         if (data) {
-          setCloudStatus('\u2713 Loaded! ' + watchedList.length + ' watched, ' + toWatchList.length + ' queued', '#4ade80');
+          setCloudStatus('Loaded! ' + watchedList.length + ' watched, ' + toWatchList.length + ' queued', '#4ade80');
+          if (typeof updateColdStartUI === 'function') updateColdStartUI();
         } else {
           setCloudStatus('No cloud data found yet. Save from one device first.', '#f87171');
         }
       };
 
-      // Save Config (LLM model)
       const saveConfigBtn = document.getElementById('settings-save-config');
       if (saveConfigBtn) saveConfigBtn.onclick = () => {
         if (modelInput) llmConfig.model = modelInput.value.trim() || 'grok-4.3';
         Store.setItem('horror_roki_llm', JSON.stringify(llmConfig));
-        setCloudStatus('\u2713 Config saved', '#4ade80');
+        setCloudStatus('Config saved', '#4ade80');
       };
 
-      // ── My streaming services ──
       renderMyServicesPicker();
-
-      // ── Recommendation tuning sliders ──
-      // The "taste" slider (0-100) drives BOTH quality baseline and genre affinity on a
-      // single axis: sliding toward "my taste" lowers the quality weight and raises the
-      // genre weight, and vice-versa. The "serendipity" slider drives the jitter size.
       initRecTuneSliders();
+      if (typeof wireLetterboxdImport === 'function') wireLetterboxdImport();
 
-      // Download Backup
       const backupBtn = document.getElementById('settings-backup');
       if (backupBtn) backupBtn.onclick = downloadFullBackup;
 
-      // Import
       const importBtn = document.getElementById('settings-import-btn');
       const importFile = document.getElementById('settings-import-file');
       if (importBtn && importFile) importBtn.onclick = () => {
@@ -720,9 +719,11 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
             if (data.chat_history) { chatHistory = data.chat_history; Store.setItem('horror_roki_chat', JSON.stringify(chatHistory)); }
             if (data.llm_config) { llmConfig = data.llm_config; Store.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
             updateAllLibraryRenders();
-            renderCuratorMessages();
+            if (typeof renderCuratorMessages === 'function') renderCuratorMessages();
+            if (typeof updateColdStartUI === 'function') updateColdStartUI();
+            if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
             modal.classList.add('hidden');
-            setCloudStatus('\u2713 Import loaded', '#4ade80');
+            setCloudStatus('Import loaded', '#4ade80');
           } catch(e) { setCloudStatus('Import failed: ' + e.message, '#f87171'); }
         };
         reader.readAsText(importFile.files[0]);
@@ -743,7 +744,7 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
       const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `horror_roki_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `brous_backup_${new Date().toISOString().slice(0,10)}.json`;
       a.click();
     }
 

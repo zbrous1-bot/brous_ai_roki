@@ -17,16 +17,30 @@
       if (section) section.classList.toggle('filters-collapsed');
     }
 
+    function setDiscoverSort(value) {
+      const sel = document.getElementById('discover-sort');
+      if (sel) sel.value = value;
+      document.querySelectorAll('.browse-sort-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-sort') === value);
+      });
+      performDiscover(true);
+    }
+
     function updateFilterCount() {
       const badge = document.getElementById('filter-active-count');
       if (!badge) return;
       const count = selectedGenres.size + (minRating > 0 ? 1 : 0) + (selectedDecade ? 1 : 0)
-        + (foundFootageOnly ? 1 : 0) + (cosmicHorrorOnly ? 1 : 0);
+        + (foundFootageOnly ? 1 : 0) + (cosmicHorrorOnly ? 1 : 0)
+        + ((typeof browseServicesOnly !== 'undefined' && browseServicesOnly && myServices && myServices.size) ? 1 : 0);
       if (count > 0) {
-        badge.textContent = count;
+        badge.textContent = String(count);
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
+      }
+      // Keep removable pills in sync even before Explore is run.
+      if (typeof renderActiveFilters === 'function') {
+        try { renderActiveFilters(); } catch (_) {}
       }
     }
 
@@ -65,7 +79,7 @@
     const STYLE_FILTERS = [
       {
         key: 'ff',
-        label: '🎥 Found Footage',
+        label: 'Found Footage',
         get: () => foundFootageOnly,
         set: v => { foundFootageOnly = v; },
         keywords: () => FF_KEYWORD_IDS,
@@ -82,7 +96,7 @@
       },
       {
         key: 'cosmic',
-        label: '🐙 Cosmic Horror',
+        label: 'Cosmic Horror',
         get: () => cosmicHorrorOnly,
         set: v => { cosmicHorrorOnly = v; },
         keywords: () => COSMIC_KEYWORD_IDS,
@@ -138,18 +152,32 @@
       renderRatingChips();
       renderDecadeChips();
       renderStyleChips();
-      const activeFilters = document.getElementById('active-filters');
-      if (activeFilters) activeFilters.classList.add('hidden');
       // Also clear the search box text and cancel any pending search-as-you-type,
       // so "Clear all" fully resets the page instead of leaving a stale query typed in.
       clearTimeout(_liveSearchTimer);
       const searchInput = document.getElementById('search-input');
       if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('search-clear-btn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      document.querySelectorAll('.search-chip.active').forEach(c => c.classList.remove('active'));
+      if (typeof renderActiveFilters === 'function') renderActiveFilters();
       // Clear results and restore the empty state
       const results = document.getElementById('results');
-      if (results) results.innerHTML = '';
+      if (results) {
+        results.innerHTML = '';
+        results.className = 'browse-results';
+      }
       const initial = document.getElementById('initial-state');
       if (initial) initial.style.display = '';
+      // Hide "N titles" count — otherwise Clear leaves a stale count under filters.
+      const meta = document.getElementById('browse-results-meta');
+      if (meta) meta.classList.add('hidden');
+      const countEl = document.getElementById('browse-results-count');
+      if (countEl) countEl.textContent = '';
+      lastRenderedItems = [];
+      lastRenderedOpts = {};
+      currentDiscoverResults = [];
+      document.getElementById('load-more-container')?.classList.add('hidden');
     }
 
     function renderRatingChips() {
@@ -227,22 +255,20 @@
     }
 
     function setSearchType(type) {
-      currentSearchType = type;
+      currentSearchType = type || 'all';
       const movieBtn = document.getElementById('search-type-movie');
       const tvBtn = document.getElementById('search-type-tv');
-      if (movieBtn && tvBtn) {
-        if (type === 'movie') {
-          movieBtn.classList.add('bg-white', 'text-black');
-          movieBtn.classList.remove('text-zinc-300');
-          tvBtn.classList.remove('bg-white', 'text-black');
-          tvBtn.classList.add('text-zinc-300');
-        } else {
-          tvBtn.classList.add('bg-white', 'text-black');
-          tvBtn.classList.remove('text-zinc-300');
-          movieBtn.classList.remove('bg-white', 'text-black');
-          movieBtn.classList.add('text-zinc-300');
-        }
-      }
+      const allBtn = document.getElementById('search-type-all');
+      const paint = (btn, on) => {
+        if (!btn) return;
+        btn.classList.toggle('type-toggle-active', on);
+        btn.classList.toggle('bg-white', on);
+        btn.classList.toggle('text-black', on);
+        btn.classList.toggle('text-zinc-300', !on);
+      };
+      paint(allBtn, currentSearchType === 'all');
+      paint(movieBtn, currentSearchType === 'movie');
+      paint(tvBtn, currentSearchType === 'tv');
     }
 
     async function performDiscover(reset = true) {
@@ -375,11 +401,11 @@
       } catch (e) {
         if (reset) {
           console.error('[Horror Roki] Discover failed:', e, 'URL attempted:', url);
-          let hint = 'Check password (🔐 Pass button) or connection.';
+          let hint = 'Check the password in Settings → Advanced, or your connection.';
           if (apiBase) hint += ` (Using custom base: ${apiBase})`;
           let displayMsg;
           if (e.status === 401 || e.message.includes('Unauthorized') || e.message.includes('password')) {
-            displayMsg = 'Password required or incorrect. Click the 🔐 Pass button above to set it (or use ⚙︎ Settings to set API Endpoint Base if running locally).';
+            displayMsg = 'Password required or incorrect. Set it in Settings → Advanced.';
           } else if (e.details && e.details.error) {
             displayMsg = e.details.error;
             if (e.details.availableSecrets) {
@@ -405,29 +431,59 @@
       const container = document.getElementById('active-filters');
       if (!container) return;
 
-      const filters = [];
+      const pills = [];
 
-      if (selectedGenres.size > 0) {
-        const genreNames = Array.from(selectedGenres).map(id => {
-          const g = GENRES.find(x => x.id === id);
-          return g ? g.name : '';
-        }).filter(Boolean);
-        filters.push(`Genres: ${genreNames.join(', ')}`);
-      }
+      Array.from(selectedGenres).forEach(id => {
+        const g = GENRES.find(x => x.id === id);
+        if (!g) return;
+        pills.push({
+          label: g.name,
+          clear: () => { selectedGenres.delete(id); renderGenreChips(); performDiscover(true); },
+        });
+      });
       const activeStyle = activeStyleFilter();
-      if (activeStyle) filters.push(`Style: ${activeStyle.label}`);
-      if (minRating > 0) filters.push(`Rating: ${minRating}+`);
-      if (selectedDecade) filters.push(`Decade: ${selectedDecade.label}`);
+      if (activeStyle) {
+        pills.push({
+          label: activeStyle.label,
+          clear: () => { STYLE_FILTERS.forEach(f => f.set(false)); renderStyleChips(); performDiscover(true); },
+        });
+      }
+      if (minRating > 0) {
+        pills.push({
+          label: `${minRating}+ rating`,
+          clear: () => { minRating = 0; renderRatingChips(); performDiscover(true); },
+        });
+      }
+      if (selectedDecade) {
+        const dec = selectedDecade;
+        pills.push({
+          label: dec.label,
+          clear: () => { selectedDecade = null; renderDecadeChips(); performDiscover(true); },
+        });
+      }
+      if (browseServicesOnly && myServices && myServices.size) {
+        pills.push({
+          label: 'On my services',
+          clear: () => { toggleBrowseServicesOnly(); },
+        });
+      }
 
-      if (filters.length === 0) {
+      if (!pills.length) {
         container.classList.add('hidden');
         container.innerHTML = '';
         return;
       }
 
       container.classList.remove('hidden');
-      container.innerHTML = filters.map(f => 
-        `<span class="text-[11px] px-2.5 py-1 bg-zinc-800 border border-zinc-700 rounded-2xl text-zinc-300">${f}</span>`
-      ).join('');
+      container.innerHTML = '';
+      pills.forEach((p, i) => {
+        const span = document.createElement('button');
+        span.type = 'button';
+        span.className = 'browse-active-pill';
+        span.innerHTML = `<span>${escapeHtml(p.label)}</span><span class="browse-active-pill-x" aria-hidden="true">×</span>`;
+        span.setAttribute('aria-label', `Remove filter ${p.label}`);
+        span.onclick = () => { p.clear(); renderActiveFilters(); };
+        container.appendChild(span);
+      });
     }
 

@@ -1,16 +1,82 @@
     // ===================== MODAL =====================
 
     let currentModalItem = null;
+    let _modalCloseTimer = null;
 
-    async function openModal(item) {
+    /**
+     * Soft poster continuity into the modal — short flight that dissolves mid-path
+     * (no land-and-pause). sourceEl: card/img that opened the modal.
+     */
+    function playModalPosterFlip(sourceEl, item) {
+      if (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) return;
+      if (!item || !item.poster_path) return;
+      let srcImg = null;
+      if (sourceEl) {
+        if (sourceEl.tagName === 'IMG') srcImg = sourceEl;
+        else if (sourceEl.querySelector) {
+          srcImg = sourceEl.querySelector('.tonight-hero-poster, .browse-card-poster, img');
+        }
+      }
+      if (!srcImg) return;
+      const s = srcImg.getBoundingClientRect();
+      if (s.width < 8 || s.height < 8) return;
+
+      const modal = document.getElementById('detail-modal');
+      const sheet = modal && modal.querySelector('.modal-sheet');
+      if (!sheet) return;
+      const t = sheet.getBoundingClientRect();
+      // Aim toward the sheet center-top; dissolve before a hard “land”
+      const tw = Math.min(96, Math.max(64, s.width * 0.85));
+      const th = tw * 1.5;
+      const tLeft = t.left + (t.width - tw) / 2;
+      const tTop = t.top + Math.min(48, t.height * 0.12);
+
+      document.querySelectorAll('.modal-flip-flyer').forEach(el => el.remove());
+
+      const flyer = document.createElement('div');
+      flyer.className = 'modal-flip-flyer';
+      flyer.setAttribute('aria-hidden', 'true');
+      flyer.innerHTML = `<img src="https://image.tmdb.org/t/p/w342${item.poster_path}" alt="">`;
+      flyer.style.left = s.left + 'px';
+      flyer.style.top = s.top + 'px';
+      flyer.style.width = s.width + 'px';
+      flyer.style.height = s.height + 'px';
+      flyer.style.opacity = '1';
+      document.body.appendChild(flyer);
+
+      // One continuous move + dissolve (opacity starts dropping immediately)
+      requestAnimationFrame(() => {
+        flyer.classList.add('modal-flip-flyer-go');
+        flyer.style.left = tLeft + 'px';
+        flyer.style.top = tTop + 'px';
+        flyer.style.width = tw + 'px';
+        flyer.style.height = th + 'px';
+        flyer.style.opacity = '0';
+      });
+      const cleanup = () => { try { flyer.remove(); } catch (_) {} };
+      flyer.addEventListener('transitionend', (ev) => {
+        if (ev.propertyName === 'opacity' || ev.propertyName === 'left') cleanup();
+      }, { once: true });
+      setTimeout(cleanup, 280);
+    }
+
+    async function openModal(item, opts) {
+      if (!item) return;
+      const options = opts && typeof opts === 'object' ? opts : {};
       currentModalItem = item;
       const modal = document.getElementById('detail-modal');
+      if (!modal) return;
       const titleEl = document.getElementById('modal-title');
       const metaEl = document.getElementById('modal-meta');
       const overviewEl = document.getElementById('modal-overview');
       const genresEl = document.getElementById('modal-genres');
       const availEl = document.getElementById('modal-availability');
       const addBtn = document.getElementById('modal-add-button');
+
+      if (_modalCloseTimer) {
+        clearTimeout(_modalCloseTimer);
+        _modalCloseTimer = null;
+      }
 
       // Reset availability wrap visibility for each modal open
       const whereWrap = document.getElementById('modal-availability-wrap');
@@ -23,9 +89,26 @@
       if (backdropEl) { backdropEl.classList.add('hidden'); backdropEl.style.backgroundImage = ''; }
       if (addBtn && addBtn.parentElement) addBtn.parentElement.style.display = '';
 
-      modal.classList.remove('hidden');
+      modal.classList.remove('hidden', 'modal-out', 'modal-in');
+      // Force reflow so enter transition always plays
+      void modal.offsetWidth;
+      modal.classList.add('modal-in');
       titleEl.textContent = item.title || item.name || 'Untitled';
       metaEl.innerHTML = '';
+      const sidePoster = document.getElementById('modal-poster');
+      if (sidePoster) {
+        if (item.poster_path) {
+          sidePoster.src = `https://image.tmdb.org/t/p/w185${item.poster_path}`;
+          sidePoster.alt = (item.title || item.name || '') + ' poster';
+          sidePoster.classList.remove('hidden');
+        } else {
+          sidePoster.removeAttribute('src');
+          sidePoster.classList.add('hidden');
+        }
+      }
+
+      // Poster FLIP from the card/hero that opened the modal
+      playModalPosterFlip(options.sourceEl || null, item);
 
       const isMovie = (item._mediaType || 'movie') === 'movie';
       const mediaPath = isMovie ? 'movie' : 'tv';
@@ -39,6 +122,21 @@
           ${detail.vote_average ? detail.vote_average.toFixed(1) + ' ★ · ' : ''}
           ${isMovie ? (detail.runtime ? detail.runtime + ' min' : '') : (detail.number_of_seasons ? detail.number_of_seasons + ' seasons' : '')}
         `;
+
+        // Persist runtime for tonight-fit scoring when user later rates / queues from modal
+        if (isMovie && detail.runtime) {
+          item.runtime = detail.runtime;
+          currentModalItem = item;
+          if (typeof _runtimeByKey !== 'undefined') {
+            try { _runtimeByKey[`${item.id}:movie`] = detail.runtime; } catch (_) {}
+          }
+        } else if (!isMovie && Array.isArray(detail.episode_run_time) && detail.episode_run_time[0]) {
+          item.runtime = detail.episode_run_time[0];
+          currentModalItem = item;
+          if (typeof _runtimeByKey !== 'undefined') {
+            try { _runtimeByKey[`${item.id}:tv`] = item.runtime; } catch (_) {}
+          }
+        }
 
         overviewEl.textContent = detail.overview || 'No overview available.';
 
@@ -120,9 +218,9 @@
         footer.appendChild(actions);
       }
       actions.innerHTML = `
-        <button class="flex-1 px-4 py-2 rounded-3xl bg-emerald-700 text-white text-sm" id="ma-towatch">+ To Watch</button>
-        <button class="flex-1 px-4 py-2 rounded-3xl bg-zinc-800 border border-zinc-700 text-sm" id="ma-watched">⭐ Mark Watched</button>
-        <button class="px-4 py-2 rounded-3xl border border-zinc-700 text-red-400 text-sm" id="ma-dislike">👎 Dislike</button>
+        <button class="flex-1 px-4 py-2 rounded-3xl bg-emerald-700 text-white text-sm" id="ma-towatch">+ Queue</button>
+        <button class="flex-1 px-4 py-2 rounded-3xl bg-zinc-800 border border-zinc-700 text-sm" id="ma-watched">Watched</button>
+        <button class="px-4 py-2 rounded-3xl border border-zinc-700 text-zinc-300 text-sm" id="ma-pass">Pass</button>
       `;
       document.getElementById('ma-towatch').onclick = () => { addToToWatch(item); closeModal(); };
       document.getElementById('ma-watched').onclick = () => {
@@ -132,28 +230,52 @@
           closeModal();
         }, { hideButtons: actions ? Array.from(actions.querySelectorAll('button')) : [] });
       };
-      document.getElementById('ma-dislike').onclick = () => { addToDisliked(item); closeModal(); };
+      const passBtn = document.getElementById('ma-pass');
+      if (passBtn) passBtn.onclick = () => {
+        if (typeof addToNotInterested === 'function') addToNotInterested(item);
+        closeModal();
+      };
+    }
+
+    function finishCloseModal() {
+      const modal = document.getElementById('detail-modal');
+      if (!modal) return;
+      modal.classList.remove('settings-mode', 'modal-in', 'modal-out');
+      modal.classList.add('hidden');
+      document.querySelectorAll('.modal-flip-flyer').forEach(el => el.remove());
+      // cleanup any temp Settings-only hides/styles
+      const st = document.getElementById('settings-modal-hide-style');
+      if (st) st.remove();
+      const whereWrap = document.querySelector('#detail-modal .mb-2');
+      if (whereWrap) {
+        whereWrap.style.display = '';
+        // Restore the "Where to watch" label text for normal movie modals
+        const label = whereWrap.querySelector('div');
+        if (label && label.dataset.originalText !== undefined) {
+          label.textContent = label.dataset.originalText;
+          delete label.dataset.originalText;
+        }
+      }
     }
 
     function closeModal() {
       const modal = document.getElementById('detail-modal');
-      if (modal) {
-        modal.classList.remove('settings-mode');
-        modal.classList.add('hidden');
-        // cleanup any temp Settings-only hides/styles
-        const st = document.getElementById('settings-modal-hide-style');
-        if (st) st.remove();
-        const whereWrap = document.querySelector('#detail-modal .mb-2');
-        if (whereWrap) {
-          whereWrap.style.display = '';
-          // Restore the "Where to watch" label text for normal movie modals
-          const label = whereWrap.querySelector('div');
-          if (label && label.dataset.originalText !== undefined) {
-            label.textContent = label.dataset.originalText;
-            delete label.dataset.originalText;
-          }
-        }
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (_modalCloseTimer) {
+        clearTimeout(_modalCloseTimer);
+        _modalCloseTimer = null;
       }
+      const reduced = typeof prefersReducedMotion === 'function' && prefersReducedMotion();
+      if (reduced) {
+        finishCloseModal();
+        return;
+      }
+      modal.classList.remove('modal-in');
+      modal.classList.add('modal-out');
+      _modalCloseTimer = setTimeout(() => {
+        _modalCloseTimer = null;
+        finishCloseModal();
+      }, 200);
     }
 
     // Global Escape-to-close for the detail and settings modals (the transfer
@@ -175,7 +297,7 @@
       card.style.cursor = 'pointer';
       card.addEventListener('click', (e) => {
         if (e.target.closest('button') || e.target.closest('a')) return;
-        openModal(item);
+        openModal(item, { sourceEl: card });
       });
     }
 

@@ -184,7 +184,7 @@
       return `<a ${domId ? `id="${domId}" ` : ''}href="${href}" target="_blank" rel="noopener" `
         + `title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" `
         + `class="inline-flex items-center gap-1 text-[11px] px-1.5 py-1 rounded bg-[#f5c518] text-black font-bold no-underline">`
-        + `<i class="fa-brands fa-imdb" style="font-size:12px"></i>${hasScore ? `<span>${score}</span>` : ''}</a>`;
+        + `${hasScore ? `<span>${score}</span>` : 'IMDb'}</a>`;
     }
 
     // ---- Cosmic Horror (shared by the Browse filter and the For You pool) ----
@@ -315,6 +315,185 @@
       } catch (_) {
         return null; // transient failure — leave the line blank rather than claim anything
       }
+    }
+
+    // ---- Unified "Where to watch" block (every poster surface) ----
+    // Markup is shared across For You, Tonight hero, Browse, and Library so the
+    // dashboard always shows the same labeled availability strip under a title.
+
+    const WTW_JW = '<span class="wtw-jw" title="Streaming availability data by JustWatch">JustWatch</span>';
+
+    function wtwSlotId(id, mediaType) {
+      return `wtw-rec-${id}-${mediaType === 'tv' ? 'tv' : 'movie'}`;
+    }
+
+    /** Static HTML shell with label + body slot (body fills async).
+     *  Uses data-wtw-id/type so multiple surfaces can show the same title without
+     *  colliding on a single DOM id (e.g. Library Next up + queue row). */
+    function wtwBlockHtml(id, mediaType, opts) {
+      const mt = mediaType === 'tv' ? 'tv' : 'movie';
+      const compact = opts && opts.compact;
+      const pending = (opts && opts.pendingHtml) || '<span class="wtw-pending">…</span>';
+      // Keep id on body for legacy paintAvailabilitySlot lookups (For You still uses it).
+      // When duplicates exist, fillWtwForItems paints every matching data attribute.
+      return `<div class="wtw-block${compact ? ' wtw-block-compact' : ''}" data-wtw-id="${id}" data-wtw-type="${mt}">`
+        + `<div class="wtw-block-label">Where to watch</div>`
+        + `<div class="wtw-block-body wtw-rec-slot" id="${wtwSlotId(id, mt)}">${pending}</div>`
+        + `</div>`;
+    }
+
+    function paintAllWtwFor(id, mediaType, data, opts) {
+      const mt = mediaType === 'tv' ? 'tv' : 'movie';
+      const idStr = String(id);
+      // Match both string and numeric attribute forms
+      const blocks = document.querySelectorAll(
+        `.wtw-block[data-wtw-id="${idStr}"][data-wtw-type="${mt}"], .wtw-block[data-wtw-id="${id}"][data-wtw-type="${mt}"]`
+      );
+      blocks.forEach(block => {
+        const body = block.querySelector('.wtw-block-body');
+        const compact = block.classList.contains('wtw-block-compact');
+        if (body) paintWtwBody(body, data, { compact });
+      });
+    }
+
+    /** Normalize Browse/modal provider objects into { stream, rentable }. */
+    function normalizeProvidersData(providers) {
+      if (!providers) return null;
+      if (Array.isArray(providers.stream) || typeof providers.rentable === 'boolean') {
+        return {
+          stream: providers.stream || [],
+          rentable: !!providers.rentable,
+        };
+      }
+      const flat = providers.flatrate || [];
+      return {
+        stream: flat.map(p => p.provider_name || p),
+        rentable: !!(
+          (providers.rent && providers.rent.length)
+          || (providers.buy && providers.buy.length)
+        ),
+      };
+    }
+
+    /**
+     * Paint a WTW body element from provider data.
+     * Always leaves a visible status (services / rent / not listed) — never blank.
+     */
+    function paintWtwBody(bodyEl, data, opts) {
+      if (!bodyEl) return;
+      const compact = !!(opts && opts.compact);
+      const maxMine = compact ? 2 : 3;
+      const maxOther = compact ? 1 : 2;
+
+      if (data === undefined) {
+        bodyEl.innerHTML = '<span class="wtw-pending">…</span>';
+        return;
+      }
+      if (data === null) {
+        bodyEl.innerHTML = '<span class="wtw-muted">Unavailable</span>';
+        return;
+      }
+
+      const streamNames = data.stream || [];
+      const mine = [];
+      const other = [];
+      const seen = new Set();
+      streamNames.forEach(n => {
+        const label = PROVIDER_NAME_TO_SERVICE[n] || n;
+        if (!label || seen.has(label)) return;
+        seen.add(label);
+        if (myServices && myServices.size && myServices.has(label)) mine.push(label);
+        else other.push(label);
+      });
+
+      const pills = [];
+      mine.slice(0, maxMine).forEach(label => {
+        pills.push(`<span class="wtw-pill wtw-pill-mine">${escapeHtml(label)}</span>`);
+      });
+      // If user has no services configured, surface general streamers so the row isn't empty.
+      const showOther = other.slice(0, mine.length ? maxOther : maxMine);
+      showOther.forEach(label => {
+        pills.push(`<span class="wtw-pill wtw-pill-other">${escapeHtml(label)}</span>`);
+      });
+
+      // Freshness note rides with JustWatch credit (providers can lag a few days)
+      const JW = (typeof WTW_JW !== 'undefined' ? WTW_JW : '')
+        || '<span class="wtw-jw" title="Streaming data by JustWatch — may lag a few days">JustWatch</span>';
+      if (pills.length) {
+        bodyEl.innerHTML = `<div class="wtw-pills">${pills.join('')}${JW}</div>`;
+      } else if (data.rentable) {
+        bodyEl.innerHTML = `<div class="wtw-pills"><span class="wtw-pill wtw-pill-rent">Rent / Buy</span>${JW}</div>`;
+      } else {
+        bodyEl.innerHTML = '<span class="wtw-muted">No US streaming listed</span>';
+      }
+      // Never leave a blank body (CSS clip / race can clear content)
+      if (!bodyEl.textContent || !bodyEl.textContent.trim()) {
+        bodyEl.innerHTML = '<span class="wtw-muted">No US streaming listed</span>';
+      }
+    }
+
+    function paintWtwSlotById(id, mediaType, data, opts) {
+      paintAllWtwFor(id, mediaType, data, opts);
+    }
+
+    /** Fill every matching WTW slot for a list of items (sequential, cache-backed). */
+    let _wtwFillRun = 0;
+    async function fillWtwForItems(items, opts) {
+      if (!Array.isArray(items) || !items.length) return;
+      const run = ++_wtwFillRun;
+      const cache = loadProviderCache();
+      // Dedupe fetches when the same title appears twice (Next up + queue row)
+      const seen = new Set();
+      for (const item of items) {
+        // Only cancel if a *newer* fill fully replaced this run after we finished
+        // an item — still paint anything we already fetched so library rows don't
+        // stay stuck on "…" when Next-up and To Watch both kick off fills.
+        if (!item || item.id == null) continue;
+        const mt = (item._mediaType === 'tv' || item._mediaType === 'TV') ? 'tv' : 'movie';
+        const key = `${item.id}:${mt}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        // Stringify id — data attributes are always strings in the DOM
+        const idStr = String(item.id);
+        const hasSlot = document.querySelector(`.wtw-block[data-wtw-id="${idStr}"][data-wtw-type="${mt}"]`)
+          || document.querySelector(`.wtw-block[data-wtw-id="${item.id}"][data-wtw-type="${mt}"]`);
+        if (!hasSlot) continue;
+
+        // Show pending while fetching so the body is never blank mid-request
+        paintAllWtwFor(item.id, mt, undefined, opts);
+
+        let data = null;
+        try {
+          if (item.providers) data = normalizeProvidersData(item.providers);
+          // Empty stream+rent object is still truthy — only skip fetch if we got real signal
+          if (!data || (!data.stream.length && !data.rentable)) {
+            data = await fetchWatchProviders(item.id, mt, cache);
+          }
+        } catch (_) {
+          data = null;
+        }
+        if (run !== _wtwFillRun && run < _wtwFillRun - 1) {
+          // A much newer run superseded us — still paint this one title, then stop
+          paintAllWtwFor(item.id, mt, data, opts);
+          break;
+        }
+        paintAllWtwFor(item.id, mt, data, opts);
+      }
+      try { saveProviderCache(cache); } catch (_) {}
+    }
+
+    function refreshAllWtwSlots() {
+      const cache = loadProviderCache();
+      document.querySelectorAll('.wtw-block[data-wtw-id]').forEach(block => {
+        const id = block.getAttribute('data-wtw-id');
+        const mt = block.getAttribute('data-wtw-type') || 'movie';
+        const body = block.querySelector('.wtw-block-body');
+        if (!body) return;
+        const hit = cache[`${mt}:${id}`];
+        paintWtwBody(body, hit && hit.d ? hit.d : null, {
+          compact: block.classList.contains('wtw-block-compact'),
+        });
+      });
     }
 
     // ---- IMDb ratings enrichment ----
@@ -487,7 +666,7 @@
     // zero-vote, so letting both be on at once only ever produces a dead end.
     let foundFootageOnly = false;
     let cosmicHorrorOnly = false;
-    let currentSearchType = 'movie';
+    let currentSearchType = 'all';
     let _liveSearchTimer = null; // debounce for search-as-you-type
     let _searchGen = 0; // bumped on every performSearch call so a slow/stale response can't clobber a newer one's results
 
@@ -496,13 +675,19 @@
     // every single character — only after typing pauses for a moment.
     function handleSearchInput() {
       clearTimeout(_liveSearchTimer);
-      const query = document.getElementById('search-input').value.trim();
+      const input = document.getElementById('search-input');
+      const query = (input && input.value || '').trim();
+      const clearBtn = document.getElementById('search-clear-btn');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !query);
       if (query.length === 0) {
+        document.querySelectorAll('.search-chip.active').forEach(c => c.classList.remove('active'));
         // Box cleared — reset back to the initial empty state instead of leaving stale results up.
         const container = document.getElementById('results');
         const initial = document.getElementById('initial-state');
-        if (container) container.innerHTML = '';
+        const meta = document.getElementById('browse-results-meta');
+        if (container) { container.innerHTML = ''; container.className = 'browse-results'; }
         if (initial) initial.style.display = '';
+        if (meta) meta.classList.add('hidden');
         return;
       }
       if (query.length < 2) return; // too short to bother searching yet
@@ -596,7 +781,7 @@
       if (has(watchedList)) return { label: '✓ Watched', cls: 'bg-emerald-700 text-white' };
       if (has(toWatchList)) return { label: '📌 In Queue', cls: 'bg-indigo-700 text-white' };
       if (has(dislikedList)) return { label: '👎 Disliked', cls: 'bg-red-900 text-red-200' };
-      if (has(notInterestedList)) return { label: '✕ Hidden', cls: 'bg-zinc-700 text-zinc-300' };
+      if (has(notInterestedList)) return { label: 'Passed', cls: 'bg-zinc-700 text-zinc-300' };
       return null;
     }
 
@@ -737,16 +922,226 @@
 
     // Simple toast system for action feedback (used by lists, curator, etc.)
 
+    // ── Micro-animations (queue fly, tonight reveal, rate stars, A–D) ─────────
+    function prefersReducedMotion() {
+      try {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch (_) { return false; }
+    }
+
+    /** Stagger card-enter so grids cascade (cap so long lists don't wait forever). */
+    function applyCardStagger(card, index) {
+      if (!card) return;
+      if (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) {
+        card.style.removeProperty('--card-stagger');
+        return;
+      }
+      const i = Math.max(0, Number(index) || 0);
+      const delay = Math.min(i, 14) * 32; // 0–448ms
+      card.style.setProperty('--card-stagger', delay + 'ms');
+    }
+
+    /**
+     * Watched exit: check burst + scale/fade, then resolve so caller can mutate data.
+     * mode: 'watched' | 'hide' (hide is subtler desaturate)
+     */
+    function animateCardExit(card, mode) {
+      return new Promise((resolve) => {
+        if (!card || !card.isConnected) {
+          resolve();
+          return;
+        }
+        const reduced = typeof prefersReducedMotion === 'function' && prefersReducedMotion();
+        if (reduced) {
+          resolve();
+          return;
+        }
+        card.style.pointerEvents = 'none';
+        const cls = mode === 'hide' ? 'card-exit-hide' : 'card-exit-watched';
+        card.classList.remove('card-exit-watched', 'card-exit-hide');
+        void card.offsetWidth;
+        card.classList.add(cls);
+        if (mode !== 'hide') {
+          let check = card.querySelector('.card-exit-check');
+          if (!check) {
+            check = document.createElement('div');
+            check.className = 'card-exit-check';
+            check.setAttribute('aria-hidden', 'true');
+            check.textContent = '✓';
+            // Ensure positioning context
+            const prevPos = getComputedStyle(card).position;
+            if (prevPos === 'static') card.style.position = 'relative';
+            card.appendChild(check);
+          }
+        }
+        setTimeout(resolve, mode === 'hide' ? 240 : 300);
+      });
+    }
+
+    /** Soft flash on cards that stay on screen after rate (e.g. Browse). */
+    function flashCardWatched(card) {
+      if (!card || (typeof prefersReducedMotion === 'function' && prefersReducedMotion())) return;
+      card.classList.remove('card-watched-flash');
+      void card.offsetWidth;
+      card.classList.add('card-watched-flash');
+      setTimeout(() => card.classList.remove('card-watched-flash'), 520);
+    }
+
+    /** Bounce the home Queue status chip after an add. */
+    function popQueueChip() {
+      const chip = document.getElementById('home-queue-card');
+      const count = document.getElementById('home-queue-count');
+      if (chip) {
+        chip.classList.remove('queue-chip-pop');
+        // reflow to restart animation
+        void chip.offsetWidth;
+        chip.classList.add('queue-chip-pop');
+        setTimeout(() => chip.classList.remove('queue-chip-pop'), 520);
+      }
+      if (count) {
+        count.classList.remove('queue-count-bump');
+        void count.offsetWidth;
+        count.classList.add('queue-count-bump');
+        setTimeout(() => count.classList.remove('queue-count-bump'), 420);
+      }
+    }
+
+    /**
+     * Fly a mini poster from a source element (or viewport center) to the Queue chip.
+     * sourceEl: optional Element — poster/card that was just queued.
+     */
+    /** Undo queue: mini poster flies back out of the Queue chip. */
+    function reverseFlyFromQueue(item) {
+      if (prefersReducedMotion()) { popQueueChip(); return; }
+      const start = document.getElementById('home-queue-card')
+        || document.getElementById('bnav-watched');
+      if (!start) return;
+      const s = start.getBoundingClientRect();
+      const flyer = document.createElement('div');
+      flyer.className = 'queue-flyer queue-flyer-reverse';
+      flyer.setAttribute('aria-hidden', 'true');
+      const posterUrl = item && item.poster_path
+        ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : '';
+      flyer.innerHTML = posterUrl
+        ? `<img src="${posterUrl}" alt="">`
+        : `<span class="queue-flyer-fallback">↩</span>`;
+      const w = 40, h = 60;
+      flyer.style.width = w + 'px';
+      flyer.style.height = h + 'px';
+      flyer.style.left = (s.left + s.width / 2 - w / 2) + 'px';
+      flyer.style.top = (s.top + s.height / 2 - h / 2) + 'px';
+      flyer.style.opacity = '1';
+      document.body.appendChild(flyer);
+      requestAnimationFrame(() => {
+        flyer.style.setProperty('--fly-x', '0px');
+        flyer.style.setProperty('--fly-y', Math.min(120, window.innerHeight * 0.12) + 'px');
+        flyer.classList.add('queue-flyer-go');
+        flyer.style.opacity = '0';
+      });
+      setTimeout(() => flyer.remove(), 420);
+      popQueueChip();
+    }
+
+    function flyPosterToQueue(item, sourceEl) {
+      popQueueChip();
+      if (prefersReducedMotion()) return;
+
+      const target = document.getElementById('home-queue-card')
+        || document.getElementById('bnav-watched')
+        || document.getElementById('nav-watched');
+      if (!target) return;
+
+      let startRect = null;
+      if (sourceEl && sourceEl.getBoundingClientRect) {
+        startRect = sourceEl.getBoundingClientRect();
+      }
+      // Prefer an img inside the source
+      if (sourceEl) {
+        const img = sourceEl.tagName === 'IMG' ? sourceEl : sourceEl.querySelector && sourceEl.querySelector('img');
+        if (img) startRect = img.getBoundingClientRect();
+      }
+      if (!startRect || (startRect.width < 4 && startRect.height < 4)) {
+        startRect = {
+          left: window.innerWidth / 2 - 28,
+          top: window.innerHeight / 2 - 42,
+          width: 56,
+          height: 84,
+        };
+      }
+
+      const endRect = target.getBoundingClientRect();
+      const flyer = document.createElement('div');
+      flyer.className = 'queue-flyer';
+      flyer.setAttribute('aria-hidden', 'true');
+      const posterUrl = item && item.poster_path
+        ? `https://image.tmdb.org/t/p/w92${item.poster_path}`
+        : '';
+      if (posterUrl) {
+        flyer.innerHTML = `<img src="${posterUrl}" alt="">`;
+      } else {
+        flyer.innerHTML = `<span class="queue-flyer-fallback">▶</span>`;
+      }
+
+      const w = Math.min(56, Math.max(36, startRect.width * 0.35));
+      const h = w * 1.5;
+      flyer.style.width = w + 'px';
+      flyer.style.height = h + 'px';
+      flyer.style.left = startRect.left + startRect.width / 2 - w / 2 + 'px';
+      flyer.style.top = startRect.top + startRect.height / 2 - h / 2 + 'px';
+      document.body.appendChild(flyer);
+
+      const endX = endRect.left + endRect.width / 2 - w / 2;
+      const endY = endRect.top + endRect.height / 2 - h / 2;
+      // Force layout then animate via CSS variables
+      void flyer.offsetWidth;
+      flyer.style.setProperty('--fly-x', (endX - (startRect.left + startRect.width / 2 - w / 2)) + 'px');
+      flyer.style.setProperty('--fly-y', (endY - (startRect.top + startRect.height / 2 - h / 2)) + 'px');
+      flyer.classList.add('queue-flyer-go');
+
+      setTimeout(() => {
+        flyer.remove();
+        popQueueChip();
+      }, 520);
+    }
+
+    /** Find a reasonable source element for a just-queued item (poster if visible). */
+    function findQueueAnimSource(item) {
+      if (!item || item.id == null) return null;
+      const mt = item._mediaType === 'tv' ? 'tv' : 'movie';
+      const id = String(item.id);
+      // Match a visible card by WTW slot id (recs/browse/hero use wtw-rec-{id}-{type})
+      const slot = document.getElementById(`wtw-rec-${id}-${mt}`)
+        || document.querySelector(`.wtw-block[data-wtw-id="${id}"][data-wtw-type="${mt}"]`);
+      if (slot) {
+        const card = slot.closest('.movie-card, .browse-card, .rec-card, .tonight-hero, .library-item');
+        const img = card && card.querySelector('img');
+        if (img) return img;
+      }
+      // Tonight hero only when it is this exact title
+      const hero = document.getElementById('tonight-hero');
+      if (hero && !hero.classList.contains('hidden') && hero.dataset.tonightKey === `${id}:${mt}`) {
+        const img = hero.querySelector('.tonight-hero-poster');
+        if (img) return img;
+      }
+      return null;
+    }
+
+    // Simple toast system continues below — skeletons
+
     function showSkeletons(containerId, count = 4) {
       const c = document.getElementById(containerId);
       if (!c) return;
       c.innerHTML = '';
+      if (containerId === 'results') c.className = 'browse-results';
       const initial = document.getElementById('initial-state');
       if (initial) initial.style.display = 'none';
+      const meta = document.getElementById('browse-results-meta');
+      if (meta && containerId === 'results') meta.classList.add('hidden');
       const isPoster = containerId === 'recs-grid';
+      const isBrowse = containerId === 'results';
       for (let i = 0; i < count; i++) {
         const card = document.createElement('div');
-        card.className = 'skeleton-card';
+        card.className = isBrowse ? 'skeleton-card browse-skel-card' : 'skeleton-card';
         card.style.animationDelay = (i * 0.07) + 's';
         if (isPoster) {
           card.style.padding = '10px';
@@ -754,6 +1149,21 @@
             <div class="skeleton-poster" style="width:100%;aspect-ratio:2/3;height:unset;border-radius:16px;margin-bottom:10px;"></div>
             <div class="skeleton-line" style="width:85%;height:12px;margin-bottom:6px;"></div>
             <div class="skeleton-line" style="width:55%;height:10px;margin-bottom:0;"></div>`;
+        } else if (isBrowse) {
+          card.innerHTML = `
+            <div class="browse-card-inner">
+              <div class="skeleton-poster browse-skel-poster"></div>
+              <div class="browse-skel-body">
+                <div class="skeleton-line" style="width:72%;height:15px;margin-bottom:10px;"></div>
+                <div class="skeleton-line" style="width:40%;height:11px;margin-bottom:12px;"></div>
+                <div class="skeleton-line" style="width:95%;height:11px;margin-bottom:6px;"></div>
+                <div class="skeleton-line" style="width:80%;height:11px;margin-bottom:14px;"></div>
+                <div style="display:flex;gap:8px;">
+                  <div class="skeleton-line" style="width:72px;height:32px;border-radius:9999px;margin:0;"></div>
+                  <div class="skeleton-line" style="width:72px;height:32px;border-radius:9999px;margin:0;"></div>
+                </div>
+              </div>
+            </div>`;
         } else {
           card.innerHTML = `
             <div style="display:flex;gap:14px;">
@@ -794,106 +1204,283 @@
       }
     });
 
-    function showToast(message, type = 'success') {
+    function showToast(message, type = 'success', options = {}) {
       const container = document.getElementById('toast-container');
       if (!container) return;
       const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `
-        <span>${escapeHtml(message)}</span>
-      `;
-      container.appendChild(toast);
-      // Auto dismiss
-      setTimeout(() => {
+      toast.className = `toast ${type}${options.actionLabel ? ' toast-with-action' : ''}`;
+      const msg = document.createElement('span');
+      msg.className = 'toast-msg';
+      msg.textContent = message == null ? '' : String(message);
+      toast.appendChild(msg);
+
+      let settled = false;
+      const dismiss = () => {
+        if (settled) return;
+        settled = true;
         toast.classList.add('out');
         setTimeout(() => toast.remove(), 150);
-      }, 2400);
-      // Tap to dismiss early
-      toast.onclick = () => {
-        toast.classList.add('out');
-        setTimeout(() => toast.remove(), 100);
       };
+
+      if (options.actionLabel && typeof options.onAction === 'function') {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-action';
+        btn.textContent = options.actionLabel;
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (settled) return;
+          try { options.onAction(); } catch (err) { console.warn('[toast] undo failed', err); }
+          dismiss();
+        };
+        toast.appendChild(btn);
+      }
+
+      container.appendChild(toast);
+      const ttl = options.durationMs || (options.actionLabel ? 5000 : 2400);
+      setTimeout(dismiss, ttl);
+      // Tap message area to dismiss early (not the action button)
+      toast.addEventListener('click', (e) => {
+        if (e.target.closest && e.target.closest('.toast-action')) return;
+        dismiss();
+      });
     }
 
-    // Swipe actions for library items (mobile only, nice dense UX)
+    // ── Shared mobile swipe (Queue / Hide / library actions) ─────────────────
+    // One feel across For You cards and Library rows:
+    //  • clear horizontal lock (doesn't fight vertical scroll)
+    //  • resistance past the commit line
+    //  • snappy commit / spring-back
+    //  • labeled feedback (Queue / Hide / Watched / …)
+    const SWIPE = {
+      // commit distance in px — short enough to feel intentional, long enough to avoid accidents
+      threshold: 72,
+      // max drag with rubber-band beyond this
+      maxDrag: 132,
+      // must be this much more horizontal than vertical to lock as a swipe
+      dirRatio: 1.25,
+      // ignore tiny finger noise
+      lockPx: 8,
+      // ignore swipes that start on interactive chrome
+      ignoreSel: 'button, a, input, select, textarea, [role="button"], .wtw-block',
+    };
+
+    function swipeRubber(dx) {
+      const max = SWIPE.maxDrag;
+      const sign = dx < 0 ? -1 : 1;
+      const abs = Math.abs(dx);
+      if (abs <= max) return dx;
+      // diminishing returns past max so the card doesn't fly off-screen mid-drag
+      return sign * (max + (abs - max) * 0.28);
+    }
+
+    function ensureSwipeOverlay(el) {
+      let overlay = el.querySelector('.swipe-overlay');
+      if (overlay) return overlay;
+      overlay = document.createElement('div');
+      overlay.className = 'swipe-overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      // Library rows need a positioned host for the absolute overlay
+      const cs = window.getComputedStyle(el);
+      if (cs.position === 'static') el.style.position = 'relative';
+      el.appendChild(overlay);
+      return overlay;
+    }
+
+    function resetSwipeVisual(el, overlay) {
+      el.style.transition = 'transform 0.2s cubic-bezier(0.2,0.85,0.25,1), opacity 0.16s ease, background 0.16s ease';
+      el.style.transform = '';
+      el.style.opacity = '';
+      el.style.background = '';
+      el.classList.remove('swiping', 'swipe-commit');
+      if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.textContent = '';
+        overlay.classList.remove('swipe-right', 'swipe-left');
+      }
+    }
+
+    /**
+     * Attach a polished swipe handler to a card/row.
+     * opts: { rightLabel, leftLabel, onRight, onLeft, removeOnCommit }
+     */
+    function attachCardSwipe(el, opts) {
+      if (!el || el.dataset.swipeBound === '1') return;
+      // Touch devices only
+      if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return;
+
+      el.dataset.swipeBound = '1';
+      el.classList.add('swipeable');
+      el.style.touchAction = 'pan-y';
+
+      const overlay = ensureSwipeOverlay(el);
+      const rightLabel = (opts && opts.rightLabel) || '+ Queue';
+      const leftLabel = (opts && opts.leftLabel) || 'Hide';
+      const removeOnCommit = !!(opts && opts.removeOnCommit);
+
+      let startX = 0, startY = 0, lastX = 0, lastT = 0, velX = 0;
+      let mode = 'undecided'; // undecided | swipe | scroll
+      let active = false;
+      let committed = false;
+
+      const onStart = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        // Don't steal taps on buttons / links / WTW
+        if (e.target.closest && e.target.closest(SWIPE.ignoreSel)) {
+          active = false;
+          return;
+        }
+        active = true;
+        committed = false;
+        mode = 'undecided';
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        lastX = startX;
+        lastT = Date.now();
+        velX = 0;
+        el.classList.add('swiping');
+        el.style.transition = 'none';
+      };
+
+      const onMove = (e) => {
+        if (!active || !e.touches || e.touches.length !== 1) return;
+        const x = e.touches[0].clientX;
+        const y = e.touches[0].clientY;
+        const dx = x - startX;
+        const dy = y - startY;
+        const now = Date.now();
+        const dt = Math.max(1, now - lastT);
+        velX = (x - lastX) / dt; // px/ms
+        lastX = x;
+        lastT = now;
+
+        if (mode === 'undecided') {
+          if (Math.abs(dx) < SWIPE.lockPx && Math.abs(dy) < SWIPE.lockPx) return;
+          // Lock: need clearly horizontal intent
+          if (Math.abs(dx) > Math.abs(dy) * SWIPE.dirRatio) {
+            mode = 'swipe';
+          } else {
+            mode = 'scroll';
+            el.classList.remove('swiping');
+            return;
+          }
+        }
+        if (mode !== 'swipe') return;
+
+        // Once locked horizontal, block vertical scroll jank
+        if (e.cancelable) e.preventDefault();
+
+        const limited = swipeRubber(dx);
+        const rot = Math.max(-7, Math.min(7, limited * 0.018));
+        el.style.transform = `translate3d(${limited}px,0,0) rotate(${rot}deg)`;
+
+        const progress = Math.min(1, Math.abs(limited) / SWIPE.threshold);
+        if (overlay) {
+          overlay.style.opacity = String(0.2 + progress * 0.75);
+          overlay.classList.toggle('swipe-right', limited > 0);
+          overlay.classList.toggle('swipe-left', limited < 0);
+          overlay.textContent = limited > 0 ? rightLabel : leftLabel;
+        }
+        if (limited > SWIPE.threshold * 0.55) {
+          el.style.background = 'rgba(16,185,129,0.12)';
+        } else if (limited < -SWIPE.threshold * 0.55) {
+          el.style.background = 'rgba(239,68,68,0.12)';
+        } else {
+          el.style.background = '';
+        }
+      };
+
+      const commit = (dir) => {
+        if (committed) return;
+        committed = true;
+        el.classList.add('swipe-commit');
+        el.style.transition = 'transform 0.16s cubic-bezier(0.2,0.9,0.2,1), opacity 0.14s ease';
+        el.style.transform = dir === 'right'
+          ? 'translate3d(112%,0,0) rotate(6deg)'
+          : 'translate3d(-112%,0,0) rotate(-6deg)';
+        el.style.opacity = '0';
+        if (overlay) overlay.style.opacity = '0.95';
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (_) {}
+
+        setTimeout(() => {
+          try {
+            if (dir === 'right' && opts && typeof opts.onRight === 'function') opts.onRight();
+            if (dir === 'left' && opts && typeof opts.onLeft === 'function') opts.onLeft();
+          } catch (err) {
+            console.warn('[swipe] action failed', err);
+          }
+          if (removeOnCommit && el.parentNode) {
+            el.remove();
+          } else {
+            // Library lists re-render themselves; just clear residual styles
+            resetSwipeVisual(el, overlay);
+          }
+        }, 150);
+      };
+
+      const onEnd = () => {
+        if (!active) return;
+        active = false;
+        if (mode !== 'swipe' || committed) {
+          el.classList.remove('swiping');
+          if (!committed) resetSwipeVisual(el, overlay);
+          return;
+        }
+        const dx = lastX - startX;
+        // Fast flick can commit slightly under distance threshold
+        const flick = Math.abs(velX) > 0.65;
+        const pass = Math.abs(dx) >= SWIPE.threshold || (flick && Math.abs(dx) >= SWIPE.threshold * 0.62);
+
+        const canRight = opts && typeof opts.onRight === 'function';
+        const canLeft = opts && typeof opts.onLeft === 'function';
+        if (pass && dx > 0 && canRight) commit('right');
+        else if (pass && dx < 0 && canLeft) commit('left');
+        else resetSwipeVisual(el, overlay);
+      };
+
+      el.addEventListener('touchstart', onStart, { passive: true });
+      // non-passive so we can preventDefault once horizontal is locked
+      el.addEventListener('touchmove', onMove, { passive: false });
+      el.addEventListener('touchend', onEnd);
+      el.addEventListener('touchcancel', onEnd);
+    }
+
+    // Swipe actions for library items (mobile only)
     function setupSwipeActions(container, listType) {
       if (!container) return;
-      const isMobile = window.innerWidth < 640 || 'ontouchstart' in window;
+      const isMobile = window.innerWidth < 720 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       if (!isMobile) return;
 
       const items = container.querySelectorAll('.library-item');
-      items.forEach((item) => {
-        const itemId = Number(item.dataset.id);
-        const mediaType = item.dataset.mediaType || 'movie';
-        let startX = 0;
-        let startY = 0;
-        let currentX = 0;
-        let isDragging = false;
-        let isScrolling = null;
+      items.forEach((row) => {
+        const itemId = Number(row.dataset.id);
+        const mediaType = row.dataset.mediaType || 'movie';
 
-        const onStart = (e) => {
-          if (e.touches) {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            isDragging = true;
-            isScrolling = null;
-            item.classList.add('swiping');
-          }
-        };
-        const onMove = (e) => {
-          if (!isDragging || !e.touches) return;
-          const dx = e.touches[0].clientX - startX;
-          const dy = e.touches[0].clientY - startY;
-          // Determine scroll vs swipe on first significant move
-          if (isScrolling === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
-            isScrolling = Math.abs(dy) > Math.abs(dx);
-          }
-          // Let browser handle vertical scroll — don't apply transform
-          if (isScrolling) return;
-          currentX = dx;
-          // limit drag
-          const limited = Math.max(Math.min(currentX, 120), -120);
-          item.style.transform = `translateX(${limited}px)`;
-          // subtle bg hint
-          if (limited > 40) item.style.background = 'rgba(52, 211, 153, 0.15)';
-          else if (limited < -40) item.style.background = 'rgba(248, 113, 113, 0.15)';
-          else item.style.background = '';
-        };
-        const onEnd = () => {
-          if (!isDragging) return;
-          isDragging = false;
-          isScrolling = null;
-          item.classList.remove('swiping');
-          const threshold = 60;
+        let rightLabel = '+ Queue';
+        let leftLabel = 'Hide';
+        let onRight = null;
+        let onLeft = null;
+        if (listType === 'towatch') {
+          rightLabel = 'Watched';
+          leftLabel = 'Pass';
+          onRight = () => handleSwipeRight(listType, itemId, mediaType, row);
+          onLeft = () => handleSwipeLeft(listType, itemId, mediaType, row);
+        } else if (listType === 'watched') {
+          // Only left = dislike (no right action)
+          leftLabel = 'Dislike';
+          onLeft = () => handleSwipeLeft(listType, itemId, mediaType, row);
+        } else if (listType === 'disliked') {
+          rightLabel = '+ Queue';
+          onRight = () => handleSwipeRight(listType, itemId, mediaType, row);
+        }
 
-          if (currentX > threshold) {
-            // swipe right
-            item.style.transition = 'transform 0.2s, opacity 0.2s';
-            item.style.transform = 'translateX(100%)';
-            item.style.opacity = '0';
-            setTimeout(() => {
-              handleSwipeRight(listType, itemId, mediaType, item);
-            }, 180);
-          } else if (currentX < -threshold) {
-            item.style.transition = 'transform 0.2s, opacity 0.2s';
-            item.style.transform = 'translateX(-100%)';
-            item.style.opacity = '0';
-            setTimeout(() => {
-              handleSwipeLeft(listType, itemId, mediaType, item);
-            }, 180);
-          } else {
-            // reset
-            item.style.transition = 'transform 0.2s ease';
-            item.style.transform = '';
-            item.style.background = '';
-          }
-          currentX = 0;
-        };
-
-        item.addEventListener('touchstart', onStart, {passive: true});
-        item.addEventListener('touchmove', onMove, {passive: true});
-        item.addEventListener('touchend', onEnd);
-        item.addEventListener('touchcancel', onEnd);
+        attachCardSwipe(row, {
+          rightLabel,
+          leftLabel,
+          removeOnCommit: true,
+          onRight,
+          onLeft,
+        });
       });
     }
 
@@ -908,17 +1495,29 @@
           dislikedList = dislikedList.filter(d => d !== item);
           saveToWatch();
           saveDisliked();
-          showToast('Moved to To Watch');
+          showToast('Moved to Queue', 'success', {
+            actionLabel: 'Undo',
+            onAction: () => {
+              // best-effort undo: pull back from queue if still first match
+              const moved = toWatchList.find(t => t.id === id && (t._mediaType || 'movie') === mediaType);
+              if (moved) {
+                toWatchList = toWatchList.filter(t => t !== moved);
+                dislikedList.unshift(moved);
+                saveToWatch();
+                saveDisliked();
+              }
+            },
+          });
         }
-      } else {
-        itemEl.style.transform = '';
-        itemEl.style.background = '';
+      } else if (itemEl) {
+        resetSwipeVisual(itemEl, itemEl.querySelector('.swipe-overlay'));
       }
     }
 
     function handleSwipeLeft(listType, id, mediaType, itemEl) {
       if (listType === 'towatch') {
-        dislikeFromToWatch(id, mediaType);
+        if (typeof passFromToWatch === 'function') passFromToWatch(id, mediaType);
+        else dislikeFromToWatch(id, mediaType);
       } else if (listType === 'watched') {
         // from watched to disliked — addressed by id, immune to re-sort/re-filter
         const item = watchedList.find(w => w.id === id && (w._mediaType || 'movie') === mediaType);
@@ -929,9 +1528,8 @@
           saveDisliked();
           showToast('Moved to Disliked');
         }
-      } else {
-        itemEl.style.transform = '';
-        itemEl.style.background = '';
+      } else if (itemEl) {
+        resetSwipeVisual(itemEl, itemEl.querySelector('.swipe-overlay'));
       }
     }
 

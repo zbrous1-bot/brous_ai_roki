@@ -14,12 +14,13 @@
     // Accents deliberately avoid purple and indigo: this app reserves purple for the
     // Curator sub-brand and indigo for Cloud Sync, so reusing either here would make a
     // profile pill read as one of those features. Crimson stays the engine/primary,
-    // teal and amber are unclaimed.
+    // teal / sky / amber are unclaimed.
     const PROFILES = [
-      { id: 'me', name: 'Zach', accent: '#dc2626' },      // crimson — engine primary
-      { id: 'bradlee', name: 'Bradlee', accent: '#14b8a6' }, // teal
+      { id: 'me', name: 'Zach', accent: '#dc2626' },           // crimson — engine primary
+      { id: 'bradlee', name: 'Bradlee', accent: '#14b8a6' },   // teal
+      { id: 'newuser', name: 'New User', accent: '#0ea5e9' },  // sky — empty / guest profile
     ];
-    const TOGETHER_ACCENT = '#f59e0b'; // amber — the blend of the two, and unclaimed
+    const TOGETHER_ACCENT = '#f59e0b'; // amber — joint rec mode, unclaimed
 
     // 'together' is a rec MODE, not a profile — you can't rate as Together, and it never
     // owns storage. It's tracked separately from the active profile for exactly that
@@ -182,4 +183,5 @@
           note.classList.add('hidden');
         }
       }
+      if (typeof updateRatingAsPill === 'function') updateRatingAsPill();
     }

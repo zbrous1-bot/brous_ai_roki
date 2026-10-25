@@ -208,6 +208,14 @@
           updateAllLibraryRenders(); renderPersonalStats();
           if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
           try { renderCuratorMessages(); } catch(e){}
+          // Library from the cloud may change exclusions/taste — re-rank if a pool exists,
+          // otherwise kick a pool build (boot may have already started one).
+          if (typeof currentRecPool !== 'undefined' && currentRecPool.length) {
+            if (typeof recomputeRecommendationsDebounced === 'function') recomputeRecommendationsDebounced(200);
+            else if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
+          } else if (typeof refreshRecPool === 'function' && !(typeof _recPoolLoading !== 'undefined' && _recPoolLoading)) {
+            refreshRecPool().catch(() => {});
+          }
           setSyncLabel('✓ Synced', '#4ade80');
           console.log('[Brous] Cloud load OK ✓');
         }
@@ -320,14 +328,73 @@
     // exceeds the display cap.
     function libraryMoreFooter(total, shown) {
       if (librarySearch || total <= shown) return '';
-      return `<div class="col-span-2 sm:col-span-3 text-[10px] text-zinc-500 px-1">Showing ${shown} of ${total} — use search to find any title</div>`;
+      return `<div class="col-span-full text-[10px] text-zinc-500 px-1 pt-1">Showing ${shown} of ${total} — use search to find any title</div>`;
+    }
+
+    function renderLibraryNextUp(item) {
+      const el = document.getElementById('library-next-up');
+      if (!el) return;
+      if (!item) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+      const mediaType = item._mediaType || 'movie';
+      const title = item.title || item.name || 'Untitled';
+      const year = (item.release_date || '').slice(0, 4);
+      const poster = item.poster_path
+        ? `https://image.tmdb.org/t/p/w342${item.poster_path}`
+        : '';
+      const titleSafe = escapeHtml(title);
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <div class="library-next-inner">
+          ${poster
+            ? `<img class="library-next-poster" src="${poster}" alt="${titleSafe} poster" loading="eager">`
+            : `<div class="library-next-poster library-next-poster-fallback">🎬</div>`}
+          <div class="library-next-body">
+            <div class="library-next-kicker">Next up</div>
+            <div class="library-next-title">${titleSafe}</div>
+            <div class="library-next-meta">${year || ''}${mediaType === 'tv' ? ' · TV' : ' · Movie'}</div>
+            ${typeof wtwBlockHtml === 'function' ? wtwBlockHtml(item.id, mediaType, { compact: false }) : ''}
+            <div class="library-next-actions">
+              <button type="button" class="th-primary roku-play-btn" data-lnu="play">Play</button>
+              <button type="button" class="th-primary" data-lnu="watched">Watched</button>
+              <button type="button" class="th-secondary" data-lnu="random">Random</button>
+              <button type="button" class="th-ghost" data-lnu="remove">Remove</button>
+            </div>
+          </div>
+        </div>`;
+      const posterEl = el.querySelector('.library-next-poster');
+      if (posterEl) {
+        posterEl.style.cursor = 'pointer';
+        posterEl.onclick = () => openModal(item, { sourceEl: posterEl }).catch(() => {});
+      }
+      const playNext = el.querySelector('[data-lnu="play"]');
+      if (playNext) playNext.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof playOnRoku === "function") playOnRoku(item, playNext);
+      };
+      el.querySelector('[data-lnu="watched"]').onclick = () => markWatchedFromToWatch(item.id, mediaType);
+      el.querySelector('[data-lnu="random"]').onclick = () => pickRandomToWatch();
+      el.querySelector('[data-lnu="remove"]').onclick = () => removeFromToWatch(item.id, mediaType);
+      // WTW filled once with the full To Watch list in renderToWatch (after both hero + rows exist).
     }
 
     function renderToWatch() {
       const c = document.getElementById('to-watch-content');
       if (!c) return;
       if (!toWatchList.length) {
-        c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🎬</span><div class="text-sm font-medium text-zinc-400">Your queue is empty</div><div class="text-xs text-zinc-600 mt-1">Add from recommendations, search, or ask the Curator.</div></div>`;
+        renderLibraryNextUp(null);
+        c.innerHTML = `<div class="empty-state lib-empty">
+          <span class="empty-state-icon">🎬</span>
+          <div class="text-sm font-medium text-zinc-200">Nothing queued yet</div>
+          <div class="text-xs text-zinc-500 mt-1 max-w-xs mx-auto">Pick Tonight’s title or browse the catalog.</div>
+          <div class="flex justify-center gap-2 mt-4 flex-wrap">
+            <button type="button" onclick="switchMainTab('foryou')" class="text-xs px-4 py-2 rounded-full bg-emerald-700 text-white font-semibold">For You</button>
+            <button type="button" onclick="switchMainTab('browse')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200">Browse</button>
+          </div>
+        </div>`;
         return;
       }
       // Filter + sort across the WHOLE queue, then cap for rendering. Each rendered
@@ -335,9 +402,13 @@
       // correct after sorting/searching and after concurrent swipe/click actions.
       const view = applyLibraryView(toWatchList);
       if (!view.length) {
+        renderLibraryNextUp(null);
         c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your queue</div></div>`;
         return;
       }
+      // Next-up hero uses the first item in native queue order (not search-filtered),
+      // so "what's next" stays stable while browsing the list.
+      renderLibraryNextUp(toWatchList[0]);
       const shown = view.slice(0, LIBRARY_DISPLAY_CAP);
       let html = '';
       shown.forEach(item => {
@@ -360,13 +431,15 @@
               ${year ? `<span class="text-[10px] text-zinc-500">${year}</span>` : ''}
               ${topGenre ? `<span class="library-genre-tag">${topGenre}</span>` : ''}
             </div>
+            ${typeof wtwBlockHtml === 'function' ? wtwBlockHtml(item.id, mediaType, { compact: true }) : ''}
             <div class="lib-actions">
-              <button onclick="markWatchedFromToWatch(${item.id}, '${mediaType}')" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">Rate</button>
+              <button type="button" class="roku-play-btn" onclick="event.stopPropagation(); playOnRokuFromQueue(${item.id}, '${mediaType}', this)">Play</button>
+              <button onclick="markWatchedFromToWatch(${item.id}, '${mediaType}')" class="bg-emerald-900 border border-emerald-700/50 text-emerald-300">Watched</button>
               <button id="tw-trailer-${item.id}" class="border border-zinc-700 text-zinc-600 hidden">▶</button>
-              <button onclick="dislikeFromToWatch(${item.id}, '${mediaType}')" class="border border-zinc-700 text-zinc-400">👎</button>
+              <button onclick="passFromToWatch(${item.id}, '${mediaType}')" class="border border-zinc-700 text-zinc-300" title="Pass">Pass</button>
             </div>
             <div class="lib-external-links">
-              <a href="${imdbSearchUrl}" target="_blank" rel="noopener" title="Find on IMDb" aria-label="Find ${itemTitleSafe} on IMDb" class="bg-[#f5c518] text-black"><i class="fa-brands fa-imdb"></i></a>
+              <a href="${imdbSearchUrl}" target="_blank" rel="noopener" title="Find on IMDb" aria-label="Find ${itemTitleSafe} on IMDb" class="bg-[#f5c518] text-black">IMDb</a>
               <a href="${rtSearchUrl}" target="_blank" rel="noopener" title="Find on Rotten Tomatoes" aria-label="Find ${itemTitleSafe} on Rotten Tomatoes" class="bg-[#fa320a] text-white">RT</a>
             </div>
           </div>
@@ -374,6 +447,17 @@
       });
       html += libraryMoreFooter(toWatchList.length, shown.length);
       c.innerHTML = html;
+      // Include Next-up title so both hero + list row get providers in one fill pass
+      // (avoids a second fill aborting the first mid-flight).
+      const wtwTargets = [...shown];
+      if (toWatchList[0] && !wtwTargets.some(x => x.id === toWatchList[0].id
+          && (x._mediaType || 'movie') === (toWatchList[0]._mediaType || 'movie'))) {
+        wtwTargets.unshift(toWatchList[0]);
+      }
+      if (typeof fillWtwForItems === 'function') {
+        // Defer one frame so the DOM ids from innerHTML are queryable everywhere
+        requestAnimationFrame(() => fillWtwForItems(wtwTargets, { compact: true }));
+      }
 
       // Async: fetch trailers for each visible To Watch item and show button if found
       shown.forEach(item => {
@@ -403,7 +487,7 @@
           posterEl.onclick = (e) => {
             if (e.target.closest('a')) return; // let the IMDb/RT badge links navigate instead of opening the modal
             e.stopPropagation();
-            openModal(item).catch(()=>{});
+            openModal(item, { sourceEl: posterEl }).catch(()=>{});
           };
         }
       });
@@ -421,6 +505,174 @@
     function openInlineRatingPrompt(anchor, item, onRated, options = {}) {
       if (!anchor || !item) return;
       closeActiveRatingPrompt();
+
+      const title = item.title || item.name || 'this title';
+      const useSheet = !!options.sheet
+        || !!(anchor && anchor.classList && anchor.classList.contains('rec-card'))
+        || !!(anchor && anchor.closest && anchor.closest('.rec-card'))
+        || !!(anchor && anchor.id === 'tonight-hero');
+
+      // Rate sheet near the card, always fully inside the viewport (under sticky nav).
+      if (useSheet) {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'rate-sheet-backdrop rate-sheet-enter rate-sheet-near';
+        backdrop.setAttribute('role', 'dialog');
+        backdrop.setAttribute('aria-modal', 'true');
+        backdrop.setAttribute('aria-label', `Rate ${title}`);
+
+        const sheet = document.createElement('div');
+        sheet.className = 'rate-sheet rate-sheet-anchored';
+        sheet.innerHTML = `
+          <div class="rate-sheet-title">How was it?</div>
+          <div class="rate-sheet-sub">Rate <strong style="color:#e4e4e7">${escapeHtml(title)}</strong>. A 3 teaches the engine more than another 5.</div>
+          <div class="rate-sheet-stars" role="group" aria-label="Star rating"></div>
+          <button type="button" class="rate-sheet-dislike">Dislike</button>
+          <button type="button" class="rate-sheet-skip">Skip rating</button>`;
+
+        const stars = sheet.querySelector('.rate-sheet-stars');
+        let hoverRating = 0;
+        const starButtons = [];
+
+        const onViewportChange = () => positionSheetNearAnchor();
+
+        const cleanup = () => {
+          window.removeEventListener('resize', onViewportChange);
+          window.removeEventListener('scroll', onViewportChange, true);
+          backdrop.classList.add('rate-sheet-exit');
+          setTimeout(() => {
+            backdrop.remove();
+            document.removeEventListener('keydown', onKey, true);
+            if (activeRatingPromptCleanup === cleanup) activeRatingPromptCleanup = null;
+          }, prefersReducedMotion && prefersReducedMotion() ? 0 : 180);
+        };
+
+        function positionSheetNearAnchor() {
+          const rect = (anchor && anchor.getBoundingClientRect)
+            ? anchor.getBoundingClientRect()
+            : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0, bottom: window.innerHeight / 2 };
+          const pad = 10;
+          const sticky = document.getElementById('sticky-nav');
+          const topSafe = Math.max(pad, sticky ? Math.ceil(sticky.getBoundingClientRect().bottom) + 8 : 64);
+          const bottomSafe = window.innerHeight - pad;
+          const availH = Math.max(160, bottomSafe - topSafe);
+          const sheetW = Math.min(320, window.innerWidth - pad * 2);
+
+          sheet.style.width = sheetW + 'px';
+          sheet.style.maxHeight = availH + 'px';
+          sheet.style.overflowY = 'auto';
+
+          // Force layout so offsetHeight is real
+          void sheet.offsetHeight;
+          const sheetH = Math.min(sheet.offsetHeight || 220, availH);
+          const gap = 10;
+
+          // 1) Prefer below card  2) else above  3) else pin in safe band
+          let top = rect.bottom + gap;
+          if (top + sheetH > bottomSafe) top = rect.top - sheetH - gap;
+          if (top < topSafe || top + sheetH > bottomSafe) {
+            // Center vertically in the safe area so full sheet is always visible
+            top = topSafe + Math.max(0, (availH - sheetH) / 2);
+          }
+          top = Math.max(topSafe, Math.min(top, bottomSafe - sheetH));
+
+          let left = rect.left + rect.width / 2 - sheetW / 2;
+          left = Math.max(pad, Math.min(left, window.innerWidth - sheetW - pad));
+
+          sheet.style.left = Math.round(left) + 'px';
+          sheet.style.top = Math.round(top) + 'px';
+        }
+
+        const paintStars = (filled) => {
+          starButtons.forEach((b, i) => {
+            const on = i < filled;
+            b.classList.toggle('star-on', on);
+            b.classList.toggle('star-off', !on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        };
+
+        const onKey = (ev) => {
+          if (ev.key === 'Escape') { cleanup(); return; }
+          if (ev.key >= '1' && ev.key <= '5') {
+            ev.preventDefault();
+            const b = starButtons[Number(ev.key) - 1];
+            if (b) b.click();
+            return;
+          }
+          if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
+            ev.preventDefault();
+            const cur = hoverRating || 0;
+            hoverRating = ev.key === 'ArrowRight' ? Math.min(5, cur + 1) : Math.max(1, cur - 1);
+            paintStars(hoverRating);
+            return;
+          }
+          if (ev.key === 'Enter' && hoverRating > 0) {
+            ev.preventDefault();
+            const b = starButtons[hoverRating - 1];
+            if (b) b.click();
+          }
+        };
+
+        for (let r = 1; r <= 5; r++) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'rate-star-btn star-off';
+          b.innerHTML = '<span class="rate-star-glyph" aria-hidden="true">★</span><span class="rate-star-num">' + r + '</span>';
+          b.setAttribute('aria-label', `Rate ${r} stars`);
+          b.dataset.rating = String(r);
+          b.onmouseenter = () => { hoverRating = r; paintStars(r); };
+          b.onfocus = () => { hoverRating = r; paintStars(r); };
+          b.onclick = (ev) => {
+            ev.stopImmediatePropagation();
+            paintStars(r);
+            b.classList.add('rate-star-pop');
+            stars.classList.add('rate-stars-commit');
+            if (r === 5) {
+              stars.classList.add('rate-stars-five');
+              try { if (navigator.vibrate) navigator.vibrate([8, 30, 8]); } catch (_) {}
+            } else {
+              try { if (navigator.vibrate) navigator.vibrate(6); } catch (_) {}
+            }
+            const delay = (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) ? 0 : 280;
+            setTimeout(() => {
+              cleanup();
+              onRated(r);
+            }, delay);
+          };
+          starButtons.push(b);
+          stars.appendChild(b);
+        }
+        stars.onmouseleave = () => { hoverRating = 0; paintStars(0); };
+
+        sheet.querySelector('.rate-sheet-skip').onclick = (ev) => {
+          ev.stopImmediatePropagation();
+          cleanup();
+          onRated(null);
+        };
+        const dislikeSheetBtn = sheet.querySelector('.rate-sheet-dislike');
+        if (dislikeSheetBtn) dislikeSheetBtn.onclick = (ev) => {
+          ev.stopImmediatePropagation();
+          cleanup();
+          if (typeof addToDisliked === 'function') addToDisliked(item);
+        };
+        backdrop.onclick = (ev) => { if (ev.target === backdrop) cleanup(); };
+        sheet.addEventListener('click', ev => ev.stopPropagation());
+        backdrop.appendChild(sheet);
+        document.body.appendChild(backdrop);
+
+        positionSheetNearAnchor();
+        requestAnimationFrame(() => {
+          positionSheetNearAnchor();
+          backdrop.classList.add('rate-sheet-in');
+          requestAnimationFrame(positionSheetNearAnchor);
+        });
+        window.addEventListener('resize', onViewportChange);
+        window.addEventListener('scroll', onViewportChange, true);
+
+        activeRatingPromptCleanup = cleanup;
+        document.addEventListener('keydown', onKey, true);
+        return;
+      }
 
       const hiddenButtons = options.hideButtons || [];
       hiddenButtons.forEach(b => { if (b) b.style.display = 'none'; });
@@ -494,17 +746,10 @@
       // Look up the row by item id (not DOM position or array index) — works
       // correctly regardless of search/sort order or concurrent list mutation.
       const row = container ? container.querySelector(`[data-id="${id}"][data-media-type="${mediaType}"]`) : null;
-      if (!row) {
-        // rare fallback: default to 4 to avoid jarring prompt
-        addToWatched(item, 4);
-        return;
-      }
-      const actionButtons = Array.from(row.querySelectorAll('button'));
-      const contentDiv = row.querySelector('.lib-body') || row.querySelector('.flex-1') || row;
-      openInlineRatingPrompt(contentDiv, item, r => {
+      openInlineRatingPrompt(row || document.getElementById('library-next-up') || document.body, item, r => {
         addToWatched(item, r);
-        row.style.opacity = '0.4';
-      }, { hideButtons: actionButtons });
+        if (row) row.style.opacity = '0.4';
+      }, { sheet: true });
     }
     function dislikeFromToWatch(id, mediaType = 'movie') {
       const item = toWatchList.find(x => x.id === id && (x._mediaType || 'movie') === mediaType);
@@ -512,10 +757,27 @@
       addToDisliked(item);
     }
 
+    function passFromToWatch(id, mediaType = 'movie') {
+      const item = toWatchList.find(x => x.id === id && (x._mediaType || 'movie') === mediaType);
+      if (!item) return;
+      if (typeof addToNotInterested === 'function') addToNotInterested(item);
+    }
+
     function renderWatched() {
       const c = document.getElementById('watched-content');
       if (!c) return;
-      if (!watchedList.length) { c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👁️</span><div class="text-sm font-medium text-zinc-400">No watched titles yet</div><div class="text-xs text-zinc-600 mt-1">Rate movies as you watch — this powers your personal recs.</div></div>`; return; }
+      if (!watchedList.length) {
+        c.innerHTML = `<div class="empty-state lib-empty">
+          <span class="empty-state-icon">👁</span>
+          <div class="text-sm font-medium text-zinc-400">No watched titles yet</div>
+          <div class="text-xs text-zinc-600 mt-1 max-w-xs mx-auto">Rate films as you watch — this powers For You. Or import a Letterboxd CSV to skip the grind.</div>
+          <div class="flex justify-center gap-2 mt-4 flex-wrap">
+            <button type="button" onclick="showSettings('data')" class="text-xs px-4 py-2 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Import Letterboxd</button>
+            <button type="button" onclick="switchMainTab('foryou')" class="text-xs px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200">Rate starters</button>
+          </div>
+        </div>`;
+        return;
+      }
       const view = applyLibraryView(watchedList);
       if (!view.length) {
         c.innerHTML = `<div class="empty-state col-span-full"><span class="empty-state-icon">🔍</span><div class="text-sm font-medium text-zinc-400">No matches in your watched library</div></div>`;
@@ -540,6 +802,7 @@
               ${wGenre ? `<span class="library-genre-tag">${wGenre}</span>` : ''}
               ${stars}
             </div>
+            ${typeof wtwBlockHtml === 'function' ? wtwBlockHtml(item.id, item._mediaType || 'movie', { compact: true }) : ''}
             <div class="lib-actions">
               <button onclick="removeFromWatched(${item.id}, '${item._mediaType}')" class="text-red-400 border border-zinc-700" aria-label="Remove ${itemTitleSafe} from Watched" title="Remove from Watched">×</button>
             </div>
@@ -548,6 +811,7 @@
       });
       html += libraryMoreFooter(watchedList.length, shown.length);
       c.innerHTML = html;
+      if (typeof fillWtwForItems === 'function') fillWtwForItems(shown, { compact: true });
 
       // Make poster area clickable to open detail modal
       const watchedRows = c.querySelectorAll('.library-item');
@@ -557,7 +821,7 @@
         if (posterEl && item) {
           posterEl.style.cursor = 'pointer';
           posterEl.title = 'View details';
-          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item, { sourceEl: posterEl }).catch(()=>{}); };
         }
       });
 
@@ -608,7 +872,7 @@
         if (posterEl && item) {
           posterEl.style.cursor = 'pointer';
           posterEl.title = 'View details';
-          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item).catch(()=>{}); };
+          posterEl.onclick = (e) => { e.stopPropagation(); openModal(item, { sourceEl: posterEl }).catch(()=>{}); };
         }
       });
 
@@ -620,7 +884,7 @@
       const c = document.getElementById('notinterested-content');
       if (!c) return;
       if (!notInterestedList.length) {
-        c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🚫</span><div class="text-sm font-medium text-zinc-400">Nothing hidden yet</div><div class="text-xs text-zinc-600 mt-1">Movies you mark Not Interested are hidden and their genres are downranked in recs.</div></div>`;
+        c.innerHTML = `<div class="empty-state"><span class="empty-state-icon">🚫</span><div class="text-sm font-medium text-zinc-400">Nothing passed yet</div><div class="text-xs text-zinc-600 mt-1">Pass hides a title and ranks films like it lower.</div></div>`;
         return;
       }
       const view = applyLibraryView(notInterestedList);

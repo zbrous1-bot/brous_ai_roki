@@ -18,6 +18,23 @@
       if (currentRecPool.length) recomputeRecommendations();
       pushToServer();
     }
+    function patchLibraryItem(id, mediaType, patch) {
+      const key = `${id}:${mediaType || 'movie'}`;
+      const hit = (list, storageKey) => {
+        if (!list) return false;
+        const i = list.findIndex(x => `${x.id}:${x._mediaType || 'movie'}` === key);
+        if (i < 0) return false;
+        Object.assign(list[i], patch);
+        try { Store.setItem(storageKey, JSON.stringify(list)); } catch (_) {}
+        return true;
+      };
+      const wrote = hit(watchedList, 'horror_roki_watched')
+        || hit(dislikedList, 'horror_roki_disliked')
+        || hit(typeof notInterestedList !== 'undefined' ? notInterestedList : null, 'horror_roki_not_interested');
+      if (wrote && typeof pushToServer === 'function') pushToServer();
+      if (wrote && typeof rebuildLikedSubTastes === 'function') rebuildLikedSubTastes();
+    }
+
     function saveDisliked() {
       Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
       updateLibraryCounts();
@@ -40,6 +57,7 @@
       // Mini stats row
       renderPersonalStats();
       updateHomeSnapshot();
+      if (typeof updateColdStartUI === 'function') updateColdStartUI();
     }
 
     function renderPersonalStats() {
@@ -157,12 +175,16 @@
       const tasteEl = document.getElementById('home-taste-label');
       const queueCard = document.getElementById('home-queue-card');
       const queueThumb = document.getElementById('home-queue-thumb');
-      if (queueEl) queueEl.textContent = `${toWatchList.length} waiting`;
-      if (watchedEl) watchedEl.textContent = `${watchedList.length} rated`;
+      if (queueEl) queueEl.textContent = String(toWatchList.length);
+      if (watchedEl) {
+        const ratedN = watchedList.filter(it => typeof it.rating === 'number' && it.rating > 0).length;
+        watchedEl.textContent = String(ratedN || watchedList.length);
+      }
       const next = toWatchList[0];
       if (nextEl) {
-        const nextTitle = next?.title || next?.name;
-        nextEl.textContent = nextTitle ? `Next up: ${nextTitle}` : 'Add titles from search or Curator.';
+        const nextTitle = next?.title || next?.name || '';
+        nextEl.textContent = nextTitle || 'in queue';
+        nextEl.title = nextTitle;
       }
       if (queueCard && queueThumb) {
         if (next && next.poster_path) {
@@ -175,28 +197,17 @@
           queueCard.classList.remove('has-thumb');
         }
       }
-      if (tasteEl) {
-        const genreCounts = {};
-        watchedList.forEach(it => (it.genre_ids || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
-        const topGenreId = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a])[0];
-        const topGenre = topGenreId ? (GENRES.find(g => g.id == topGenreId)?.name || '') : '';
-        const rated = watchedList.filter(it => typeof it.rating === 'number' && it.rating > 0);
-        const avgRating = rated.length ? (rated.reduce((sum, it) => sum + it.rating, 0) / rated.length) : null;
-        const avgText = avgRating !== null ? `${avgRating.toFixed(1)}★ avg` : '';
-        const genreText = topGenre ? `Leaning ${topGenre.toLowerCase()}` : '';
-        const labelText = [avgText, genreText].filter(Boolean).join(' · ') || 'Taste profile is warming up.';
-        tasteEl.innerHTML = `${labelText}<span class="taste-chevron">▼</span>`;
-      }
+      if (tasteEl) tasteEl.textContent = 'rated';
 
       const recCountEl = document.getElementById('home-rec-pool-count');
       const recNoteEl = document.getElementById('home-rec-pool-note');
       if (recCountEl && recNoteEl) {
         if (currentRecPool.length) {
-          recCountEl.textContent = `${currentRecPool.length} picks`;
-          recNoteEl.textContent = _recPoolLastRefreshed ? `Refreshed ${timeAgo(_recPoolLastRefreshed)}` : 'Tap to pull fresh picks.';
+          recCountEl.textContent = String(currentRecPool.length);
+          recNoteEl.textContent = _recPoolLastRefreshed ? `refreshed ${timeAgo(_recPoolLastRefreshed)}` : 'tap to refresh';
         } else {
-          recCountEl.textContent = 'Fresh pool';
-          recNoteEl.textContent = 'Pull a wider set of dark cinema picks.';
+          recCountEl.textContent = '—';
+          recNoteEl.textContent = 'refresh picks';
         }
       }
 
@@ -360,7 +371,10 @@
         release_date: item.release_date || item.first_air_date,
         vote_average: item.vote_average,
         genre_ids: item.genre_ids || [],
-        overview: item.overview || ''
+        overview: item.overview || '',
+        runtime: item.runtime || item._runtime || null,
+        // B7: intent timestamp — recent queue genres soft-boost similar recs
+        _queuedAt: Date.now(),
       };
       toWatchList.unshift(rec); // newest first
       // also add to legacy quick list for compatibility
@@ -371,13 +385,40 @@
         watchedIds.add(key);
       }
       saveToWatch();
-      showToast('Added to To Watch');
+      const mediaType = item._mediaType || 'movie';
+      const title = item.title || item.name || 'Title';
+      if (typeof clearTonightPin === 'function') clearTonightPin(item.id, mediaType);
+      // Queue fly-to-chip animation (prefer the card/button that was just clicked)
+      if (typeof flyPosterToQueue === 'function') {
+        let src = null;
+        try {
+          if (typeof event !== 'undefined' && event && event.target && event.target.closest) {
+            src = event.target.closest('.movie-card, .browse-card, .rec-card, .tonight-hero, .library-item, .tonight-hero-inner');
+          }
+        } catch (_) {}
+        if (!src && typeof findQueueAnimSource === 'function') src = findQueueAnimSource(item);
+        flyPosterToQueue(item, src);
+      } else if (typeof popQueueChip === 'function') {
+        popQueueChip();
+      }
+      showToast(`Queued “${title.length > 28 ? title.slice(0, 26) + '…' : title}”`, 'success', {
+        actionLabel: 'Undo',
+        onAction: () => {
+          removeFromToWatch(item.id, mediaType);
+          if (typeof reverseFlyFromQueue === 'function') reverseFlyFromQueue(item);
+        },
+      });
       // remove from current visible recs/search (like the Streamlit title filter + roki removal)
-      removeFromCurrentResults(item.id, item._mediaType || 'movie');
+      removeFromCurrentResults(item.id, mediaType);
+      if (typeof refreshProductChrome === 'function') refreshProductChrome();
     }
 
     function addToWatched(item, rating = null) {
       const key = `${item.id}:${item._mediaType || 'movie'}`;
+      // Snapshot for undo (re-queue if it was only moved from To Watch)
+      const prevToWatch = toWatchList.find(w => `${w.id}:${w._mediaType||'movie'}` === key);
+      const prevWatched = watchedList.find(w => `${w.id}:${w._mediaType||'movie'}` === key);
+
       // remove from to watch / quick list first (the "disappear" fix)
       toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
       watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
@@ -390,18 +431,50 @@
         poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
         vote_average: item.vote_average, genre_ids: item.genre_ids || [],
         overview: item.overview || '', rating: rating || null,
+        runtime: item.runtime || item._runtime || (prevWatched && prevWatched.runtime) || null,
         _ts: Date.now() // real timestamp for recency-decay scoring (buildTasteProfile); falls back to list-index decay for older entries without it
       };
       if (existsIdx >= 0) watchedList[existsIdx] = rec; else watchedList.unshift(rec);
       saveWatched();
+      if (rating && rating <= 3 && typeof learnPassNeighborhood === 'function') {
+        learnPassNeighborhood(rec, rating <= 2 ? 2.2 : 1.5);
+      } else if (rating && rating >= 4 && typeof stampTitleFacts === 'function') {
+        stampTitleFacts(rec, 0);
+      }
       renderTasteStats();
       saveToWatch(); // counts + renders
-      showToast('Marked watched ★' + (rating ? rating : ''));
+      if (typeof clearTonightPin === 'function') clearTonightPin(item.id, item._mediaType || 'movie');
+      if (typeof refreshProductChrome === 'function') refreshProductChrome();
+      // Soft UI: remove this card only — do not recompute the whole For You grid
+      const stars = rating ? ` ★${rating}` : '';
+      showToast(`Marked watched${stars}`, 'success', {
+        actionLabel: 'Undo',
+        onAction: () => {
+          removeFromWatched(item.id, item._mediaType || 'movie');
+          if (prevToWatch) {
+            // put back on queue if it came from there
+            if (!toWatchList.some(w => `${w.id}:${w._mediaType||'movie'}` === key)) {
+              toWatchList.unshift(prevToWatch);
+              saveToWatch();
+            }
+          } else if (prevWatched) {
+            // restore previous rating entry
+            watchedList.unshift(prevWatched);
+            saveWatched();
+          }
+          if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
+        },
+      });
       removeFromCurrentResults(item.id, item._mediaType || 'movie');
     }
 
     function addToDisliked(item) {
       const key = `${item.id}:${item._mediaType || 'movie'}`;
+      const snapshot = {
+        id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
+        poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
+        vote_average: item.vote_average, genre_ids: item.genre_ids || []
+      };
       toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
       watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
       Store.setItem('brous_watchlist', JSON.stringify(watchlist));
@@ -409,15 +482,19 @@
 
       const exists = dislikedList.some(d => `${d.id}:${d._mediaType||'movie'}` === key);
       if (!exists) {
-        dislikedList.unshift({
-          id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
-          poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
-          vote_average: item.vote_average, genre_ids: item.genre_ids || []
-        });
+        dislikedList.unshift(snapshot);
       }
       saveDisliked();
+      if (typeof learnPassNeighborhood === 'function') learnPassNeighborhood(snapshot, 1.8);
       saveToWatch();
-      showToast('Added to Disliked');
+      if (typeof clearTonightPin === 'function') clearTonightPin(item.id, item._mediaType || 'movie');
+      showToast('Added to Disliked', 'success', {
+        actionLabel: 'Undo',
+        onAction: () => {
+          removeFromDisliked(item.id, item._mediaType || 'movie');
+          if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
+        },
+      });
       removeFromCurrentResults(item.id, item._mediaType || 'movie');
     }
 
@@ -444,16 +521,36 @@
 
     function addToNotInterested(item) {
       const key = `${item.id}:${item._mediaType || 'movie'}`;
+      const snapshot = {
+        id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
+        poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
+        vote_average: item.vote_average, genre_ids: item.genre_ids || []
+      };
       const exists = notInterestedList.some(d => `${d.id}:${d._mediaType||'movie'}` === key);
       if (!exists) {
-        notInterestedList.unshift({
-          id: item.id, title: item.title || item.name, _mediaType: item._mediaType || 'movie',
-          poster_path: item.poster_path, release_date: item.release_date || item.first_air_date,
-          vote_average: item.vote_average, genre_ids: item.genre_ids || []
-        });
+        notInterestedList.unshift(snapshot);
+      }
+      const wasQueued = toWatchList.some(w => `${w.id}:${w._mediaType||'movie'}` === key);
+      if (wasQueued) {
+        toWatchList = toWatchList.filter(w => `${w.id}:${w._mediaType||'movie'}` !== key);
+        watchlist = watchlist.filter(w => !(w.id === item.id && (w._mediaType||'movie') === (item._mediaType||'movie')));
+        try { Store.setItem('brous_watchlist', JSON.stringify(watchlist)); } catch (_) {}
+        watchedIds.delete(key);
+        saveToWatch();
       }
       saveNotInterested();
-      showToast('Hidden — won\'t appear in results');
+      if (typeof learnPassNeighborhood === 'function') learnPassNeighborhood(snapshot, 1.1);
+      if (typeof clearTonightPin === 'function') clearTonightPin(item.id, item._mediaType || 'movie');
+      showToast('Passed — films like it rank lower', 'success', {
+        actionLabel: 'Undo',
+        onAction: () => {
+          notInterestedList = notInterestedList.filter(d => `${d.id}:${d._mediaType||'movie'}` !== key);
+          if (typeof saveNotInterested === 'function') saveNotInterested();
+          else Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList));
+          if (typeof updateLibraryCounts === 'function') updateLibraryCounts();
+          if (typeof recomputeRecommendations === 'function') recomputeRecommendations();
+        },
+      });
       removeFromCurrentResults(item.id, item._mediaType || 'movie');
     }
 

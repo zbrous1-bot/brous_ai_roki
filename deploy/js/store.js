@@ -23,7 +23,12 @@
     // string with no relationship to anything else; update this one constant
     // instead (the footer's static fallback text below should still match it,
     // in case JS hasn't finished booting when someone checks).
-    const APP_VERSION = 'v2026-07';
+    const APP_VERSION = 'v2026-10-04';
+
+    // Feature flag: hide The Curator from nav, home cards, and empty states.
+    // Code + Worker LLM proxy stay in place — set true to restore the full UI.
+    // Also applied as body.curator-hidden in index.html so there is no flash before JS.
+    const CURATOR_ENABLED = true;
 
     // Global error catcher to show genuine init failures visibly.
     window.addEventListener('error', function(e) {

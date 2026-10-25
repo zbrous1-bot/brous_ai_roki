@@ -1,30 +1,51 @@
     // ===================== SEARCH =====================
     // The Browse tab's title search: direct TMDB title matches, a "similar titles"
-    // broadening pass, and the director/writer/actor name fallback (which resolves
-    // a query like "Stephen King" to a person and pulls their credits when a plain
-    // title search comes up empty). renderResults() below is shared with Discover.
+    // broadening pass, and the director/writer/actor name fallback. renderResults()
+    // is shared with Discover.
 
-    // Search by director/writer/actor name: TMDB's title search only matches
-    // movie/show titles, never person names, so a query like "Ari Aster" returns
-    // nothing from it. This resolves the query to a person via /search/person, then
-    // pulls their directing/writing/acting credits from BOTH movie_credits and
-    // tv_credits (a person search should surface their whole body of work — e.g.
-    // Stephen King's "The Langoliers" is a TV miniseries and would otherwise never
-    // appear while the Movies toggle is active), merges same-title credits into one
-    // entry, and sorts writing/directing credits (their primary, defining
-    // contribution) ahead of pure-acting credits, popularity descending within each
-    // group. Capped generously at 40 — a prolific person can have 400+ credits, and
-    // even after this sorting, a straight top-20 cut still missed well-known films
-    // (verified live: Stephen King's "The Mist", "Misery", "Carrie", and "Doctor
-    // Sleep" all sit between rank 20-40, behind higher-popularity-but-more-tangential
-    // credits like a talk-show appearance's host show).
-    //
-    // person.name must match the query fairly closely (see isCloseNameMatch) before
-    // any of this is used: TMDB's person search is fuzzy and will happily return an
-    // unrelated adult-content title for a query like "The Mist" (matching on "mist"
-    // as a substring) — without this gate, that false match would hijack a search
-    // for an actual movie titled "The Mist" and hide the real, correct title match.
-    function isCloseNameMatch(query, name) {
+    // Browse: only show titles streaming on the user's selected services (mirrors For You).
+    let browseServicesOnly = false;
+    try { browseServicesOnly = Store.getItem('brous_browse_services_only') === '1'; } catch (_) {}
+
+    function syncBrowseServicesToggleUI() {
+      const btn = document.getElementById('browse-services-toggle');
+      if (!btn) return;
+      const on = !!browseServicesOnly;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.className = `text-xs px-3 py-1.5 rounded-full border transition-all filter-chip ${on ? 'type-toggle-active' : ''}`;
+      btn.title = !myServices.size
+        ? 'Pick streaming services in Settings first'
+        : on
+          ? 'Showing only titles on your services — tap to show all'
+          : 'Only show titles streaming on services you selected in Settings';
+    }
+
+    function toggleBrowseServicesOnly() {
+      if (!myServices.size) {
+        try { showToast('Pick your streaming services in Settings first'); } catch (_) {}
+        if (typeof showSettings === 'function') showSettings('streaming');
+        return;
+      }
+      browseServicesOnly = !browseServicesOnly;
+      try { Store.setItem('brous_browse_services_only', browseServicesOnly ? '1' : '0'); } catch (_) {}
+      syncBrowseServicesToggleUI();
+      if (typeof updateFilterCount === 'function') updateFilterCount();
+      if (lastRenderedItems && lastRenderedItems.length) {
+        renderResults(lastRenderedItems, lastRenderedOpts || {});
+      }
+    }
+
+    function itemOnMyServices(m) {
+      if (!myServices || !myServices.size) return false;
+      const stream = (m.providers && m.providers.flatrate) || [];
+      return stream.some(p => {
+        const name = p.provider_name || p;
+        const label = PROVIDER_NAME_TO_SERVICE[name];
+        return label && myServices.has(label);
+      });
+    }
+
+function isCloseNameMatch(query, name) {
       const norm = s => s.toLowerCase().trim().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ');
       return norm(query) === norm(name);
     }
@@ -120,22 +141,35 @@
       showSkeletons('results', 8);
 
       const isMovie = currentSearchType === 'movie';
-      const searchEndpoint = isMovie ? 'movie' : 'tv';
-      const mediaPath = isMovie ? 'movie' : 'tv';
+      const searchBoth = currentSearchType === 'all';
+      const searchEndpoint = isMovie ? 'movie' : (currentSearchType === 'tv' ? 'tv' : 'movie');
+      const otherEndpoint = searchEndpoint === 'movie' ? 'tv' : 'movie';
+      const mediaPath = searchEndpoint;
 
       try {
-        // Run the title search and a person lookup in parallel — a query like
-        // "Stephen King" or "Ridley Scott" often DOES return a few title matches
-        // from TMDB (making-of documentaries, "X: A Life in Film" specials that
-        // literally contain the name), so gating the person lookup on "title
-        // search came back empty" doesn't catch those cases: the results list
-        // ends up with a handful of irrelevant docs instead of the person's actual
-        // filmography. Preferring the person's credits whenever a match exists
-        // fixes that.
-        const [searchData, personResult] = await Promise.all([
-          apiFetch(`/api/tmdb/3/search/${searchEndpoint}?query=${encodeURIComponent(query)}`),
+        // Always search both movie + TV when All is selected (Browse default).
+        // Still run a person lookup in parallel for director/actor names.
+        const titleSearches = searchBoth
+          ? [
+              apiFetch(`/api/tmdb/3/search/movie?query=${encodeURIComponent(query)}`),
+              apiFetch(`/api/tmdb/3/search/tv?query=${encodeURIComponent(query)}`),
+            ]
+          : [apiFetch(`/api/tmdb/3/search/${searchEndpoint}?query=${encodeURIComponent(query)}`)];
+        const [personResult, ...titleResults] = await Promise.all([
           searchPersonCredits(query),
+          ...titleSearches,
         ]);
+        const searchData = searchBoth
+          ? {
+              results: [
+                ...((titleResults[0] && titleResults[0].results) || []).map(r => ({ ...r, _mediaType: 'movie' })),
+                ...((titleResults[1] && titleResults[1].results) || []).map(r => ({ ...r, _mediaType: 'tv' })),
+              ],
+              success: (titleResults[0] && titleResults[0].success === false && titleResults[1] && titleResults[1].success === false)
+                ? false : undefined,
+              status_message: (titleResults[0] && titleResults[0].status_message) || '',
+            }
+          : titleResults[0];
         if (myGen !== _searchGen) return;
 
         if (searchData.success === false) {
@@ -144,6 +178,13 @@
         }
 
         let top = [];
+        let usedOtherType = false;
+
+        function tagMedia(list, type) {
+          return (list || [])
+            .filter(item => item && (item.title || item.name))
+            .map(item => ({ ...item, _mediaType: item._mediaType || type }));
+        }
 
         if (personResult && personResult.items.length) {
           // Capped more generously than a title search's 20 — a prolific person's
@@ -151,9 +192,7 @@
           // searchPersonCredits' comment), so 20 alone still missed real titles.
           top = personResult.items.slice(0, 40);
         } else if (searchData.results?.length) {
-          const directMatches = searchData.results
-            .filter(item => item && (item.title || item.name))
-            .slice(0, 10);
+          const directMatches = tagMedia(searchData.results, searchEndpoint).slice(0, 10);
 
           // Broaden the search: pull titles similar to the best match so the user
           // sees related films in the same vein, not just exact-name results.
@@ -161,8 +200,12 @@
           const best = directMatches[0];
           if (best && best.id) {
             try {
-              const sim = await apiFetch(`/api/tmdb/3/${mediaPath}/${best.id}/similar?page=1`);
-              similar = (sim.results || []).filter(i => i && (i.title || i.name) && i.poster_path);
+              const simType = best._mediaType === 'tv' ? 'tv' : 'movie';
+              const sim = await apiFetch(`/api/tmdb/3/${simType}/${best.id}/similar?page=1`);
+              similar = tagMedia(
+                (sim.results || []).filter(i => i && (i.title || i.name) && i.poster_path),
+                simType
+              );
             } catch (e) { /* similar is best-effort */ }
           }
 
@@ -172,14 +215,38 @@
             if (it && it.id && !seenIds.has(it.id)) { seenIds.add(it.id); top.push(it); }
             if (top.length >= 20) break;
           }
-        } else {
+        }
+
+        // Cross-type fallback: Browse defaults to Movies, so a TV-only hit like
+        // "Widow's Bay" used to return nothing. If the active type is empty, try the other.
+        if (!top.length) {
+          try {
+            const otherData = await apiFetch(`/api/tmdb/3/search/${otherEndpoint}?query=${encodeURIComponent(query)}`);
+            if (myGen !== _searchGen) return;
+            if (otherData && otherData.results && otherData.results.length) {
+              usedOtherType = true;
+              const directMatches = tagMedia(otherData.results, otherEndpoint).slice(0, 12);
+              const seenIds = new Set();
+              for (const it of directMatches) {
+                if (it && it.id && !seenIds.has(it.id)) { seenIds.add(it.id); top.push(it); }
+              }
+            }
+          } catch (_) { /* other-type search is best-effort */ }
+        }
+
+        if (!top.length) {
           container.innerHTML = `
             <div class="text-center py-10 text-zinc-400">
-              <i class="fa-solid fa-search text-3xl mb-3 opacity-50"></i>
+              <div class="text-3xl mb-3 opacity-50" aria-hidden="true">⌕</div>
               <p>No results found for that search.</p>
-              <p class="text-xs mt-1">Try a different title, or a director/writer/actor's full name.</p>
+              <p class="text-xs mt-1">Try a different title, switch Movies/TV, or a director/writer/actor's full name.</p>
             </div>`;
           return;
+        }
+        if (usedOtherType) {
+          try {
+            showToast(`Found under ${otherEndpoint === 'tv' ? 'TV' : 'Movies'} (toggle was ${isMovie ? 'Movies' : 'TV'})`, 'info');
+          } catch (_) {}
         }
         const enriched = await Promise.all(top.map(async item => {
           // Person-credit results can mix movie and TV items regardless of the
@@ -225,7 +292,7 @@
         console.error('[Horror Roki] Search failed:', e);
         let displayMsg;
         if (e.status === 401 || e.message.includes('Unauthorized') || e.message.includes('password')) {
-          displayMsg = 'Password required or incorrect. Click the 🔐 Pass button above to set it (or use ⚙︎ Settings to set API Endpoint Base if running locally).';
+          displayMsg = 'Password required or incorrect. Set it in Settings → Advanced.';
         } else if (e.details && e.details.error) {
           displayMsg = e.details.error;
           if (e.details.availableSecrets) {
@@ -234,14 +301,19 @@
         } else if (e.message) {
           displayMsg = e.message;
         } else {
-          displayMsg = 'Error fetching data. Check password (🔐 Pass button) or connection. (If using local server: open ⚙︎ Settings and set "API Endpoint Base" to your Worker URL like https://your-worker.workers.dev , then set password. See browser Console for details.)';
+          displayMsg = 'Error fetching data. Check the password in Settings → Advanced, or your connection.';
         }
         container.innerHTML = `<div class="text-center py-6 text-red-400">${displayMsg}</div>`;
       }
     }
 
-    function quickSearch(q) {
-      document.getElementById('search-input').value = q;
+    function quickSearch(q, el) {
+      const input = document.getElementById('search-input');
+      if (input) input.value = q;
+      document.querySelectorAll('.search-chip').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      const clearBtn = document.getElementById('search-clear-btn');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !(input && input.value.trim()));
       performSearch();
     }
 
@@ -252,7 +324,20 @@ function setCuratorPrompt(q) {
       sendToCurator();
     }
 
+    // Rec / Browse poster cards: swipe right = Queue, left = Hide.
+    // Delegates to shared attachCardSwipe so library + recs feel the same.
     function addSwipeGesture(card, item) {
+      if (typeof attachCardSwipe === 'function') {
+        attachCardSwipe(card, {
+          rightLabel: '+ Queue',
+          leftLabel: 'Pass',
+          onRight: () => { addToToWatch(item); },
+          onLeft: () => { addToNotInterested(item); },
+          removeOnCommit: true,
+        });
+        return;
+      }
+      // Fallback if helpers not loaded yet (shouldn't happen in normal boot order)
       let startX = 0, startY = 0, tracking = false;
       const overlay = card.querySelector('.swipe-overlay');
       card.addEventListener('touchstart', e => {
@@ -262,25 +347,25 @@ function setCuratorPrompt(q) {
       card.addEventListener('touchmove', e => {
         const dx = e.touches[0].clientX - startX;
         const dy = e.touches[0].clientY - startY;
-        if (!tracking && Math.abs(dy) > Math.abs(dx) + 5) return;
+        if (!tracking && Math.abs(dy) > Math.abs(dx) + 8) return;
         tracking = true;
-        card.style.transform = `translateX(${dx}px) rotate(${dx * 0.025}deg)`;
+        card.style.transform = `translateX(${dx * 0.92}px) rotate(${dx * 0.02}deg)`;
         if (overlay) {
-          overlay.style.opacity = Math.min(Math.abs(dx) / 90, 0.85);
-          overlay.style.background = dx > 0 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
-          overlay.textContent = dx > 0 ? '+ Watch' : '✕ Hide';
+          overlay.style.opacity = Math.min(Math.abs(dx) / 72, 0.9);
+          overlay.style.background = dx > 0 ? 'rgba(16,185,129,0.55)' : 'rgba(239,68,68,0.55)';
+          overlay.textContent = dx > 0 ? '+ Queue' : 'Pass';
         }
       }, { passive: true });
       card.addEventListener('touchend', e => {
         if (!tracking) return;
         const dx = e.changedTouches[0].clientX - startX;
-        card.style.transition = 'transform 0.25s ease, opacity 0.2s ease';
-        if (dx > 80) {
-          card.style.transform = 'translateX(150%) rotate(20deg)'; card.style.opacity = '0';
-          setTimeout(() => { addToToWatch(item); card.remove(); }, 230);
-        } else if (dx < -80) {
-          card.style.transform = 'translateX(-150%) rotate(-20deg)'; card.style.opacity = '0';
-          setTimeout(() => { addToNotInterested(item); card.remove(); }, 230);
+        card.style.transition = 'transform 0.18s cubic-bezier(0.2,0.8,0.2,1), opacity 0.16s ease';
+        if (dx > 72) {
+          card.style.transform = 'translateX(110%) rotate(8deg)'; card.style.opacity = '0';
+          setTimeout(() => { addToToWatch(item); card.remove(); }, 160);
+        } else if (dx < -72) {
+          card.style.transform = 'translateX(-110%) rotate(-8deg)'; card.style.opacity = '0';
+          setTimeout(() => { addToNotInterested(item); card.remove(); }, 160);
         } else {
           card.style.transform = ''; card.style.opacity = '';
           if (overlay) { overlay.style.opacity = '0'; overlay.textContent = ''; }
@@ -327,27 +412,24 @@ function setCuratorPrompt(q) {
       setTimeout(() => document.addEventListener('pointerdown', close, true), 10);
     }
 
+
     function renderResults(items, opts = {}) {
       const container = document.getElementById('results');
       const initial = document.getElementById('initial-state');
+      const meta = document.getElementById('browse-results-meta');
+      const countEl = document.getElementById('browse-results-count');
       if (initial) initial.style.display = 'none';
+      if (!container) return;
       container.innerHTML = '';
-      const services = getUserServices();
+      container.className = 'browse-results';
 
       lastRenderedItems = items;
       lastRenderedOpts = opts;
 
-      // Filter out watched / to-watch / disliked using full exclusion (carries the "disappear" fix)
-      // — except when keepLibraryItems is set (direct title search), where a title
-      // already in the library should still show up, just badged as such, rather
-      // than silently vanishing from the results the user explicitly searched for.
       const excluded = getExcludedKeys();
-      items = items.filter(m => {
-        const key = `${m.id}:${m._mediaType || 'movie'}`;
+      items = items.filter(function(m) {
+        const key = m.id + ':' + (m._mediaType || 'movie');
         const year = parseInt((m.release_date || m.first_air_date || '').slice(0, 4));
-        // origin_country is fetched per-item alongside providers/imdb_id (see enrichment
-        // above) — null means that fetch failed/hasn't run, so fail open rather than
-        // hiding a title just because a details lookup errored.
         const isAmerican = m.origin_country == null || m.origin_country.includes('US');
         const passesContentFilters = m.original_language === 'en' && isAmerican && !m.adult
           && !(m.genre_ids || []).includes(16) && (!year || year >= 1960);
@@ -355,146 +437,149 @@ function setCuratorPrompt(q) {
         return opts.keepLibraryItems || !excluded.has(key);
       });
 
+      if (browseServicesOnly && myServices && myServices.size) {
+        items = items.filter(itemOnMyServices);
+      }
+
+      if (meta && countEl) {
+        if (items.length) {
+          meta.classList.remove('hidden');
+          countEl.textContent = items.length + ' title' + (items.length === 1 ? '' : 's');
+        } else {
+          meta.classList.add('hidden');
+          countEl.textContent = '';
+        }
+      }
+
       if (!items.length) {
-        container.innerHTML = `
-          <div class="empty-state col-span-full">
-            <span class="empty-state-icon">🎞️</span>
-            <div class="text-zinc-300 font-medium">Everything here is already sorted</div>
-            <div class="text-zinc-500 text-xs mt-1">Those titles are already watched, queued, or disliked. Try another search or loosen Discover.</div>
-          </div>`;
+        const svcEmpty = browseServicesOnly && myServices && myServices.size;
+        container.innerHTML = '<div class="browse-empty">'
+          + '<div class="browse-empty-title">' + (svcEmpty ? 'Nothing on your services here' : 'No matching titles') + '</div>'
+          + '<div class="browse-empty-sub">' + (svcEmpty
+            ? 'Turn off “On my services” or try different filters.'
+            : 'Those titles may already be in your library, or filters are too tight.') + '</div>'
+          + (svcEmpty ? '<button type="button" onclick="toggleBrowseServicesOnly()" class="browse-empty-btn">Show all results</button>' : '')
+          + '</div>';
         return;
       }
 
-      items.forEach(m => {
+      items.forEach(function(m, idx) {
         const title = m.title || m.name || 'Untitled';
-        const titleSafe = escapeHtml(title); // for innerHTML string contexts only; DOM-API uses (textContent/aria-label) use `title` directly and are already safe
+        const titleSafe = escapeHtml(title);
         const year = (m.release_date || m.first_air_date || '').slice(0, 4);
-        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
-
-        const streamProviders = (m.providers?.flatrate || []);
-        const hasAnyProvider = m.providers && (
-          (m.providers.flatrate||[]).length || (m.providers.rent||[]).length || (m.providers.buy||[]).length
-        );
-        const html = (() => {
-          if (streamProviders.length) {
-            const pills = streamProviders.slice(0, 4).map(p => {
-              const cc = PROVIDER_COLORS[p.provider_name] || 'bg-zinc-700 text-zinc-200';
-              return `<span class="wtw-provider-pill ${cc}" style="font-size:10px;padding:2px 7px;border-radius:9999px;">${escapeHtml(p.provider_name)}</span>`;
-            }).join('');
-            // JustWatch credited inline: TMDB requires it on each item showing provider data.
-            return `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;"><span style="font-size:10px;color:#71717a;">Stream:</span>${pills}<span style="font-size:9px;color:#52525b;white-space:nowrap;" title="Streaming availability data by JustWatch">via JustWatch</span></div>`;
-          }
-          if (hasAnyProvider) {
-            return `<button class="wtw-trigger" data-wtw-id="${m.id}">📍 Where to watch</button>`;
-          }
-          return '';
-        })();
-
+        const poster = m.poster_path ? ('https://image.tmdb.org/t/p/w342' + m.poster_path) : null;
         const mediaLabel = (m._mediaType || 'movie') === 'tv' ? 'TV' : 'Movie';
-        const mediaColor = (m._mediaType || 'movie') === 'tv' ? 'bg-sky-900 text-sky-400' : 'bg-violet-900 text-violet-400';
         const libraryBadge = getLibraryStatusBadge(m.id, m._mediaType);
-        const libraryBadgeOverlay = libraryBadge
-          ? `<span class="absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-1 rounded-full shadow ${libraryBadge.cls}">${libraryBadge.label}</span>`
+        const badgeHtml = libraryBadge
+          ? ('<span class="browse-card-badge ' + libraryBadge.cls + '">' + libraryBadge.label + '</span>')
           : '';
-        // No poster to overlay onto — show the same badge as a plain inline pill instead.
-        const libraryBadgeInline = libraryBadge
-          ? `<span class="inline-block text-[10px] font-bold px-2 py-1 rounded-full mb-2 ${libraryBadge.cls}">${libraryBadge.label}</span>`
-          : '';
+        const overviewRaw = (m.overview || '').trim();
+        let overview = '';
+        if (overviewRaw) {
+          overview = escapeHtml(overviewRaw.length > 160
+            ? overviewRaw.slice(0, 150).replace(/\s+\S*$/, '') + '…'
+            : overviewRaw);
+        }
+        const tmdb = m.vote_average ? Number(m.vote_average).toFixed(1) : null;
+        const ratingClass = m.vote_average >= 7.5 ? 'high' : (m.vote_average >= 6 ? '' : 'low');
+        const mt = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
+        const wtwHtml = (typeof wtwBlockHtml === 'function')
+          ? wtwBlockHtml(m.id, mt, { compact: false })
+          : '<div class="browse-card-stream"></div>';
+        const posterBlock = poster
+          ? ('<img src="' + poster + '" class="browse-card-poster" alt="' + titleSafe + ' poster" loading="lazy"'
+            + ' onload="this.parentNode.classList.remove(\'loading\')"'
+            + ' onerror="this.onerror=null;this.src=\'' + FALLBACK_POSTER + '\';this.parentNode.classList.remove(\'loading\')">')
+          : '<div class="browse-card-poster browse-card-poster-fallback">🎬</div>';
 
         const card = document.createElement('div');
-        card.className = 'movie-card movie-card-v2 bg-zinc-900 border border-zinc-700 rounded-3xl p-5 sm:p-6';
-        card.innerHTML = `
-          <div class="flex flex-col sm:flex-row gap-4 sm:gap-5">
-            ${poster
-              ? `<div class="search-card-poster poster-wrap loading relative flex-shrink-0 w-full sm:w-36"><img src="${poster}" class="w-full h-56 sm:h-[216px] rounded-2xl object-cover ring-1 ring-zinc-800 shadow" alt="${titleSafe} poster" onload="this.parentNode.classList.remove('loading')" onerror="this.onerror=null;this.src='${FALLBACK_POSTER}';this.parentNode.classList.remove('loading')">${libraryBadgeOverlay}</div>`
-              : ''}
-            <div class="flex-1 min-w-0 pt-1">
-              <div>
-                ${!poster ? libraryBadgeInline : ''}
-                <div class="font-semibold text-base sm:text-lg leading-tight tracking-[-0.2px] min-w-0 line-clamp-3">${titleSafe}</div>
-                ${m._personRole ? `<div class="text-xs text-indigo-400 mt-0.5">🎬 ${escapeHtml(m._personRole)}</div>` : ''}
-                <div class="flex items-center gap-2 mt-2 flex-wrap">
-                  <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${mediaColor}">${mediaLabel}</span>
-                  ${year ? `<span class="text-zinc-400 text-sm">${year}</span>` : ''}
-                  ${m.vote_average ? `<span class="rating-badge ${m.vote_average >= 7.5 ? 'high' : ''}"><i class="fa-solid fa-star" style="font-size:8px"></i> ${m.vote_average.toFixed(1)}</span>` : ''}
-                  ${m.imdb_id ? `
-                    <a href="https://www.imdb.com/title/${m.imdb_id}/" target="_blank" rel="noopener"
-                       title="${imdbScoreText(m) ? `IMDb rating ${imdbScoreText(m)} out of 10` : 'View on IMDb'}"
-                       class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#f5c518] text-black font-bold no-underline hover:brightness-95">
-                      <i class="fa-brands fa-imdb text-sm"></i>
-                      <span>${imdbScoreText(m) || 'IMDb'}</span>
-                    </a>
-                  ` : ''}
-                  <a href="${rtUrl(title, m._mediaType || currentSearchType)}"
-                     target="_blank" rel="noopener"
-                     class="inline-flex items-center gap-1 text-xs sm:text-sm px-1.5 py-px rounded bg-[#fa320a] text-white font-bold no-underline hover:brightness-95">
-                    <span>RT</span>
-                  </a>
-                </div>
-              </div>
-              <div class="mt-3">${html}</div>
-
-            </div>
-          </div>`;
+        card.className = 'movie-card movie-card-v2 browse-card';
+        if (typeof applyCardStagger === 'function') applyCardStagger(card, idx);
+        card.innerHTML = ''
+          + '<div class="browse-card-inner">'
+          +   '<div class="browse-card-poster-wrap poster-wrap loading">'
+          +     posterBlock + badgeHtml
+          +   '</div>'
+          +   '<div class="browse-card-body">'
+          +     '<div class="browse-card-title">' + titleSafe + '</div>'
+          +     (m._personRole ? ('<div class="browse-card-role">' + escapeHtml(m._personRole) + '</div>') : '')
+          +     '<div class="browse-card-meta">'
+          +       '<span class="browse-card-type">' + mediaLabel + '</span>'
+          +       (year ? ('<span>' + year + '</span>') : '')
+          +       (tmdb ? ('<span class="rating-badge ' + ratingClass + '">★ ' + tmdb + '</span>') : '')
+          +     '</div>'
+          +     (overview ? ('<p class="browse-card-overview">' + overview + '</p>') : '')
+          +     wtwHtml
+          +     '<div class="browse-card-actions"></div>'
+          +   '</div>'
+          + '</div>';
         enhanceCard(card, m);
 
-        // Wire up "Where to watch" popup trigger
-        const wtwBtn = card.querySelector('.wtw-trigger');
-        if (wtwBtn) wtwBtn.addEventListener('click', (e) => { e.stopPropagation(); showWatchPopup(wtwBtn, m.providers); });
+        // Paint WTW from providers already on the item when present
+        if (m.providers && typeof paintWtwBody === 'function') {
+          const body = document.getElementById(typeof wtwSlotId === 'function' ? wtwSlotId(m.id, mt) : ('wtw-rec-' + m.id + '-' + mt));
+          if (body) paintWtwBody(body, normalizeProvidersData(m.providers), { compact: false });
+        }
 
-        // Rich list actions: +Watch / Watched stay primary and visible; Dislike + Hide
-        // move into a single overflow (⋯) menu so the row doesn't compete for attention
-        // with 5 buttons of equal visual weight.
-        const addBtnContainer = document.createElement('div');
-        addBtnContainer.className = 'mt-2 flex gap-1.5 flex-wrap';
+        const addBtnContainer = card.querySelector('.browse-card-actions');
         addBtnContainer.style.position = 'relative';
+
         const b1 = document.createElement('button');
-        b1.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-emerald-700 text-white';
-        b1.textContent = '+ Watch';
-        b1.setAttribute('aria-label', `Add ${title} to To Watch`);
-        b1.onclick = (e) => { e.stopImmediatePropagation(); addToToWatch(m); b1.textContent = '✓'; setTimeout(()=>b1.textContent='+ Watch',900); };
-        const b2 = document.createElement('button');
-        b2.className = 'flex-shrink-0 text-sm px-3 py-1.5 rounded-2xl bg-zinc-800 border border-zinc-700';
-        b2.textContent = 'Watched';
-        b2.setAttribute('aria-label', `Mark ${title} as watched`);
-        b2.onclick = (e) => {
+        b1.type = 'button';
+        b1.className = 'browse-act browse-act-primary';
+        b1.textContent = '+ Queue';
+        b1.setAttribute('aria-label', 'Add ' + title + ' to To Watch');
+        b1.onclick = function(e) {
           e.stopImmediatePropagation();
-          openInlineRatingPrompt(addBtnContainer, m, r => {
-            addToWatched(m, r);
-            b2.textContent='✓';
-          }, { hideButtons: [b1, b2, moreBtn, b4] });
+          addToToWatch(m);
+          b1.textContent = 'Queued';
+          b1.classList.add('browse-act-done');
         };
 
-        // Overflow menu: Dislike + Hide
+        const b2 = document.createElement('button');
+        b2.type = 'button';
+        b2.className = 'browse-act browse-act-secondary';
+        b2.textContent = 'Watched';
+        b2.setAttribute('aria-label', 'Mark ' + title + ' as watched');
+        b2.onclick = function(e) {
+          e.stopImmediatePropagation();
+          openInlineRatingPrompt(card, m, function(r) {
+            addToWatched(m, r);
+            b2.textContent = 'Rated';
+            b2.classList.add('browse-act-done');
+            if (typeof flashCardWatched === 'function') flashCardWatched(card);
+          }, { sheet: true });
+        };
+
         const moreBtn = document.createElement('button');
-        moreBtn.className = 'flex-shrink-0 text-sm px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-400';
+        moreBtn.type = 'button';
+        moreBtn.className = 'browse-act browse-act-ghost';
         moreBtn.textContent = '⋯';
         moreBtn.title = 'More actions';
-        moreBtn.setAttribute('aria-label', `More actions for ${title}`);
+        moreBtn.setAttribute('aria-label', 'More actions for ' + title);
         moreBtn.setAttribute('aria-haspopup', 'true');
         moreBtn.setAttribute('aria-expanded', 'false');
 
         const moreMenu = document.createElement('div');
-        moreMenu.className = 'hidden';
+        moreMenu.className = 'browse-more-menu hidden';
         moreMenu.setAttribute('role', 'menu');
-        moreMenu.style.cssText = 'position:absolute;bottom:calc(100% + 6px);left:0;z-index:5;background:var(--card-bg,#18181b);border:1px solid var(--border,#3f3f46);border-radius:14px;padding:4px;min-width:160px;box-shadow:0 12px 24px rgba(0,0,0,0.35);';
 
         const b3 = document.createElement('button');
-        b3.className = 'w-full text-left text-sm px-3 py-2 rounded-xl text-red-400 hover:bg-zinc-800';
-        b3.textContent = '👎 Dislike';
+        b3.type = 'button';
+        b3.className = 'browse-more-item browse-more-danger';
+        b3.textContent = 'Dislike';
         b3.setAttribute('role', 'menuitem');
-        b3.setAttribute('aria-label', `Dislike ${title}`);
-        b3.onclick = (e) => { e.stopImmediatePropagation(); addToDisliked(m); closeMoreMenu(); moreBtn.textContent = '✓'; };
+        b3.onclick = function(e) { e.stopImmediatePropagation(); addToDisliked(m); closeMoreMenu(); };
 
         const bni = document.createElement('button');
-        bni.className = 'w-full text-left text-xs px-3 py-2 rounded-xl text-zinc-400 hover:bg-zinc-800';
-        bni.textContent = '✕ Hide';
-        bni.title = 'Not Interested — hide from results';
+        bni.type = 'button';
+        bni.className = 'browse-more-item';
+        bni.textContent = 'Hide';
         bni.setAttribute('role', 'menuitem');
-        bni.setAttribute('aria-label', `Hide ${title} — not interested`);
-        bni.onclick = (e) => { e.stopImmediatePropagation(); addToNotInterested(m); closeMoreMenu(); };
+        bni.onclick = function(e) { e.stopImmediatePropagation(); addToNotInterested(m); closeMoreMenu(); };
 
-        moreMenu.appendChild(b3); moreMenu.appendChild(bni);
+        moreMenu.appendChild(b3);
+        moreMenu.appendChild(bni);
 
         function closeMoreMenu() {
           moreMenu.classList.add('hidden');
@@ -504,44 +589,76 @@ function setCuratorPrompt(q) {
         function onDocClick(ev) {
           if (!moreMenu.contains(ev.target) && ev.target !== moreBtn) closeMoreMenu();
         }
-        moreBtn.onclick = (e) => {
+        moreBtn.onclick = function(e) {
           e.stopImmediatePropagation();
           const isHidden = moreMenu.classList.contains('hidden');
           if (isHidden) {
             moreMenu.classList.remove('hidden');
             moreBtn.setAttribute('aria-expanded', 'true');
             document.addEventListener('click', onDocClick);
-          } else {
-            closeMoreMenu();
-          }
+          } else closeMoreMenu();
         };
 
-        const b4 = document.createElement('button');
-        b4.className = 'flex-shrink-0 text-xs px-2.5 py-1.5 rounded-2xl border border-zinc-700 text-zinc-500 hidden';
-        b4.textContent = '▶ Trailer';
-        b4.setAttribute('aria-label', `Play trailer for ${title}`);
-        b4.onclick = async (e) => {
-          e.stopImmediatePropagation();
-          const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
-          const vdata = await apiFetch(`/api/tmdb/3/${mediaPath}/${m.id}/videos`).catch(() => null);
-          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
-                          (vdata?.results || []).find(v => v.site === 'YouTube');
-          if (trailer) window.open(`https://www.youtube.com/watch?v=${trailer.key}`, '_blank', 'noopener');
-        };
-        addBtnContainer.appendChild(b1); addBtnContainer.appendChild(b2); addBtnContainer.appendChild(moreBtn); addBtnContainer.appendChild(moreMenu); addBtnContainer.appendChild(b4);
-        // Append inside content div so buttons stay beside the poster on mobile
-        const contentDiv = card.querySelector('.flex-1.min-w-0');
-        (contentDiv || card).appendChild(addBtnContainer);
-
-        // Async: show trailer button if a YouTube video exists
-        const mediaPath = (m._mediaType || 'movie') === 'tv' ? 'tv' : 'movie';
-        apiFetch(`/api/tmdb/3/${mediaPath}/${m.id}/videos`).then(vdata => {
-          const trailer = (vdata?.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer') ||
-                          (vdata?.results || []).find(v => v.site === 'YouTube');
-          if (trailer) { b4.classList.remove('hidden', 'text-zinc-500'); b4.classList.add('text-red-400'); }
-        }).catch(() => {});
-
+        addBtnContainer.appendChild(b1);
+        addBtnContainer.appendChild(b2);
+        addBtnContainer.appendChild(moreBtn);
+        addBtnContainer.appendChild(moreMenu);
         container.appendChild(card);
       });
+
+      // Fill any WTW slots still pending (missing providers on the item)
+      if (typeof fillWtwForItems === 'function') {
+        fillWtwForItems(items, { compact: false });
+      }
     }
 
+    function formatBrowseStreamLine(m) {
+      const stream = (m.providers && m.providers.flatrate) || [];
+      const hasAny = m.providers && (
+        stream.length || (m.providers.rent || []).length || (m.providers.buy || []).length
+      );
+      if (!stream.length) {
+        if (hasAny) {
+          return '<button type="button" class="wtw-trigger browse-wtw-btn">Where to watch</button>'
+            + '<span class="browse-jw" title="Streaming availability data by JustWatch">JustWatch</span>';
+        }
+        return '';
+      }
+      const mine = [];
+      const other = [];
+      const seen = new Set();
+      stream.forEach(function(p) {
+        const raw = p.provider_name || p;
+        const label = PROVIDER_NAME_TO_SERVICE[raw] || raw;
+        const key = String(label).toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        if (myServices && myServices.size && myServices.has(label)) mine.push(label);
+        else other.push(label);
+      });
+      const pills = [];
+      mine.slice(0, 3).forEach(function(label) {
+        pills.push('<span class="browse-svc browse-svc-mine">' + escapeHtml(label) + '</span>');
+      });
+      other.slice(0, mine.length ? 2 : 3).forEach(function(label) {
+        pills.push('<span class="browse-svc browse-svc-other">' + escapeHtml(label) + '</span>');
+      });
+      if (!pills.length) return '';
+      return '<div class="browse-svc-row">' + pills.join('')
+        + '<span class="browse-jw" title="Streaming availability data by JustWatch">JustWatch</span></div>';
+    }
+
+    function clearBrowseSearch() {
+      const input = document.getElementById('search-input');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('search-clear-btn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      document.querySelectorAll('.search-chip.active').forEach(function(c) { c.classList.remove('active'); });
+      clearTimeout(_liveSearchTimer);
+      const container = document.getElementById('results');
+      if (container) { container.innerHTML = ''; container.className = 'browse-results'; }
+      const initial = document.getElementById('initial-state');
+      if (initial) initial.style.display = '';
+      const meta = document.getElementById('browse-results-meta');
+      if (meta) meta.classList.add('hidden');
+    }

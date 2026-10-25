@@ -1,6 +1,34 @@
     // ===================== DEVICE TRANSFER (no server needed) =====================
     // pako (zlib deflate) compression — synchronous, cross-browser, ~537 chars for 30 movies
 
+    function loadScriptOnce(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-src="${src}"]`);
+        if (existing) {
+          if (existing.dataset.ready === '1') resolve();
+          else existing.addEventListener('load', () => resolve(), { once: true });
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = src;
+        s.dataset.src = src;
+        s.onload = () => { s.dataset.ready = '1'; resolve(); };
+        s.onerror = () => reject(new Error('Could not load ' + src));
+        document.head.appendChild(s);
+      });
+    }
+
+    async function ensureTransferLibs() {
+      const jobs = [];
+      if (typeof pako === 'undefined') {
+        jobs.push(loadScriptOnce('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'));
+      }
+      if (typeof QRCode === 'undefined') {
+        jobs.push(loadScriptOnce('https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js'));
+      }
+      if (jobs.length) await Promise.all(jobs);
+    }
+
     function _lzCompress(str) {
       try {
         const bytes = new TextEncoder().encode(str);
@@ -52,6 +80,16 @@
     }
 
     function expandPayload(raw) {
+      const d = expandPayloadRaw(raw);
+      return {
+        ...d,
+        watched: sanitizeLibraryList(d.watched),
+        to_watch: sanitizeLibraryList(d.to_watch),
+        disliked: sanitizeLibraryList(d.disliked),
+        not_interested: sanitizeLibraryList(d.not_interested)
+      };
+    }
+    function expandPayloadRaw(raw) {
       if (raw.v === '3') {
         return {
           watched:  (raw.w||[]).map(x => ({id:x.i,_rating:x.r,_mediaType:x.m||'movie',title:x.t,poster_path:x.p,vote_average:x.v,release_date:x.d,genre_ids:x.g||[]})),
@@ -80,29 +118,19 @@
       if (linkArea) linkArea.classList.add('hidden');
       const genBtn = document.getElementById('transfer-gen-btn');
       if (genBtn) { genBtn.textContent = 'Generate Transfer Link'; genBtn.disabled = false; }
-      const d = expandPayloadRaw(raw);
-      return {
-        ...d,
-        watched: sanitizeLibraryList(d.watched),
-        to_watch: sanitizeLibraryList(d.to_watch),
-        disliked: sanitizeLibraryList(d.disliked),
-        not_interested: sanitizeLibraryList(d.not_interested)
-      };
-    }
-    function expandPayloadRaw(raw) {
     }
 
     function closeTransferModal() {
       document.getElementById('transfer-modal')?.classList.add('hidden');
     }
 
-    function generateTransferLink() {
+    async function generateTransferLink() {
       const btn = document.getElementById('transfer-gen-btn');
       if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
       try {
-        // Guard: pako must be available
+        await ensureTransferLibs();
         if (typeof pako === 'undefined') {
-          alert('Compression library not loaded yet. Please wait a moment and try again, or refresh the page.');
+          alert('Compression library did not load. Check your connection and try again.');
           if (btn) { btn.textContent = 'Generate Transfer Link'; btn.disabled = false; }
           return;
         }
@@ -210,9 +238,9 @@
         if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color||'#71717a'; }
       };
 
-      // Guard: pako must be available
+      try { await ensureTransferLibs(); } catch (_) {}
       if (typeof pako === 'undefined') {
-        setStatus('Compression library not loaded. Please refresh and try again.', '#f87171');
+        setStatus('Compression library did not load. Check your connection and try again.', '#f87171');
         return;
       }
 
@@ -306,11 +334,7 @@
       // Helper that does the actual import with pako-readiness wait
       async function doImport(btn) {
         if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
-        let waited = 0;
-        while (typeof pako === 'undefined' && waited < 6000) {
-          await new Promise(r => setTimeout(r, 200));
-          waited += 200;
-        }
+        try { await ensureTransferLibs(); } catch (_) {}
         if (typeof pako === 'undefined') {
           if (btn) { btn.textContent = 'Load'; btn.disabled = false; }
           alert('Could not load compression library. Please refresh and try again.');
@@ -386,19 +410,29 @@
         // Boot (extended for new library + recs + curator)
     function boot() {
       try {
-        // Wire quick-reply chips for the Curator (cool, fast UX)
-        const quickReplies = document.getElementById('curator-quick-replies');
-        if (quickReplies) {
-          quickReplies.addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-q]');
-            if (!btn) return;
-            const q = btn.dataset.q;
-            const inp = document.getElementById('curator-input');
-            if (inp) {
-              inp.value = q;
-              sendToCurator();
-            }
-          });
+        // Keep body class in sync with the feature flag (HTML starts with curator-hidden
+        // so there's no flash; restore chrome only when CURATOR_ENABLED is true).
+        if (typeof CURATOR_ENABLED !== 'undefined' && CURATOR_ENABLED) {
+          document.body.classList.remove('curator-hidden');
+        } else {
+          document.body.classList.add('curator-hidden');
+        }
+
+        // Wire quick-reply chips for the Curator (cool, fast UX) — skip when hidden
+        if (typeof CURATOR_ENABLED === 'undefined' || CURATOR_ENABLED) {
+          const quickReplies = document.getElementById('curator-quick-replies');
+          if (quickReplies) {
+            quickReplies.addEventListener('click', (e) => {
+              const btn = e.target.closest('button[data-q]');
+              if (!btn) return;
+              const q = btn.dataset.q;
+              const inp = document.getElementById('curator-input');
+              if (inp) {
+                inp.value = q;
+                sendToCurator();
+              }
+            });
+          }
         }
 
         // Click outside the modal content (on the dark backdrop) closes it
@@ -439,7 +473,7 @@
         if (typeof setDiscoverType === 'function') setDiscoverType('movie'); // default to Movies
 
         // Initialize Search type
-        if (typeof setSearchType === 'function') setSearchType('movie');
+        if (typeof setSearchType === 'function') setSearchType('all');
 
         // Watchlist (legacy)
         if (typeof renderWatchlist === 'function') renderWatchlist();
@@ -453,9 +487,14 @@
         // Re-sync legacy exclusion set from all lists (watched disappear fix)
         watchedIds = new Set([...toWatchList, ...watchedList, ...dislikedList, ...notInterestedList, ...watchlist].map(w => `${w.id}:${w._mediaType || 'movie'}`));
         if (typeof updateAllLibraryRenders === 'function') updateAllLibraryRenders();
-        if (typeof renderCuratorMessages === 'function') renderCuratorMessages();
-        if (typeof refreshCuratorQuickReplies === 'function') refreshCuratorQuickReplies();
-        if (typeof setCuratorMood === 'function') setCuratorMood();
+        if (typeof CURATOR_ENABLED === 'undefined' || CURATOR_ENABLED) {
+          if (typeof renderCuratorMessages === 'function') renderCuratorMessages();
+          if (typeof refreshCuratorQuickReplies === 'function') refreshCuratorQuickReplies();
+          if (typeof setCuratorMood === 'function') setCuratorMood();
+        }
+        if (typeof syncRecServicesToggleUI === 'function') syncRecServicesToggleUI();
+        if (typeof syncBrowseServicesToggleUI === 'function') syncBrowseServicesToggleUI();
+        if (typeof updateColdStartUI === 'function') updateColdStartUI();
         if (typeof setupPullToRefresh === 'function') setupPullToRefresh();
         if (typeof renderPersonalStats === 'function') renderPersonalStats();
         if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
@@ -485,16 +524,25 @@
           const currentBase = apiBase || '(using relative /api - good for live pages.dev)';
           baseNote.textContent = 'Current API base: ' + currentBase + '  |  After fixing secrets in Cloudflare, you MUST redeploy the Worker code (Save and Deploy) for the secret to become visible to the running code.';
         }
-        // Optional: auto-seed a small rec pool for "Recommended for you" on first boot (user can Refresh)
-        if (!currentRecPool.length && watchedList.length > 0) {
-          // fire and forget; non blocking
-          setTimeout(() => { if (typeof refreshRecPool === 'function') refreshRecPool().catch(()=>{}); }, 1200);
-        }
+        // Always build For You on page load — don't wait for the user to hit Refresh.
+        // Pool is in-memory only, so every full reload starts empty; this fills it once
+        // boot has restored the library (and password). Guarded by _recPoolLoading inside
+        // refreshRecPool so a concurrent empty-state trigger won't double-fire.
+        setTimeout(() => {
+          if (typeof paintCachedRecommendations === 'function') {
+            try { paintCachedRecommendations(); } catch (_) {}
+          }
+          if (typeof refreshRecPool !== 'function') return;
+          if (typeof _recPoolLoading !== 'undefined' && _recPoolLoading) return;
+          // Keyword modes own the pool; leave them alone if somehow active at boot.
+          if (typeof keywordPoolActive !== 'undefined' && keywordPoolActive) return;
+          refreshRecPool().catch(e => console.warn('[Recs] auto-refresh on load failed:', e));
+        }, 700);
         renderTasteStats();
 
         // Helpful console note for first-time setup (password is required for the Worker)
         if (!Store.getItem('brous_password')) {
-          console.log('%c[Horror Roki] No API password set yet. Click the 🔐 Pass button or ⚙︎ Settings. (On live site with routes, leave API Endpoint Base empty.)', 'color:#f59e0b');
+          console.log('%c[Horror Roki] No API password set yet. Open Settings → Advanced. (On the live site, leave API Endpoint Base empty.)', 'color:#f59e0b');
         }
 
         // Visible confirmation that JS booted successfully
@@ -544,7 +592,7 @@
       }
 
       if (verifyRes.status === 401) {
-        alert('Wrong password — the Worker rejected it. Not saved. Click 🔐 Pass to try again.');
+        alert('Wrong password — the Worker rejected it. Not saved. Set it again in Settings → Advanced.');
         return;
       }
       if (!verifyRes.ok) {
