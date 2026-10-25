@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <rect width="192" height="192" rx="40" fill="#0c0a09"/>
+  <rect x="8" y="8" width="176" height="176" rx="34" stroke="#7f1d1d" stroke-width="3" fill="#18181b"/>
+  <!-- film reel -->
+  <circle cx="96" cy="96" r="52" stroke="#b91c1c" stroke-width="6" fill="#1c0a0a"/>
+  <circle cx="96" cy="96" r="18" fill="#0c0a09" stroke="#f87171" stroke-width="3"/>
+  <circle cx="96" cy="58" r="9" fill="#27272a" stroke="#52525b" stroke-width="2"/>
+  <circle cx="96" cy="134" r="9" fill="#27272a" stroke="#52525b" stroke-width="2"/>
+  <circle cx="58" cy="96" r="9" fill="#27272a" stroke="#52525b" stroke-width="2"/>
+  <circle cx="134" cy="96" r="9" fill="#27272a" stroke="#52525b" stroke-width="2"/>
+  <circle cx="70" cy="70" r="7" fill="#3f3f46"/>
+  <circle cx="122" cy="70" r="7" fill="#3f3f46"/>
+  <circle cx="70" cy="122" r="7" fill="#3f3f46"/>
+  <circle cx="122" cy="122" r="7" fill="#3f3f46"/>
+  <!-- accent bead -->
+  <circle cx="148" cy="44" r="8" fill="#dc2626"/>
+</svg>
