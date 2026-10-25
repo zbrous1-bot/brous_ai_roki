@@ -5338,3 +5338,6 @@ html:not(.light) .section-header { color: #8e8e98; }
   .recs-genre-select-inline { display: block; }
   #recs-genre-chips { display: none !important; }
 }
+
+/* Play buttons only show once a Streaming Engine is reachable (see js/roku-play.js). */
+body.engine-offline .roku-play-btn { display: none !important; }

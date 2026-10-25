@@ -385,6 +385,31 @@ export default {
       return jsonError('Method not allowed (use GET or POST)', 405, request);
     }
 
+    // === 4b. Play queue (phone -> Streaming Engine on the home Mac) ===
+    // The Streaming Engine is plain http on the home network, which an https page (and
+    // any phone off the Wi-Fi) can't call directly. So the browser drops a "play this"
+    // job here, and the engine — which only ever makes OUTBOUND requests — polls for it:
+    //   POST /api/play          browser queues {title, year, mediaType, services}
+    //   GET  /api/play/status   browser polls one job by ?id=
+    //   GET  /api/play/engine   browser asks whether an engine has checked in lately
+    //   GET  /api/play/next     engine claims the oldest pending job (also its heartbeat)
+    //   POST /api/play/result   engine reports {id, ok, message}
+    // Everything needs the shared PASSWORD. D1 is used rather than KV because KV reads can
+    // be stale for tens of seconds, which would make Play feel broken.
+    if (pathname.startsWith('/api/play')) {
+      const denied = await requirePassword(request, env);
+      if (denied) return denied;
+      if (!env.RATINGS_DB) {
+        return jsonError('RATINGS_DB binding is not configured on this Worker', 500, request);
+      }
+      try {
+        await ensurePlaySchema(env.RATINGS_DB);
+        return await handlePlayQueue(request, env, pathname, url);
+      } catch (err) {
+        return jsonError('play queue error: ' + (err && err.message || 'unknown'), 500, request);
+      }
+    }
+
     // === 5. Health Check / Info ===
     if (pathname === '/' || pathname === '/api' || pathname === '/api/health') {
       return jsonResponse({
@@ -475,6 +500,110 @@ async function recordFailedAttempt(request, env) {
   } catch (e) {
     // best-effort — a failed write here shouldn't block returning the 401 to the client
   }
+}
+
+// Shared password gate (same rules as /api/llm and /api/data): fail closed when no
+// PASSWORD is configured, rate-limit repeated failures. Returns a Response to send back,
+// or null when the caller is allowed through.
+async function requirePassword(request, env) {
+  if (!env.PASSWORD) {
+    return jsonError('PASSWORD secret is not configured on this Worker', 500, request);
+  }
+  if (await isRateLimited(request, env)) {
+    return jsonError('Too many failed attempts. Try again in a few minutes.', 429, request);
+  }
+  if (!(await isAuthenticated(request, env))) {
+    await recordFailedAttempt(request, env);
+    return jsonError('Unauthorized (wrong or missing password)', 401, request);
+  }
+  return null;
+}
+
+// ===================== Play queue =====================
+const PLAY_JOB_TTL_MS = 45 * 1000;       // a job nobody claims in this long is dropped
+const ENGINE_ONLINE_MS = 15 * 1000;      // engine counts as online if it polled this recently
+const PLAY_MIN_GAP_MS = 2 * 1000;        // at most one new job every couple of seconds
+
+let _playSchemaReady = false;
+async function ensurePlaySchema(db) {
+  if (_playSchemaReady) return;
+  await db.batch([
+    db.prepare('CREATE TABLE IF NOT EXISTS play_jobs (id TEXT PRIMARY KEY, title TEXT NOT NULL, year TEXT, media_type TEXT, services TEXT, status TEXT NOT NULL, message TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS play_meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL)'),
+  ]);
+  _playSchemaReady = true;
+}
+
+async function handlePlayQueue(request, env, pathname, url) {
+  const db = env.RATINGS_DB;
+  const now = Date.now();
+  const route = pathname.replace(/\/+$/, '');
+
+  if (route === '/api/play' && request.method === 'POST') {
+    let body;
+    try { body = await request.json(); } catch (_) { return jsonError('Invalid JSON', 400, request); }
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    if (title.length < 2 || title.length > 200) return jsonError('Missing title', 400, request);
+    const year = /^\d{4}$/.test(String(body.year || '').slice(0, 4)) ? String(body.year).slice(0, 4) : '';
+    const mediaType = body.mediaType === 'tv' ? 'tv' : 'movie';
+    const services = (Array.isArray(body.services) ? body.services : [])
+      .filter(x => typeof x === 'string' && /^[a-z]{2,12}$/.test(x)).slice(0, 20);
+
+    const recent = await db.prepare('SELECT 1 AS x FROM play_jobs WHERE created_at > ? LIMIT 1').bind(now - PLAY_MIN_GAP_MS).first();
+    if (recent) return jsonError('Slow down — a play request just went out', 429, request);
+
+    const id = crypto.randomUUID();
+    await db.batch([
+      db.prepare('DELETE FROM play_jobs WHERE created_at < ?').bind(now - 24 * 3600 * 1000),
+      db.prepare('INSERT INTO play_jobs (id, title, year, media_type, services, status, message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, title, year, mediaType, JSON.stringify(services), 'pending', '', now, now),
+    ]);
+    return jsonResponse({ id }, 200, request);
+  }
+
+  if (route === '/api/play/status' && request.method === 'GET') {
+    const id = url.searchParams.get('id') || '';
+    if (!/^[0-9a-f-]{36}$/.test(id)) return jsonError('Invalid id', 400, request);
+    const row = await db.prepare('SELECT status, message, created_at FROM play_jobs WHERE id = ?').bind(id).first();
+    if (!row) return jsonError('Unknown job', 404, request);
+    if (row.status === 'pending' && now - row.created_at > PLAY_JOB_TTL_MS) {
+      const msg = "The Streaming Engine didn't pick this up. Is it running on your Mac?";
+      await db.prepare("UPDATE play_jobs SET status = 'expired', message = ?, updated_at = ? WHERE id = ? AND status = 'pending'").bind(msg, now, id).run();
+      return jsonResponse({ status: 'expired', message: msg }, 200, request);
+    }
+    return jsonResponse({ status: row.status, message: row.message || '' }, 200, request);
+  }
+
+  if (route === '/api/play/engine' && request.method === 'GET') {
+    const row = await db.prepare("SELECT v FROM play_meta WHERE k = 'engine_seen'").first();
+    return jsonResponse({ online: !!(row && now - row.v < ENGINE_ONLINE_MS) }, 200, request);
+  }
+
+  if (route === '/api/play/next' && request.method === 'GET') {
+    await db.prepare("INSERT INTO play_meta (k, v) VALUES ('engine_seen', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(now).run();
+    // Claim in one statement so two pollers can never both get the same job.
+    const claimed = await db.prepare(
+      "UPDATE play_jobs SET status = 'claimed', updated_at = ? WHERE id = (SELECT id FROM play_jobs WHERE status = 'pending' AND created_at > ? ORDER BY created_at LIMIT 1) RETURNING id, title, year, media_type, services"
+    ).bind(now, now - PLAY_JOB_TTL_MS).all();
+    const job = claimed.results && claimed.results[0];
+    if (!job) return jsonResponse({ job: null }, 200, request);
+    let services = [];
+    try { services = JSON.parse(job.services || '[]'); } catch (_) {}
+    return jsonResponse({ job: { id: job.id, title: job.title, year: job.year || '', mediaType: job.media_type, services } }, 200, request);
+  }
+
+  if (route === '/api/play/result' && request.method === 'POST') {
+    let body;
+    try { body = await request.json(); } catch (_) { return jsonError('Invalid JSON', 400, request); }
+    const id = String(body.id || '');
+    if (!/^[0-9a-f-]{36}$/.test(id)) return jsonError('Invalid id', 400, request);
+    const message = String(body.message || '').slice(0, 300);
+    await db.prepare("UPDATE play_jobs SET status = ?, message = ?, updated_at = ? WHERE id = ? AND status = 'claimed'")
+      .bind(body.ok ? 'done' : 'failed', message, now, id).run();
+    return jsonResponse({ ok: true }, 200, request);
+  }
+
+  return jsonError('Not found', 404, request);
 }
 
 function jsonResponse(data, status = 200, request = null) {
