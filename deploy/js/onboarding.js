@@ -40,7 +40,23 @@ function updateColdStartUI() {
   // A true first run (no ratings) still shows setup until it is dismissed.
   const show = !ratesOk && !dismissed;
   root.classList.toggle('hidden', !show);
+  // The three stat chips read "— / 0 / 0" on a fresh profile, which tells a new user
+  // nothing and pushes setup down the page. Show them once setup is done or dismissed.
+  const statBar = document.getElementById('home-command-grid');
+  if (statBar) statBar.classList.toggle('setup-hidden', show);
   if (!show) return;
+
+  // One next action: highlight the first unfinished step and show overall progress
+  // (services = half, ratings = the other half).
+  const stepSvc = document.getElementById('cs-step-services');
+  const stepRate = document.getElementById('cs-step-rate');
+  if (stepSvc) stepSvc.classList.toggle('is-current', !servicesOk);
+  if (stepRate) stepRate.classList.toggle('is-current', servicesOk && !ratesOk);
+  const pct = Math.round(((servicesOk ? 1 : 0) + Math.min(rated, COLD_START_TARGET) / COLD_START_TARGET) * 50);
+  const fill = document.getElementById('cs-progress-fill');
+  if (fill) fill.style.width = pct + '%';
+  const bar = root.querySelector('.cold-start-progress');
+  if (bar) bar.setAttribute('aria-valuenow', String(pct));
 
   const mark = (checkId, stepId, done) => {
     const check = document.getElementById(checkId);
@@ -142,7 +158,10 @@ async function loadStarterRateGrid(force) {
           e.stopPropagation();
           addToWatched(item, r);
           card.classList.add('starter-rated');
-          card.innerHTML = `<div class="starter-rated-msg">Rated ${r}★</div>`;
+          const done = document.createElement('div');
+          done.className = 'starter-rated-msg';
+          done.textContent = `Rated ${r}★`;
+          stars.replaceWith(done);
           updateColdStartUI();
           if (typeof updateHomeSnapshot === 'function') updateHomeSnapshot();
         };
@@ -153,7 +172,7 @@ async function loadStarterRateGrid(force) {
     _starterLoaded = true;
   } catch (e) {
     console.warn('[onboarding] starter grid failed', e);
-    grid.innerHTML = `<div class="text-xs text-zinc-500 col-span-full py-4 text-center">Couldn’t load starters. Check password / connection, or Browse instead.</div>`;
+    grid.innerHTML = `<div class="text-xs text-zinc-500 col-span-full py-4 text-center">Couldn’t load starters. Check your connection, or use Browse instead.<br><button type="button" class="starter-retry" onclick="loadStarterRateGrid(true)">Try again</button></div>`;
   } finally {
     _starterLoading = false;
   }

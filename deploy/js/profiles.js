@@ -144,6 +144,23 @@
     // always visible rather than tucked into a menu — the costly mistake with per-person
     // libraries is rating a film onto the wrong one, and that only happens when you can't
     // see who you're signed in as.
+    // On phones the switcher is collapsed behind the sticky "Rating as …" pill so it
+    // stops eating a row of vertical space; on wider screens it is always visible and
+    // these are no-ops (CSS ignores .expanded there).
+    function toggleProfileBar() {
+      const bar = document.getElementById('profile-bar');
+      const pill = document.getElementById('rating-as-pill');
+      if (!bar) return;
+      const open = bar.classList.toggle('expanded');
+      if (pill) pill.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeProfileBar() {
+      const bar = document.getElementById('profile-bar');
+      const pill = document.getElementById('rating-as-pill');
+      if (bar) bar.classList.remove('expanded');
+      if (pill) pill.setAttribute('aria-expanded', 'false');
+    }
+
     function renderProfileSwitcher() {
       const wrap = document.getElementById('profile-switcher');
       if (!wrap) return;
@@ -159,7 +176,7 @@
         btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         btn.className = 'profile-pill' + (isActive ? ' profile-pill-active' : '');
         if (isActive) btn.style.setProperty('--profile-accent', p.accent);
-        btn.onclick = () => switchProfile(p.id);
+        btn.onclick = () => { closeProfileBar(); switchProfile(p.id); };
         wrap.appendChild(btn);
       });
 
@@ -170,7 +187,7 @@
       togetherBtn.setAttribute('aria-pressed', togetherMode ? 'true' : 'false');
       togetherBtn.className = 'profile-pill' + (togetherMode ? ' profile-pill-active' : '');
       if (togetherMode) togetherBtn.style.setProperty('--profile-accent', TOGETHER_ACCENT);
-      togetherBtn.onclick = () => toggleTogetherMode();
+      togetherBtn.onclick = () => { closeProfileBar(); toggleTogetherMode(); };
       wrap.appendChild(togetherBtn);
 
       // While Together is on, make it unmistakable that edits still land on one person.

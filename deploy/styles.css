@@ -5144,3 +5144,131 @@
   .settings-tab { font-size: 10px; }
   .home-status-label { font-size: 10px; }
 }
+
+/* ═══ UI polish v2 ═══════════════════════════════════════════════════════════
+   First-run focus, collapsed profile switcher on phones, line-icon bottom nav,
+   a clearer desktop setup layout, and better contrast for small grey text.
+   Kept in one block at the end so it wins ties with the older rules above. */
+:root { --brand: #f87171; }
+
+/* 1. Stats chips read "— / 0 / 0" on a fresh profile; hide until setup is done. */
+.home-status-bar.setup-hidden { display: none !important; }
+
+/* 2. Setup card: progress bar, one highlighted next step, quieter extras. */
+.cold-start-progress {
+  height: 4px;
+  margin: -2px 0 12px;
+  border-radius: 9999px;
+  background: rgba(63,63,70,0.7);
+  overflow: hidden;
+}
+.cold-start-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ef4444, #f59e0b);
+  transition: width 0.4s ease;
+}
+.cold-start-step.is-current {
+  border-color: rgba(248,113,113,0.75);
+  background: rgba(127,29,29,0.28);
+  box-shadow: 0 0 0 1px rgba(248,113,113,0.22);
+}
+.cold-start-step.is-current .cs-check {
+  background: #dc2626;
+  border-color: #ef4444;
+  color: #fff;
+}
+.cold-start-step:not(.done):not(.is-current) { background: rgba(9,9,11,0.4); }
+#cs-step-import {
+  border-style: dashed;
+  background: transparent;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+#cs-step-import .cs-check { width: 22px; height: 22px; font-size: 11px; }
+#cs-step-import .cs-step-label { font-size: 12px; font-weight: 600; color: #d4d4d8; }
+.cs-step-hint { color: #a1a1aa; }
+.starter-year { color: #a1a1aa; }
+.starter-stars { gap: 3px; margin-top: 8px; }
+.starter-stars button { padding: 7px 0; font-size: 14px; line-height: 1; }
+.starter-retry {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid #3f3f46;
+  background: #27272a;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.starter-retry:hover { border-color: rgba(248,113,113,0.5); }
+
+/* Phones: tighter steps so the posters (and their stars) land above the fold. */
+@media (max-width: 640px) {
+  .cold-start { padding: 12px; }
+  .cold-start-header { margin-bottom: 8px; }
+  .cold-start-steps { gap: 6px; }
+  .cold-start-step { padding: 8px 10px; gap: 10px; }
+  .cs-check { width: 24px; height: 24px; }
+  .cs-step-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .starter-rate-section { margin-top: 10px; padding-top: 8px; }
+}
+
+/* Desktop: the three steps sit in a row and the starter grid uses the width. */
+@media (min-width: 900px) {
+  .cold-start-steps { flex-direction: row; align-items: stretch; }
+  .cold-start-step { flex: 1; }
+  #cs-step-import { flex: 0.7; }
+  .starter-rate-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* 4. Phones: the profile switcher hides behind the sticky "Rating as …" pill. */
+.rating-as-pill {
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: default;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .profile-bar { display: none; }
+  .profile-bar.expanded { display: flex; margin-bottom: 6px; }
+  .rating-as-pill { cursor: pointer; pointer-events: auto; padding: 6px 12px; }
+  .rating-as-pill::after {
+    content: "▾";
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0.85;
+    transition: transform 0.15s ease;
+  }
+  .rating-as-pill[aria-expanded="true"]::after { transform: rotate(180deg); }
+  .nav-icon-btn { min-width: 40px; min-height: 40px; font-size: 16px; }
+}
+
+/* 5. Bottom nav: one set of line icons, same red as the logo dot. */
+.bottom-nav-svg { width: 22px; height: 22px; display: block; }
+@media (max-width: 767px) {
+  .bottom-nav-icon { display: flex; align-items: center; justify-content: center; height: 22px; font-size: 0; }
+  .bottom-nav-btn { color: #8e8e98; min-height: 52px; }
+  .bottom-nav-btn.active { color: var(--brand); background: rgba(248,113,113,0.12); }
+  .bottom-nav-btn.active .bottom-nav-svg { stroke-width: 2.2; }
+  .bottom-nav-label { font-size: 11px; }
+  /* Keep the last rows of content clear of the fixed bar. */
+  body { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* 6. Desktop cards react to the pointer. */
+@media (hover: hover) and (min-width: 900px) {
+  .rec-card, .movie-card { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+  .rec-card:hover, .movie-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0,0,0,0.45); }
+}
+
+/* 7. Contrast: small grey text on the dark theme was ~3:1 or less. */
+html:not(.light) .text-zinc-500 { color: #a1a1aa; }
+html:not(.light) .text-zinc-600 { color: #8e8e98; }
+html:not(.light) .section-header { color: #8e8e98; }
+.starter-card.starter-rated .starter-poster { opacity: 0.35; filter: grayscale(0.6); }
+.starter-card .starter-rated-msg { padding: 8px 4px 2px; }

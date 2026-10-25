@@ -44,12 +44,12 @@
          one, and that only happens when you can't see who you're signed in as.
          "Together" is a rec mode, not a profile: it blends both taste profiles but
          leaves writes with the active person (see js/profiles.js). -->
-    <div class="profile-bar">
+    <div class="profile-bar" id="profile-bar">
       <span class="profile-bar-label">Profile</span>
       <div id="profile-switcher" class="profile-switcher" role="group" aria-label="Active profile"></div>
       <span id="profile-mode-note" class="profile-mode-note hidden"></span>
     </div>
-    <div id="rating-as-pill" class="rating-as-pill" aria-live="polite">Rating as Zach</div>
+    <button type="button" id="rating-as-pill" class="rating-as-pill" aria-live="polite" aria-expanded="false" aria-controls="profile-bar" title="Switch profile" onclick="toggleProfileBar()">Rating as Zach</button>
 
     <!-- ═══ MAIN PAGE TAB BAR (mobile primary nav; hidden on desktop) ═══ -->
     <div class="main-tab-bar" role="tablist" aria-label="Main sections">
@@ -113,6 +113,7 @@
           </div>
           <button type="button" class="cold-start-dismiss" onclick="dismissColdStart()" title="Hide setup" aria-label="Hide setup">✕</button>
         </div>
+        <div class="cold-start-progress" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="cs-progress-fill"></span></div>
         <div class="cold-start-steps">
           <button type="button" class="cold-start-step" id="cs-step-services" onclick="showSettings('streaming')">
             <span class="cs-check" id="cs-check-services">1</span>
@@ -693,19 +694,19 @@
   <!-- Mobile bottom nav (desktop uses sticky page links) -->
   <nav id="bottom-nav" class="bottom-nav" aria-label="Primary">
     <button type="button" class="bottom-nav-btn active" id="bnav-foryou" onclick="switchMainTab('foryou')" aria-current="page">
-      <span class="bottom-nav-icon" aria-hidden="true">▶</span>
+      <span class="bottom-nav-icon" aria-hidden="true"><svg class="bottom-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg></span>
       <span class="bottom-nav-label">For You</span>
     </button>
     <button type="button" class="bottom-nav-btn" id="bnav-curator" onclick="switchMainTab('curator')">
-      <span class="bottom-nav-icon" aria-hidden="true">👻</span>
+      <span class="bottom-nav-icon" aria-hidden="true"><svg class="bottom-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2.5a7.5 7.5 0 0 0-7.5 7.5v11.5l3-3 2.25 2.25L12 19l2.25 2.25 2.25-2.25 3 3V10A7.5 7.5 0 0 0 12 2.5z"/></svg></span>
       <span class="bottom-nav-label">Curator</span>
     </button>
     <button type="button" class="bottom-nav-btn" id="bnav-browse" onclick="switchMainTab('browse')">
-      <span class="bottom-nav-icon" aria-hidden="true">⌕</span>
+      <span class="bottom-nav-icon" aria-hidden="true"><svg class="bottom-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.6-4.6"/></svg></span>
       <span class="bottom-nav-label">Browse</span>
     </button>
     <button type="button" class="bottom-nav-btn" id="bnav-watched" onclick="switchMainTab('watched')">
-      <span class="bottom-nav-icon" aria-hidden="true">☰</span>
+      <span class="bottom-nav-icon" aria-hidden="true"><svg class="bottom-nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16"/><path d="M8.5 6.5v13.5"/><path d="m13 6 3.5 14"/><path d="m17.5 4.5 3 .8"/></svg></span>
       <span class="bottom-nav-label">Library</span>
     </button>
   </nav>
