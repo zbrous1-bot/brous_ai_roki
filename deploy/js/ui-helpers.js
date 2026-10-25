@@ -552,13 +552,13 @@
     // another's. (llmConfig is deliberately excluded: it's shared device config, not
     // personal state, so it's loaded once below and never reloaded on a switch.)
     function loadPersonalStateFromStore() {
-      toWatchList = loadJSON('horror_roki_towatch', []);
-      watchedList = loadJSON('horror_roki_watched', []);
-      dislikedList = loadJSON('horror_roki_disliked', []);
-      notInterestedList = loadJSON('horror_roki_not_interested', []);
+      toWatchList = sanitizeLibraryList(loadJSON('horror_roki_towatch', []));
+      watchedList = sanitizeLibraryList(loadJSON('horror_roki_watched', []));
+      dislikedList = sanitizeLibraryList(loadJSON('horror_roki_disliked', []));
+      notInterestedList = sanitizeLibraryList(loadJSON('horror_roki_not_interested', []));
       chatHistory = loadJSON('horror_roki_chat', []);
       try {
-        watchlist = JSON.parse(Store.getItem('brous_watchlist') || '[]');
+        watchlist = sanitizeLibraryList(JSON.parse(Store.getItem('brous_watchlist') || '[]'));
       } catch (e) {
         console.warn('brous_watchlist parse failed (data may be corrupted or cleared):', e);
         watchlist = [];

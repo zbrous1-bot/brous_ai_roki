@@ -80,6 +80,16 @@
       if (linkArea) linkArea.classList.add('hidden');
       const genBtn = document.getElementById('transfer-gen-btn');
       if (genBtn) { genBtn.textContent = 'Generate Transfer Link'; genBtn.disabled = false; }
+      const d = expandPayloadRaw(raw);
+      return {
+        ...d,
+        watched: sanitizeLibraryList(d.watched),
+        to_watch: sanitizeLibraryList(d.to_watch),
+        disliked: sanitizeLibraryList(d.disliked),
+        not_interested: sanitizeLibraryList(d.not_interested)
+      };
+    }
+    function expandPayloadRaw(raw) {
     }
 
     function closeTransferModal() {

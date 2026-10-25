@@ -127,10 +127,10 @@
             try {
               const serverData = await _dataFetch('/api/data');
               if (serverData && typeof serverData === 'object') {
-                watchedList = _mergeItemLists(watchedList, serverData.watched, _syncBaseline?.watched);
-                toWatchList = _mergeItemLists(toWatchList, serverData.to_watch, _syncBaseline?.to_watch);
-                dislikedList = _mergeItemLists(dislikedList, serverData.disliked, _syncBaseline?.disliked);
-                notInterestedList = _mergeItemLists(notInterestedList, serverData.not_interested, _syncBaseline?.not_interested);
+                watchedList = _mergeItemLists(watchedList, sanitizeLibraryList(serverData.watched), _syncBaseline?.watched);
+                toWatchList = _mergeItemLists(toWatchList, sanitizeLibraryList(serverData.to_watch), _syncBaseline?.to_watch);
+                dislikedList = _mergeItemLists(dislikedList, sanitizeLibraryList(serverData.disliked), _syncBaseline?.disliked);
+                notInterestedList = _mergeItemLists(notInterestedList, sanitizeLibraryList(serverData.not_interested), _syncBaseline?.not_interested);
                 Store.setItem('horror_roki_watched', JSON.stringify(watchedList));
                 Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList));
                 Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList));
@@ -198,10 +198,10 @@
         if (!serverData || typeof serverData !== 'object') return null;
         if (serverData.synced_at) _lastServerSyncedAt = serverData.synced_at;
         let changed = false;
-        if (Array.isArray(serverData.watched)) { watchedList = serverData.watched; Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
-        if (Array.isArray(serverData.to_watch)) { toWatchList = serverData.to_watch; Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
-        if (Array.isArray(serverData.disliked)) { dislikedList = serverData.disliked; Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
-        if (Array.isArray(serverData.not_interested)) { notInterestedList = serverData.not_interested; Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); changed = true; }
+        if (Array.isArray(serverData.watched)) { watchedList = sanitizeLibraryList(serverData.watched); Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); changed = true; }
+        if (Array.isArray(serverData.to_watch)) { toWatchList = sanitizeLibraryList(serverData.to_watch); Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); changed = true; }
+        if (Array.isArray(serverData.disliked)) { dislikedList = sanitizeLibraryList(serverData.disliked); Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); changed = true; }
+        if (Array.isArray(serverData.not_interested)) { notInterestedList = sanitizeLibraryList(serverData.not_interested); Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); changed = true; }
         if (Array.isArray(serverData.chat_history) && serverData.chat_history.length > 0) { chatHistory = serverData.chat_history; Store.setItem('horror_roki_chat', JSON.stringify(chatHistory)); changed = true; }
         if (changed) {
           watchedIds = new Set([...toWatchList,...watchedList,...dislikedList,...notInterestedList].map(w=>`${w.id}:${w._mediaType||'movie'}`));

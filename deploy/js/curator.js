@@ -713,10 +713,10 @@ ${Object.keys(grounding).length ? `=== GROUNDING (supplementary metadata) ===\n`
           const txt = ev.target.result || '';
           try {
             const data = JSON.parse(txt);
-            if (data.watched) { watchedList = data.watched; Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
-            if (data.to_watch) { toWatchList = data.to_watch; Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); }
-            if (data.disliked) { dislikedList = data.disliked; Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
-            if (data.not_interested) { notInterestedList = data.not_interested; Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); }
+            if (data.watched) { watchedList = sanitizeLibraryList(data.watched); Store.setItem('horror_roki_watched', JSON.stringify(watchedList)); }
+            if (data.to_watch) { toWatchList = sanitizeLibraryList(data.to_watch); Store.setItem('horror_roki_towatch', JSON.stringify(toWatchList)); }
+            if (data.disliked) { dislikedList = sanitizeLibraryList(data.disliked); Store.setItem('horror_roki_disliked', JSON.stringify(dislikedList)); }
+            if (data.not_interested) { notInterestedList = sanitizeLibraryList(data.not_interested); Store.setItem('horror_roki_not_interested', JSON.stringify(notInterestedList)); }
             if (data.chat_history) { chatHistory = data.chat_history; Store.setItem('horror_roki_chat', JSON.stringify(chatHistory)); }
             if (data.llm_config) { llmConfig = data.llm_config; Store.setItem('horror_roki_llm', JSON.stringify(llmConfig)); }
             updateAllLibraryRenders();

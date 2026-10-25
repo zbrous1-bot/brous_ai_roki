@@ -216,3 +216,32 @@
       };
     }
 
+
+    // ===================== sanitizeLibraryList (canonical, global) =====================
+    // Library items come from places we don't fully control — a backup file, a transfer
+    // link, the cloud copy. Several renderers drop item.id, _mediaType and poster_path
+    // straight into onclick="..." and src="..." attributes, so a tampered entry could
+    // break out of the attribute and run script. This keeps only the shapes the app
+    // itself ever writes: a numeric id, 'movie'/'tv', a "/file.jpg"-style TMDB path.
+    // Entries without a usable id are dropped. Everything else on the item is kept as is.
+    window.sanitizeLibraryList = function sanitizeLibraryList(list) {
+      if (!Array.isArray(list)) return [];
+      const tmdbPath = /^\/[A-Za-z0-9._-]{1,120}$/;
+      const out = [];
+      for (const x of list) {
+        if (!x || typeof x !== 'object') continue;
+        const id = Number(x.id);
+        if (!Number.isSafeInteger(id) || id < 0) continue;
+        const item = { ...x, id, _mediaType: x._mediaType === 'tv' ? 'tv' : 'movie' };
+        for (const f of ['poster_path', 'backdrop_path']) {
+          if (item[f] != null && !(typeof item[f] === 'string' && tmdbPath.test(item[f]))) item[f] = null;
+        }
+        if (item.release_date != null && !/^\d{4}(-\d{2}-\d{2})?$/.test(String(item.release_date))) item.release_date = '';
+        if (item._rating != null) {
+          const r = Number(item._rating);
+          item._rating = Number.isFinite(r) ? Math.max(0, Math.min(5, r)) : 0;
+        }
+        out.push(item);
+      }
+      return out;
+    };
