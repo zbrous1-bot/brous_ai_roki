@@ -1200,6 +1200,8 @@
         wrap.appendChild(btn);
       });
 
+      renderRecGenreSelect(available);
+
       // Update the collapsed-header label to show the active genre
       const label = document.getElementById('recs-filter-current');
       if (label) {
@@ -1208,6 +1210,37 @@
       }
       // Keep the inline "Genre: X ▾" button in sync as well
       updateRecGenreLabel();
+    }
+
+    // Phones show this genre row as a dropdown instead of a wall of chips (CSS swaps
+    // which one is visible); both are driven by the same state.
+    function renderRecGenreSelect(available) {
+      const bar = document.getElementById('recs-genre-bar');
+      if (!bar) return;
+      let sel = document.getElementById('recs-genre-select');
+      if (!sel) {
+        sel = document.createElement('select');
+        sel.id = 'recs-genre-select';
+        sel.className = 'recs-genre-select recs-genre-select-inline';
+        sel.setAttribute('aria-label', 'Filter by genre');
+        sel.onchange = () => {
+          const v = sel.value;
+          if (v === 'all') applyRecGenre(null);
+          else if (v.startsWith('g:')) applyRecGenre(Number(v.slice(2)));
+          else { collapseRecsGenreFilter(); toggleKeywordPool(v.slice(2)); }
+        };
+        bar.insertBefore(sel, bar.firstChild);
+      }
+      const { counts, total } = genreChoicesFromPool();
+      const rows = [{ v: 'all', label: `All genres · ${total}`, on: !keywordPoolActive && recGenreFilter === null }];
+      available.forEach(g => rows.push({ v: 'g:' + g.id, label: counts[g.id] ? `${g.name} · ${counts[g.id]}` : g.name, on: !keywordPoolActive && recGenreFilter === g.id }));
+      Object.entries(KEYWORD_POOLS).forEach(([key, pool]) => rows.push({ v: 'k:' + key, label: pool.chip, on: keywordPoolActive === key }));
+      sel.innerHTML = '';
+      rows.forEach(r => {
+        const o = document.createElement('option');
+        o.value = r.v; o.textContent = r.label; o.selected = r.on;
+        sel.appendChild(o);
+      });
     }
 
     function toggleRecsGenreFilter() {

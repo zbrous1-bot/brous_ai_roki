@@ -5331,3 +5331,10 @@ html:not(.light) .section-header { color: #8e8e98; }
     border-radius: 12px;
   }
 }
+
+/* For You genre row: dropdown on phones, chips elsewhere. */
+.recs-genre-select-inline { display: none; margin: 0; }
+@media (max-width: 640px) {
+  .recs-genre-select-inline { display: block; }
+  #recs-genre-chips { display: none !important; }
+}
