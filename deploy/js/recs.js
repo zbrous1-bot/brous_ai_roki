@@ -1391,7 +1391,30 @@
         <button type="button" class="recs-menu-item" onclick="surpriseMe(); closeRecsActionsMenu();">Surprise me</button>
       `;
       const genreHost = menu.querySelector('.recs-menu-genres');
-      if (genreHost) {
+      if (genreHost && window.matchMedia('(max-width: 640px)').matches) {
+        // Phones: one native dropdown instead of a wall of chips.
+        const { list } = genreChoicesFromPool();
+        const sel = document.createElement('select');
+        sel.className = 'recs-genre-select';
+        sel.setAttribute('aria-label', 'Genre');
+        const opts = [{ v: 'all', label: 'All genres', on: !keywordPoolActive && recGenreFilter == null }];
+        list.forEach(g => opts.push({ v: 'g:' + g.id, label: g.name, on: !keywordPoolActive && recGenreFilter === g.id }));
+        Object.entries(KEYWORD_POOLS).forEach(([key, pool]) => opts.push({ v: 'k:' + key, label: pool.label, on: keywordPoolActive === key }));
+        opts.forEach(o => {
+          const op = document.createElement('option');
+          op.value = o.v; op.textContent = o.label; op.selected = o.on;
+          sel.appendChild(op);
+        });
+        sel.onclick = (ev) => ev.stopPropagation();
+        sel.onchange = () => {
+          const v = sel.value;
+          closeRecsActionsMenu();
+          if (v === 'all') applyRecGenre(null);
+          else if (v.startsWith('g:')) applyRecGenre(Number(v.slice(2)));
+          else toggleKeywordPool(v.slice(2));
+        };
+        genreHost.appendChild(sel);
+      } else if (genreHost) {
         const { list } = genreChoicesFromPool();
         const addGenreChip = (label, on, fn) => {
           const chip = document.createElement('button');

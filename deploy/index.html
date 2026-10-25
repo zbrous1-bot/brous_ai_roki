@@ -264,6 +264,10 @@
         <div id="filter-body" class="browse-filter-body">
           <div class="browse-filter-group">
             <div class="browse-filter-label">Genre</div>
+            <button type="button" id="genre-dropdown-btn" class="genre-dropdown-btn" aria-expanded="false" aria-controls="genre-chips" onclick="toggleGenreDropdown()">
+              <span id="genre-dropdown-label">Any genre</span>
+              <span class="genre-dropdown-caret" aria-hidden="true">▾</span>
+            </button>
             <div id="genre-chips" class="browse-chip-wrap"></div>
           </div>
           <div class="browse-filter-group">

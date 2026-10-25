@@ -62,7 +62,26 @@
         };
         container.appendChild(btn);
       });
+      updateGenreDropdownLabel();
       updateFilterCount();
+    }
+
+    // Phones show genres as a dropdown (button + panel of the same multi-select chips)
+    // instead of a wall of chips; on wider screens CSS hides the button and shows the chips.
+    function updateGenreDropdownLabel() {
+      const el = document.getElementById('genre-dropdown-label');
+      if (!el) return;
+      const names = GENRES.filter(g => selectedGenres.has(g.id)).map(g => g.name);
+      el.textContent = !names.length ? 'Any genre'
+        : names.length <= 2 ? names.join(', ')
+        : `${names.length} genres`;
+    }
+    function toggleGenreDropdown() {
+      const btn = document.getElementById('genre-dropdown-btn');
+      const chips = document.getElementById('genre-chips');
+      if (!btn || !chips) return;
+      const open = chips.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
     // Style toggles for the Browse filter panel. Unlike the For You versions
